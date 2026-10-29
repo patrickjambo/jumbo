@@ -473,6 +473,37 @@ export default function MeetingRoom() {
     ? [store.localParticipant, ...store.remoteParticipants]
     : store.remoteParticipants;
 
+  // Keyboard Shortcuts (Spec §18, §20: M=Mic, V=Cam, H=Hand, C=Chat, P=Participants, Esc=Close)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'm') {
+        e.preventDefault();
+        void toggleMic();
+      } else if (key === 'v') {
+        e.preventDefault();
+        void toggleCam();
+      } else if (key === 'h') {
+        e.preventDefault();
+        toggleHand();
+      } else if (key === 'c') {
+        e.preventDefault();
+        setPanel((p) => (p === 'chat' ? null : 'chat'));
+      } else if (key === 'p') {
+        e.preventDefault();
+        setPanel((p) => (p === 'participants' ? null : 'participants'));
+      } else if (e.key === 'Escape') {
+        setPanel(null);
+        setShowEndDialog(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [store.isMicOn, store.isCamOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Active speaker resolution
   const speakerParticipant = allParticipants.find((p) => p.identity === store.activeSpeakerId)
     ?? store.remoteParticipants[0]

@@ -130,6 +130,7 @@ export interface QuizState {
   optionResults: { optionId: string; count: number; percentage: number }[];
   leaderboard: QuizPlayer[];
   clockOffset: number; // ms difference between server and client clock
+  isHost: boolean;
 
   setGameId: (id: string) => void;
   setPin: (pin: string) => void;
@@ -141,6 +142,7 @@ export interface QuizState {
   showReveal: (correctId: string, results: QuizState['optionResults'], playerResult?: QuizState['playerResult']) => void;
   setLeaderboard: (lb: QuizPlayer[]) => void;
   setClockOffset: (offset: number) => void;
+  setIsHost: (isHost: boolean) => void;
   reset: () => void;
 }
 
@@ -161,6 +163,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   optionResults: [],
   leaderboard: [],
   clockOffset: 0,
+  isHost: false,
 
   setGameId: (gameId) => set({ gameId }),
   setPin: (pin) => set({ pin }),
@@ -174,6 +177,7 @@ export const useQuizStore = create<QuizState>((set) => ({
     set({ correctOptionId, optionResults, playerResult: playerResult ?? null, status: 'reveal' }),
   setLeaderboard: (leaderboard) => set({ leaderboard }),
   setClockOffset: (clockOffset) => set({ clockOffset }),
+  setIsHost: (isHost) => set({ isHost }),
   reset: () => set({
     gameId: null, pin: null, players: [], status: 'idle',
     currentQuestion: null, questionIndex: 0, totalQuestions: 0,

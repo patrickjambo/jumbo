@@ -135,6 +135,7 @@ export function useQuizSocket() {
     socket.emit(GAME_EVENTS.CREATE, { settings, customQuestions }, (res: { gameId: string; pin: string }) => {
       store.setGameId(res.gameId);
       store.setPin(res.pin);
+      store.setIsHost(true);
       store.setStatus('lobby');
     });
   }
@@ -143,6 +144,7 @@ export function useQuizSocket() {
     const socket = socketRef.current;
     if (!socket) return;
     store.setPin(pin);
+    store.setIsHost(false);
     store.setStatus('lobby');
     socket.emit(GAME_EVENTS.JOIN, { pin, displayName });
   }

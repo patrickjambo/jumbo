@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Trophy, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Users, Trophy, CheckCircle, XCircle, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { quizAudio } from '../utils/audioEffects';
 
 const OPTION_META = [
   { cls: 'option-a', shape: '◆', label: 'A' },
@@ -47,20 +48,34 @@ export default function QuizGame() {
 
   // Client-side countdown (server provides start time + we sync clock)
   const [timeLeft, setTimeLeft] = useState(store.currentQuestion?.timeLimit ?? 20);
+  const [soundOn, setSoundOn] = useState(() => quizAudio.isEnabled());
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const lastSecRef = useRef<number>(-1);
 
   // Keep screen awake during game (Spec §11, §21)
   useWakeLock(true);
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    quizAudio.setEnabled(next);
+  };
 
   // Wire countdown to server time
   useEffect(() => {
     if (!store.currentQuestion || store.status !== 'active') return;
     clearInterval(intervalRef.current);
+    lastSecRef.current = -1;
 
     function tick() {
       const elapsed = (Date.now() + store.clockOffset - store.serverStartTime) / 1000;
       const remaining = Math.max(0, (store.currentQuestion?.timeLimit ?? 20) - elapsed);
-      setTimeLeft(Math.ceil(remaining));
+      const rounded = Math.ceil(remaining);
+      setTimeLeft(rounded);
+      if (rounded <= 5 && rounded > 0 && rounded !== lastSecRef.current) {
+        lastSecRef.current = rounded;
+        quizAudio.playTick();
+      }
       if (remaining <= 0) clearInterval(intervalRef.current);
     }
 
@@ -71,6 +86,7 @@ export default function QuizGame() {
 
   const handleAnswer = useCallback((optId: string) => {
     if (store.selectedOptionId || store.status !== 'active' || !store.gameId || !store.currentQuestion) return;
+    quizAudio.playLockIn();
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(40);
     }
@@ -85,6 +101,46 @@ export default function QuizGame() {
     }
     if (store.gameId) nextQuestion(store.gameId);
   }, [store.questionIndex, store.totalQuestions, store.gameId, nextQuestion, navigate, pin]);
+
+  // Audio stingers on reveal
+  useEffect(() => {
+    if (store.status === 'reveal') {
+      if (store.selectedOptionId && store.selectedOptionId === store.correctOptionId) {
+        quizAudio.playCorrect();
+      } else if (store.selectedOptionId) {
+        quizAudio.playWrong();
+      }
+    }
+  }, [store.status, store.selectedOptionId, store.correctOptionId]);
+
+  // Keyboard navigation (Spec §18, §20)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (store.status === 'active' && store.currentQuestion && !store.selectedOptionId) {
+        const key = e.key.toLowerCase();
+        let idx = -1;
+        if (key === '1' || key === 'a') idx = 0;
+        else if (key === '2' || key === 'b') idx = 1;
+        else if (key === '3' || key === 'c') idx = 2;
+        else if (key === '4' || key === 'd') idx = 3;
+
+        if (idx >= 0 && store.currentQuestion.options[idx]) {
+          e.preventDefault();
+          handleAnswer(store.currentQuestion.options[idx]!.id);
+        }
+      } else if (store.status === 'reveal' && store.isHost) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleNext();
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [store.status, store.currentQuestion, store.selectedOptionId, store.isHost, handleAnswer, handleNext]);
 
   // Waiting state
   if (!store.currentQuestion) {
@@ -110,9 +166,19 @@ export default function QuizGame() {
           Q {store.questionIndex + 1}/{store.totalQuestions}
         </span>
         <CountdownRing timeLeft={timeLeft} totalTime={q.timeLimit} />
-        <div className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
-          <Users className="w-4 h-4" />
-          {store.answeredCount}/{store.totalPlayers}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={toggleSound}
+            className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-white bg-[var(--surface-2)] border border-[var(--border-glass)] transition-colors"
+            title={soundOn ? 'Mute game sound' : 'Unmute game sound'}
+            aria-label="Toggle game sound"
+          >
+            {soundOn ? <Volume2 className="w-4 h-4 text-brand-300" /> : <VolumeX className="w-4 h-4 text-red-400" />}
+          </button>
+          <div className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+            <Users className="w-4 h-4" />
+            {store.answeredCount}/{store.totalPlayers}
+          </div>
         </div>
       </div>
 
@@ -146,6 +212,9 @@ export default function QuizGame() {
             >
               <span className="text-xl font-bold opacity-70 flex-shrink-0">{meta.shape}</span>
               <span className="flex-1 text-base">{opt.text}</span>
+              <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/25 text-white/80 border border-white/10">
+                {i + 1}
+              </span>
               {/* Option result bar */}
               {store.status === 'reveal' && store.optionResults.length > 0 && (
                 <div className="absolute inset-x-0 bottom-0 h-1 bg-black/20 rounded-b-xl overflow-hidden">

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useQuizStore } from '../store';
 import { useQuizSocket } from '../hooks/useQuizSocket';
+import { quizAudio } from '../utils/audioEffects';
 
 const PODIUM_ICONS = [Trophy, Medal, Star];
 const PODIUM_COLORS = ['text-yellow-400', 'text-zinc-400', 'text-amber-600'];
@@ -20,6 +21,7 @@ export default function QuizResults() {
   const rest = results.slice(3);
 
   useEffect(() => {
+    quizAudio.playFanfare();
     void confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#7c3aed', '#06b6d4', '#f59e0b'] });
     setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { y: 0.3, x: 0.1 } }), 400);
     setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { y: 0.3, x: 0.9 } }), 700);
