@@ -40,8 +40,11 @@ cd apps/web && pnpm run dev
    - Adjust devices using the glass device picker dropdowns.
    - Tap the primary **"Join Meeting"** button.
 3. In the **Meeting Room**:
-   - **Video Grid**: Auto-adjusts layout from 1 to 16 tiles with connection quality indicators.
-   - **Floating Glass Bar**: Mic mute/unmute, Camera on/off, Screen Share, In-call Chat, Participants list.
+   - **Speaker vs Gallery View (Spec §6.1)**: Switch between full responsive grid and Active Speaker stage with participant thumbnail strip.
+   - **Raise Hand (Spec §6.1)**: Tap the Hand ✋ button in the floating glass bar to broadcast your raised hand to the room with glowing visual indicators and instant notifications. Hosts can lower hands in the participant roster.
+   - **Connection Quality (Spec §6.2)**: Real-time 3-bar signal indicator for every participant (Excellent, Good, Poor).
+   - **Screen Wake Lock (Spec §11)**: Device display automatically stays awake throughout meetings and quizzes.
+   - **Floating Glass Bar**: Mic mute/unmute, Camera on/off, Screen Share, Raise Hand, In-call Chat, Participants list, In-Meeting Quiz, Record, Leave.
    - **Noise Control (Spec §6.3)**: Real-time Web Audio VAD suppresses background noise; auto-mutes sustained non-speech with an instant one-tap **Unmute** notification banner.
    - **Client-Side Recording (Spec §6.4)**: Tap the Record button to record composite video + audio and download an instant `.webm` file.
 
