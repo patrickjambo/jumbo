@@ -108,6 +108,7 @@ export default function PreJoinLobby() {
       sessionStorage.setItem(`lk-token-${roomCode}`, token);
       sessionStorage.setItem('lk-url', livekitUrl);
       sessionStorage.setItem('lk-name', name.trim());
+      sessionStorage.setItem('lk-is-host', isNew ? 'true' : 'false');
 
       // Stop stream — LiveKit will re-acquire
       streamRef.current?.getTracks().forEach((t) => t.stop());

@@ -10,6 +10,7 @@ import {
   Mic, MicOff, Video, VideoOff, Monitor, MessageSquare,
   Users, Gamepad2, Circle, PhoneOff, ChevronUp, X,
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
+  Lock, Unlock, UserMinus, ShieldAlert,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
@@ -207,9 +208,14 @@ export default function MeetingRoom() {
   const [quizInvite, setQuizInvite] = useState<{ pin: string; hostName: string } | null>(null);
   const [handAlert, setHandAlert] = useState<string | null>(null);
   const [noiseAlert, setNoiseAlert] = useState<string | null>(null);
+  const [hostNotice, setHostNotice] = useState<string | null>(null);
   const [showHeadphonesHint, setShowHeadphonesHint] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [isRoomLocked, setIsRoomLocked] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+
+  const isHost = typeof window !== 'undefined' && sessionStorage.getItem('lk-is-host') === 'true';
 
   // Local mic stream for noise control
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
@@ -293,7 +299,7 @@ export default function MeetingRoom() {
       });
 
       // Data channel messages (chat, quiz invites, raised hands)
-      room.on(RoomEvent.DataReceived, (data: Uint8Array, participant) => {
+      room.on(RoomEvent.DataReceived, async (data: Uint8Array, participant) => {
         try {
           const msg = JSON.parse(new TextDecoder().decode(data)) as any;
           if (msg.type === 'chat') {
@@ -308,6 +314,25 @@ export default function MeetingRoom() {
             } else {
               store.lowerHand(msg.identity);
             }
+          } else if (msg.type === 'host_mute') {
+            if (msg.targetIdentity === room.localParticipant.identity) {
+              void room.localParticipant.setMicrophoneEnabled(false);
+              store.setMicOn(false);
+              setHostNotice('The meeting host muted your microphone.');
+              setTimeout(() => setHostNotice(null), 4000);
+            }
+          } else if (msg.type === 'host_remove') {
+            if (msg.targetIdentity === room.localParticipant.identity) {
+              await room.disconnect();
+              alert('You have been removed from the meeting by the host.');
+              navigate('/home');
+            }
+          } else if (msg.type === 'meeting_ended') {
+            await room.disconnect();
+            alert('The host has ended the meeting for all participants.');
+            navigate('/home');
+          } else if (msg.type === 'room_lock_changed') {
+            setIsRoomLocked(msg.locked);
           }
         } catch { /* ignore */ }
       });
@@ -406,6 +431,44 @@ export default function MeetingRoom() {
     navigate('/home');
   }
 
+  function hostMuteParticipant(targetIdentity: string) {
+    if (!roomRef.current?.localParticipant || !isHost) return;
+    const data = new TextEncoder().encode(JSON.stringify({
+      type: 'host_mute',
+      targetIdentity,
+    }));
+    void roomRef.current.localParticipant.publishData(data, { reliable: true });
+  }
+
+  function hostRemoveParticipant(targetIdentity: string) {
+    if (!roomRef.current?.localParticipant || !isHost) return;
+    const data = new TextEncoder().encode(JSON.stringify({
+      type: 'host_remove',
+      targetIdentity,
+    }));
+    void roomRef.current.localParticipant.publishData(data, { reliable: true });
+  }
+
+  function toggleLockRoom() {
+    if (!roomRef.current?.localParticipant || !isHost) return;
+    const next = !isRoomLocked;
+    setIsRoomLocked(next);
+    const data = new TextEncoder().encode(JSON.stringify({
+      type: 'room_lock_changed',
+      locked: next,
+    }));
+    void roomRef.current.localParticipant.publishData(data, { reliable: true });
+  }
+
+  async function endMeetingForAll() {
+    if (!roomRef.current?.localParticipant || !isHost) return;
+    const data = new TextEncoder().encode(JSON.stringify({
+      type: 'meeting_ended',
+    }));
+    void roomRef.current.localParticipant.publishData(data, { reliable: true });
+    await leave();
+  }
+
   const allParticipants = store.localParticipant
     ? [store.localParticipant, ...store.remoteParticipants]
     : store.remoteParticipants;
@@ -466,6 +529,21 @@ export default function MeetingRoom() {
               className="px-4 py-2 rounded-full bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2"
             >
               <span>{handAlert}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Host action notification */}
+        <AnimatePresence>
+          {hostNotice && (
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              className="px-4 py-2 rounded-full bg-blue-500/25 border border-blue-400/40 text-blue-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2"
+            >
+              <ShieldAlert className="w-4 h-4 text-blue-300 flex-shrink-0" />
+              <span>{hostNotice}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -618,29 +696,46 @@ export default function MeetingRoom() {
               {panel === 'participants' && (
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between p-4 border-b border-[var(--border-glass)]">
-                    <h2 className="font-semibold text-sm">Participants ({allParticipants.length})</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold text-sm">Participants ({allParticipants.length})</h2>
+                      {isHost && (
+                        <button
+                          onClick={toggleLockRoom}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border transition-all ${
+                            isRoomLocked
+                              ? 'bg-red-500/20 border-red-400 text-red-300'
+                              : 'bg-[var(--surface-3)] border-[var(--border-glass)] text-[var(--text-tertiary)] hover:text-white'
+                          }`}
+                          title={isRoomLocked ? 'Room is locked. Click to unlock.' : 'Room is unlocked. Click to lock.'}
+                        >
+                          {isRoomLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                          <span>{isRoomLocked ? 'Locked' : 'Lock Room'}</span>
+                        </button>
+                      )}
+                    </div>
                     <button onClick={() => setPanel(null)} className="btn-icon w-8 h-8"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {allParticipants.map((p) => {
                       const isRaised = store.raisedHands.includes(p.identity);
+                      const isLocal = p.identity === store.localParticipant?.identity;
                       return (
                         <div
                           key={p.identity}
                           className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-brand-500/30 flex items-center justify-center text-xs font-bold text-brand-300">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-brand-500/30 flex items-center justify-center text-xs font-bold text-brand-300 flex-shrink-0">
                               {p.name?.[0] ?? '?'}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold">{p.name ?? p.identity}</span>
-                              {p.identity === store.localParticipant?.identity && (
-                                <span className="text-[10px] text-brand-400 font-medium">(You)</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-semibold truncate">{p.name ?? p.identity}</span>
+                              {isLocal && (
+                                <span className="text-[10px] text-brand-400 font-medium">(You{isHost ? ' · Host' : ''})</span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             {isRaised && (
                               <button
                                 onClick={() => store.lowerHand(p.identity)}
@@ -650,6 +745,24 @@ export default function MeetingRoom() {
                                 <span>✋</span>
                                 <span className="hidden sm:inline">Lower</span>
                               </button>
+                            )}
+                            {isHost && !isLocal && (
+                              <>
+                                <button
+                                  onClick={() => hostMuteParticipant(p.identity)}
+                                  className="btn-icon w-7 h-7 rounded-lg text-[var(--text-tertiary)] hover:text-amber-400"
+                                  title="Mute participant"
+                                >
+                                  <MicOff className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => hostRemoveParticipant(p.identity)}
+                                  className="btn-icon w-7 h-7 rounded-lg text-[var(--text-tertiary)] hover:text-red-400"
+                                  title="Remove from meeting"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -769,7 +882,13 @@ export default function MeetingRoom() {
               <button
                 id="room-leave-btn"
                 className="btn-danger flex items-center gap-1.5 px-3 sm:px-4 text-xs sm:text-sm font-bold"
-                onClick={leave}
+                onClick={() => {
+                  if (isHost && allParticipants.length > 1) {
+                    setShowEndDialog(true);
+                  } else {
+                    void leave();
+                  }
+                }}
               >
                 <PhoneOff className="w-4 h-4" />
                 <span>Leave</span>
@@ -787,6 +906,50 @@ export default function MeetingRoom() {
           <ChevronUp className="w-3 h-3" />Tap for controls
         </button>
       )}
+
+      {/* End Meeting / Leave Dialog for Host (Spec §6.1) */}
+      <AnimatePresence>
+        {showEndDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <div className="glass-card w-full max-w-sm p-6 space-y-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+                <PhoneOff className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">Leave or End Meeting?</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  You are the meeting host. You can leave the call or end it for all participants.
+                </p>
+              </div>
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={endMeetingForAll}
+                  className="btn-danger w-full py-2.5 rounded-xl text-xs font-bold"
+                >
+                  End Meeting for All
+                </button>
+                <button
+                  onClick={leave}
+                  className="btn-secondary w-full py-2.5 rounded-xl text-xs font-semibold"
+                >
+                  Leave Meeting Only
+                </button>
+                <button
+                  onClick={() => setShowEndDialog(false)}
+                  className="btn-ghost w-full py-2 text-xs text-[var(--text-tertiary)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
