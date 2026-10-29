@@ -25,7 +25,7 @@ interface GameRecord {
   settings: GameSettings;
   players: Map<string, PlayerRecord>; // key: socket.id
   questions: Question[];
-  customQuestions?: Question[];
+  customQuestions?: Question[] | undefined;
   currentQuestionIndex: number;
   questionStartTime: number; // server epoch ms
   revealTimeout: ReturnType<typeof setTimeout> | null;
