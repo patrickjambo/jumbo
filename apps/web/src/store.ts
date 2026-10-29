@@ -22,6 +22,9 @@ export interface MeetingState {
   chatMessages: ChatMessage[];
   noiseAlert: string | null;
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
+  raisedHands: string[];
+  viewMode: 'gallery' | 'speaker';
+  activeSpeakerId: string | null;
 
   setRoom: (room: Room | null) => void;
   setLocalParticipant: (p: LocalParticipant | null) => void;
@@ -33,6 +36,11 @@ export interface MeetingState {
   addChatMessage: (msg: ChatMessage) => void;
   setNoiseAlert: (msg: string | null) => void;
   setConnectionState: (s: MeetingState['connectionState']) => void;
+  setRaisedHands: (ids: string[]) => void;
+  toggleRaiseHand: (id: string) => void;
+  lowerHand: (id: string) => void;
+  setViewMode: (m: 'gallery' | 'speaker') => void;
+  setActiveSpeakerId: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -47,6 +55,9 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   chatMessages: [],
   noiseAlert: null,
   connectionState: 'disconnected',
+  raisedHands: [],
+  viewMode: 'gallery',
+  activeSpeakerId: null,
 
   setRoom: (room) => set({ room }),
   setLocalParticipant: (localParticipant) => set({ localParticipant }),
@@ -58,11 +69,27 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   addChatMessage: (msg) => set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
   setNoiseAlert: (noiseAlert) => set({ noiseAlert }),
   setConnectionState: (connectionState) => set({ connectionState }),
+  setRaisedHands: (raisedHands) => set({ raisedHands }),
+  toggleRaiseHand: (id) =>
+    set((s) => ({
+      raisedHands: s.raisedHands.includes(id)
+        ? s.raisedHands.filter((x) => x !== id)
+        : [...s.raisedHands, id],
+    })),
+  lowerHand: (id) =>
+    set((s) => ({
+      raisedHands: s.raisedHands.filter((x) => x !== id),
+    })),
+  setViewMode: (viewMode) => set({ viewMode }),
+  setActiveSpeakerId: (activeSpeakerId) => set({ activeSpeakerId }),
   reset: () => set({
     room: null, localParticipant: null, remoteParticipants: [],
     isMicOn: true, isCamOn: true, isScreenSharing: false,
     isRecording: false, chatMessages: [], noiseAlert: null,
     connectionState: 'disconnected',
+    raisedHands: [],
+    viewMode: 'gallery',
+    activeSpeakerId: null,
   }),
 }));
 

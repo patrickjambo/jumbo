@@ -138,6 +138,9 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
 
   function handleAnswer(optId: string) {
     if (!store.gameId || !store.currentQuestion || store.selectedOptionId || store.status !== 'active') return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(40);
+    }
     submitAnswer(store.gameId, store.currentQuestion.id, optId);
   }
 

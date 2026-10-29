@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Trophy, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
+import { useWakeLock } from '../hooks/useWakeLock';
 
 const OPTION_META = [
   { cls: 'option-a', shape: '◆', label: 'A' },
@@ -48,6 +49,9 @@ export default function QuizGame() {
   const [timeLeft, setTimeLeft] = useState(store.currentQuestion?.timeLimit ?? 20);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
+  // Keep screen awake during game (Spec §11, §21)
+  useWakeLock(true);
+
   // Wire countdown to server time
   useEffect(() => {
     if (!store.currentQuestion || store.status !== 'active') return;
@@ -67,6 +71,9 @@ export default function QuizGame() {
 
   const handleAnswer = useCallback((optId: string) => {
     if (store.selectedOptionId || store.status !== 'active' || !store.gameId || !store.currentQuestion) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(40);
+    }
     submitAnswer(store.gameId, store.currentQuestion.id, optId);
   }, [store.selectedOptionId, store.status, store.gameId, store.currentQuestion, submitAnswer]);
 
