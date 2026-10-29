@@ -1,0 +1,14 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  esbuild: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - '@parcel/watcher'
+  - sharp
+  - better-sqlite3
+  - canvas
+  - node-gyp
