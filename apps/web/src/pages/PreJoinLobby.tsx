@@ -110,6 +110,17 @@ export default function PreJoinLobby() {
       sessionStorage.setItem('lk-name', name.trim());
       sessionStorage.setItem('lk-is-host', isNew ? 'true' : 'false');
 
+      // Save to recent meetings (Spec §22)
+      try {
+        const stored = localStorage.getItem('jumbo-recent-meetings');
+        const list = stored ? JSON.parse(stored) : [];
+        const updated = [
+          { code: roomCode, name: isNew ? `${name.trim()}'s Meeting` : `Meeting ${roomCode}`, participants: 1, ago: 'Just now' },
+          ...list.filter((m: any) => m.code !== roomCode),
+        ].slice(0, 5);
+        localStorage.setItem('jumbo-recent-meetings', JSON.stringify(updated));
+      } catch { /* ignore */ }
+
       // Stop stream — LiveKit will re-acquire
       streamRef.current?.getTracks().forEach((t) => t.stop());
       navigate(`/room/${roomCode}`);

@@ -3,19 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Gamepad2, Plus, ArrowRight, Clock, Users } from 'lucide-react';
 
-// Placeholder recent items (Phase 1 wires to Supabase)
-const recentMeetings = [
-  { code: 'ABC123', name: 'Team standup', participants: 5, ago: '2h ago' },
-  { code: 'XYZ789', name: 'Design review', participants: 3, ago: 'Yesterday' },
-];
+interface RecentMeeting {
+  code: string;
+  name: string;
+  participants: number;
+  ago: string;
+}
 
-const recentQuizzes = [
-  { pin: '482910', name: 'General Knowledge', players: 12, score: 2400, ago: '1d ago' },
-];
+interface RecentQuiz {
+  pin: string;
+  name: string;
+  players: number;
+  score?: number;
+  ago: string;
+}
 
 export default function Home() {
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
+
+  const [recentMeetings] = useState<RecentMeeting[]>(() => {
+    try {
+      const stored = localStorage.getItem('jumbo-recent-meetings');
+      if (stored) return JSON.parse(stored) as RecentMeeting[];
+    } catch { /* ignore */ }
+    return [
+      { code: 'JUMBO1', name: 'Team standup', participants: 4, ago: '2h ago' },
+      { code: 'JUMBO2', name: 'Product review', participants: 6, ago: 'Yesterday' },
+    ];
+  });
+
+  const [recentQuizzes] = useState<RecentQuiz[]>(() => {
+    try {
+      const stored = localStorage.getItem('jumbo-recent-quizzes');
+      if (stored) return JSON.parse(stored) as RecentQuiz[];
+    } catch { /* ignore */ }
+    return [
+      { pin: '482910', name: 'World Trivia', players: 8, score: 2450, ago: '1d ago' },
+    ];
+  });
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -161,7 +187,7 @@ export default function Home() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{q.name}</p>
                     <p className="text-sm text-[var(--text-secondary)]">
-                      <Users className="w-3 h-3 inline" /> {q.players} players · Score {q.score.toLocaleString()} · {q.ago}
+                      <Users className="w-3 h-3 inline" /> {q.players} players {q.score !== undefined ? `· Score ${q.score.toLocaleString()} ` : ''}· {q.ago}
                     </p>
                   </div>
                   <button

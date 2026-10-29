@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Trophy, CheckCircle, XCircle, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Users, Trophy, CheckCircle, XCircle, Loader2, Volume2, VolumeX, Flag } from 'lucide-react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
 import { useWakeLock } from '../hooks/useWakeLock';
@@ -49,11 +49,19 @@ export default function QuizGame() {
   // Client-side countdown (server provides start time + we sync clock)
   const [timeLeft, setTimeLeft] = useState(store.currentQuestion?.timeLimit ?? 20);
   const [soundOn, setSoundOn] = useState(() => quizAudio.isEnabled());
+  const [showReport, setShowReport] = useState(false);
+  const [reported, setReported] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const lastSecRef = useRef<number>(-1);
 
   // Keep screen awake during game (Spec §11, §21)
   useWakeLock(true);
+
+  // Reset report state on question change
+  useEffect(() => {
+    setShowReport(false);
+    setReported(false);
+  }, [store.currentQuestion?.id]);
 
   const toggleSound = () => {
     const next = !soundOn;
@@ -184,6 +192,54 @@ export default function QuizGame() {
 
       {/* Question */}
       <motion.div className="glass-card p-6 mb-4 relative z-10" key={q.id} initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-center justify-between mb-3 text-[11px] text-[var(--text-tertiary)] font-medium">
+          <span className="uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-3)]">
+            Question
+          </span>
+          <button
+            onClick={() => setShowReport(!showReport)}
+            className="flex items-center gap-1 hover:text-amber-400 transition-colors"
+            title="Report this question"
+          >
+            <Flag className="w-3 h-3" />
+            <span>{reported ? 'Reported' : 'Report'}</span>
+          </button>
+        </div>
+
+        {/* Report drawer */}
+        <AnimatePresence>
+          {showReport && !reported && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-3 mb-3 rounded-lg bg-[var(--surface-3)] border border-[var(--border-glass)] text-xs space-y-2 overflow-hidden"
+            >
+              <p className="font-semibold text-[var(--text-secondary)]">Why are you reporting this question?</p>
+              <div className="flex flex-wrap gap-2">
+                {['Factual error', 'Inappropriate content', 'Typo / format'].map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => {
+                      setReported(true);
+                      setShowReport(false);
+                    }}
+                    className="px-2.5 py-1 rounded-md bg-[var(--surface-2)] hover:bg-brand-500/20 hover:text-brand-300 border border-[var(--border-glass)] transition-colors"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {reported && (
+          <div className="text-center py-1 text-xs text-amber-300 bg-amber-500/10 rounded-md mb-3">
+            ✓ Question reported for review. Thank you!
+          </div>
+        )}
+
         {q.imageUrl && (
           <img src={q.imageUrl} alt="" className="w-full max-h-40 object-contain rounded-lg mb-4" />
         )}

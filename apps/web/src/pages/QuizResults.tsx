@@ -26,6 +26,20 @@ export default function QuizResults() {
     setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { y: 0.3, x: 0.1 } }), 400);
     setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { y: 0.3, x: 0.9 } }), 700);
 
+    // Save to recent quizzes (Spec §22)
+    if (pin) {
+      try {
+        const stored = localStorage.getItem('jumbo-recent-quizzes');
+        const list = stored ? JSON.parse(stored) : [];
+        const myScore = store.leaderboard.find((p) => p.isCurrentPlayer)?.totalScore ?? (store.leaderboard[0]?.totalScore ?? 0);
+        const updated = [
+          { pin, name: 'Trivia Quiz', players: store.totalPlayers || store.leaderboard.length || 1, score: myScore, ago: 'Just now' },
+          ...list.filter((q: any) => q.pin !== pin),
+        ].slice(0, 5);
+        localStorage.setItem('jumbo-recent-quizzes', JSON.stringify(updated));
+      } catch { /* ignore */ }
+    }
+
     // Notify server that this player has seen results
     if (store.gameId) endGame(store.gameId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -122,6 +122,25 @@
     }
   }
 
+  /* Solid-colour fallback for reduced transparency & low-perf hardware (Spec §19) */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-card, .glass-card-sm, .glass-card-strong, .connection-pill, .control-bar {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background-color: var(--surface-2) !important;
+    }
+  }
+
+  .low-perf .glass-card,
+  .low-perf .glass-card-sm,
+  .low-perf .glass-card-strong,
+  .low-perf .connection-pill,
+  .low-perf .control-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: var(--surface-2) !important;
+  }
+
   /* Focus ring */
   :focus-visible {
     outline: 2px solid var(--color-accent);
