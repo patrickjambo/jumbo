@@ -103,3 +103,23 @@ npx tsx scripts/load-test.ts
 - Simultaneous question broadcast delivered to 100% of players.
 - Simulated answers submitted with sub-millisecond server processing.
 - Reveal and sorted live leaderboard delivered to all 100 players with zero packet loss!
+
+---
+
+### 7. Sound Effects & Accessible Keyboard Controls (Spec §7, §18, §20)
+
+- **Pure Web Audio Synthesizer**:
+  - Zero external MP3 downloads or audio latency.
+  - **Countdown Urgency Tick**: Triggers in the final 5 seconds before deadline.
+  - **Lock-in Chime**: Harmonic 880/1320Hz ascending tone upon answering.
+  - **Correct / Wrong Stingers**: Triumphant C-major arpeggio for correct answers; soft filtered buzz for wrong answers.
+  - **Podium Fanfare**: Celebratory multi-note brass fanfare when the results podium opens.
+  - **Mute Toggle**: Accessible volume icon button in the quiz header.
+- **Keyboard Shortcuts**:
+  - **Meetings**: Press `M` to mute/unmute, `V` for camera toggle, `H` to raise hand, `C` for chat panel, `P` for participant roster, `Esc` to close overlays.
+  - **Quiz Game**: Press `1`, `2`, `3`, `4` (or `A`, `B`, `C`, `D`) to instantly submit an answer; press `Enter` or `Space` to advance to the next question.
+- **Offline 312-Question Seed Bank (Spec §8.3)**:
+  - Shipped with 312 curated, verified questions covering all 12 categories.
+- **Google Gemini AI Generation (Spec §8.2)**:
+  - Structured prompt generation with Zod validation in `packages/questions/src/gemini.ts`.
+
