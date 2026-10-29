@@ -140,13 +140,27 @@ export function useQuizSocket() {
     });
   }
 
-  function joinGame(pin: string, displayName: string) {
+  function joinGame(
+    pin: string,
+    displayName: string,
+    cb?: (res: { success: boolean; error?: string; status?: string; gameId?: string }) => void,
+  ) {
     const socket = socketRef.current;
     if (!socket) return;
     store.setPin(pin);
     store.setIsHost(false);
     store.setStatus('lobby');
-    socket.emit(GAME_EVENTS.JOIN, { pin, displayName });
+    socket.emit(
+      GAME_EVENTS.JOIN,
+      { pin, displayName },
+      (res?: { success: boolean; error?: string; status?: string; gameId?: string }) => {
+        if (res?.gameId) store.setGameId(res.gameId);
+        if (res && !res.success) {
+          setError(res.error ?? 'Failed to join game');
+        }
+        cb?.(res ?? { success: true });
+      },
+    );
   }
 
   function startGame(gameId: string) {

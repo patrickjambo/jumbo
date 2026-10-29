@@ -222,15 +222,26 @@ export function registerGameHandlers(io: Server) {
     });
 
     // ── Join game ─────────────────────────────────────────────────────────────
-    socket.on(GAME_EVENTS.JOIN, async (rawPayload: unknown) => {
+    socket.on(GAME_EVENTS.JOIN, async (rawPayload: unknown, ack?: (res: { success: boolean; error?: string; status?: string; gameId?: string }) => void) => {
       const parse = GameJoinPayloadSchema.safeParse(rawPayload);
-      if (!parse.success) return;
+      if (!parse.success) {
+        ack?.({ success: false, error: 'Invalid join parameters' });
+        return;
+      }
       const { pin, displayName, avatarUrl } = parse.data;
 
       const gameId = pinToGameId.get(pin);
-      if (!gameId) { socket.emit('error', { message: 'Game not found' }); return; }
+      if (!gameId) {
+        socket.emit('error', { message: 'Game not found. Please verify the 6-digit PIN.' });
+        ack?.({ success: false, error: 'Game not found. Please verify the 6-digit PIN.' });
+        return;
+      }
       const game = games.get(gameId);
-      if (!game || game.status === 'finished') { socket.emit('error', { message: 'Game not available' }); return; }
+      if (!game || game.status === 'finished') {
+        socket.emit('error', { message: 'This game has already finished.' });
+        ack?.({ success: false, error: 'This game has already finished.' });
+        return;
+      }
 
       const player: PlayerRecord = {
         id: socket.id,
@@ -256,6 +267,8 @@ export function registerGameHandlers(io: Server) {
         totalScore: p.totalScore,
       }));
       io.to(pin).emit(SERVER_EVENTS.LOBBY_UPDATE, { players });
+
+      ack?.({ success: true, status: game.status, gameId });
     });
 
     // ── Start game ────────────────────────────────────────────────────────────

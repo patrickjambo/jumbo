@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gamepad2, Zap, PencilLine, ChevronRight, AlertCircle,
-  FileSpreadsheet, Plus, Trash2, CheckCircle2, Sparkles
+  FileSpreadsheet, Plus, Trash2, CheckCircle2, Sparkles, Loader2
 } from 'lucide-react';
 import { QUESTION_CATEGORIES, type Question } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
@@ -42,6 +42,8 @@ export default function QuizLauncher() {
   const [joinPin, setJoinPin] = useState('');
   const [joining, setJoining] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Custom question builder state (Spec §8.1)
   const [customQuestions, setCustomQuestions] = useState<CustomDraftQuestion[]>([]);
@@ -193,11 +195,35 @@ export default function QuizLauncher() {
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
-    if (!displayName.trim() || joinPin.length !== 6) return;
+    setJoinError(null);
+
+    const name = displayName.trim();
+    if (!name) {
+      setJoinError('Please enter your display name above to join the game');
+      nameInputRef.current?.focus();
+      return;
+    }
+
+    if (joinPin.length !== 6) {
+      setJoinError('Please enter a full 6-digit game PIN');
+      return;
+    }
+
     setJoining(true);
-    localStorage.setItem('jumbo-display-name', displayName.trim());
-    joinGame(joinPin, displayName.trim());
-    navigate(`/quiz/play/${joinPin}`);
+    localStorage.setItem('jumbo-display-name', name);
+
+    joinGame(joinPin, name, (res) => {
+      setJoining(false);
+      if (res?.success) {
+        if (res.status === 'active' || res.status === 'reveal') {
+          navigate(`/quiz/play/${joinPin}`);
+        } else {
+          navigate(`/quiz/lobby/${joinPin}`);
+        }
+      } else {
+        setJoinError(res?.error ?? 'Game not found. Please verify the 6-digit PIN.');
+      }
+    });
   }
 
   return (
@@ -228,14 +254,27 @@ export default function QuizLauncher() {
 
         {/* Display name (always shown) */}
         <div className="mb-5">
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Your display name</label>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5 flex items-center justify-between">
+            <span>Your display name</span>
+            {joinError?.includes('display name') && (
+              <span className="text-amber-400 text-xs font-semibold animate-pulse">Required to join</span>
+            )}
+          </label>
           <input
+            ref={nameInputRef}
             type="text"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e) => {
+              setDisplayName(e.target.value);
+              setJoinError(null);
+            }}
             placeholder="Enter your name"
             maxLength={50}
-            className="w-full bg-[var(--surface-2)] border border-[var(--border-glass)] rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-brand-400 transition-colors"
+            className={`w-full bg-[var(--surface-2)] border rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-colors ${
+              joinError?.includes('display name')
+                ? 'border-amber-400/80 bg-amber-500/10 focus:border-amber-400'
+                : 'border-[var(--border-glass)] focus:border-brand-400'
+            }`}
           />
         </div>
 
@@ -249,6 +288,11 @@ export default function QuizLauncher() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
+                if (!displayName.trim()) {
+                  setJoinError('Please enter your display name above first');
+                  nameInputRef.current?.focus();
+                  return;
+                }
                 setQuestionCount(15);
                 setMode('auto');
               }}
@@ -269,7 +313,14 @@ export default function QuizLauncher() {
               className="w-full glass-card-sm p-4 text-left flex items-center gap-4 hover:bg-[var(--surface-3)] transition-colors group"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setMode('categories')}
+              onClick={() => {
+                if (!displayName.trim()) {
+                  setJoinError('Please enter your display name above first');
+                  nameInputRef.current?.focus();
+                  return;
+                }
+                setMode('categories');
+              }}
             >
               <div className="w-12 h-12 rounded-xl bg-accent-400/20 flex items-center justify-center">
                 <PencilLine className="w-6 h-6 text-accent-300" />
@@ -287,7 +338,14 @@ export default function QuizLauncher() {
               className="w-full glass-card-sm p-4 text-left flex items-center gap-4 hover:bg-[var(--surface-3)] transition-colors group border border-accent-400/30"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setMode('builder')}
+              onClick={() => {
+                if (!displayName.trim()) {
+                  setJoinError('Please enter your display name above first');
+                  nameInputRef.current?.focus();
+                  return;
+                }
+                setMode('builder');
+              }}
             >
               <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
                 <FileSpreadsheet className="w-6 h-6 text-purple-300" />
@@ -309,24 +367,35 @@ export default function QuizLauncher() {
             </div>
 
             {/* Join with PIN */}
-            <form onSubmit={handleJoin} className="flex gap-2">
-              <input
-                id="quiz-join-pin-input"
-                type="text"
-                value={joinPin}
-                onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6-digit PIN"
-                maxLength={6}
-                className="flex-1 bg-[var(--surface-2)] border border-[var(--border-glass)] rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 transition-colors tracking-widest text-lg font-mono text-center"
-              />
-              <button
-                id="quiz-join-pin-btn"
-                type="submit"
-                className="btn-primary px-5 font-bold text-sm"
-                disabled={joinPin.length !== 6 || !displayName.trim() || joining}
-              >
-                Join
-              </button>
+            <form onSubmit={handleJoin} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  id="quiz-join-pin-input"
+                  type="text"
+                  value={joinPin}
+                  onChange={(e) => {
+                    setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    setJoinError(null);
+                  }}
+                  placeholder="6-digit PIN"
+                  maxLength={6}
+                  className="flex-1 bg-[var(--surface-2)] border border-[var(--border-glass)] rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 transition-colors tracking-widest text-lg font-mono text-center"
+                />
+                <button
+                  id="quiz-join-pin-btn"
+                  type="submit"
+                  className="btn-primary px-5 font-bold text-sm min-w-[70px] flex items-center justify-center"
+                  disabled={joining}
+                >
+                  {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join'}
+                </button>
+              </div>
+              {joinError && (
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{joinError}</span>
+                </div>
+              )}
             </form>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Users, Copy, Check, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
 
@@ -19,17 +19,17 @@ export default function QuizLobby() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  // Auto-navigate all players when game starts (Spec §7.1)
+  useEffect(() => {
+    if (store.status === 'active') {
+      navigate(`/quiz/play/${pin ?? ''}`);
+    }
+  }, [store.status, navigate, pin]);
+
   function handleStart() {
     if (!store.gameId) return;
     setStarting(true);
     startGame(store.gameId);
-    // Navigate when server emits question:show (via store status change)
-    const unsub = useQuizStore.subscribe((s) => {
-      if (s.status === 'active') {
-        unsub();
-        navigate(`/quiz/play/${pin ?? ''}`);
-      }
-    });
     setTimeout(() => { setStarting(false); }, 10000);
   }
 
@@ -88,15 +88,25 @@ export default function QuizLobby() {
           </div>
         </div>
 
-        <button id="lobby-start-btn" className="btn-primary w-full text-lg py-4"
-          onClick={handleStart}
-          disabled={store.players.length === 0 || starting || store.status === 'generating'}>
-          {starting || store.status === 'generating' ? (
-            <span className="flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Starting…</span>
-          ) : (
-            <><Gamepad2 className="w-6 h-6" />Start game</>
-          )}
-        </button>
+        {store.isHost ? (
+          <button id="lobby-start-btn" className="btn-primary w-full text-lg py-4"
+            onClick={handleStart}
+            disabled={store.players.length === 0 || starting || store.status === 'generating'}>
+            {starting || store.status === 'generating' ? (
+              <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Starting…</span>
+            ) : (
+              <span className="flex items-center justify-center gap-2"><Gamepad2 className="w-6 h-6" />Start game</span>
+            )}
+          </button>
+        ) : (
+          <div className="glass-card-sm p-4 text-center space-y-1.5 border border-brand-500/20">
+            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-brand-300">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Waiting for host to start the game…
+            </div>
+            <p className="text-xs text-[var(--text-tertiary)]">The game will automatically begin on your screen when started.</p>
+          </div>
+        )}
 
         <button className="mt-3 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/quiz')}>← Back</button>
       </div>
