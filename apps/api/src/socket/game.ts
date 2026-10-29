@@ -25,6 +25,7 @@ interface GameRecord {
   settings: GameSettings;
   players: Map<string, PlayerRecord>; // key: socket.id
   questions: Question[];
+  customQuestions?: Question[];
   currentQuestionIndex: number;
   questionStartTime: number; // server epoch ms
   revealTimeout: ReturnType<typeof setTimeout> | null;
@@ -205,6 +206,7 @@ export function registerGameHandlers(io: Server) {
         hostSocketId: socket.id,
         status: 'waiting',
         settings,
+        customQuestions: parse.data.customQuestions,
         players: new Map(),
         questions: [],
         currentQuestionIndex: 0,
@@ -266,10 +268,14 @@ export function registerGameHandlers(io: Server) {
       io.to(game.pin).emit(SERVER_EVENTS.GAME_STATE, { status: 'generating' });
 
       try {
-        game.questions = await generateQuestions(
-          game.settings.categories as QuestionCategory[],
-          game.settings.questionCount,
-        );
+        if (game.customQuestions && game.customQuestions.length > 0) {
+          game.questions = [...game.customQuestions];
+        } else {
+          game.questions = await generateQuestions(
+            game.settings.categories as QuestionCategory[],
+            game.settings.questionCount,
+          );
+        }
       } catch (e) {
         console.error('Question generation failed:', e);
         socket.emit('error', { message: 'Failed to generate questions' });

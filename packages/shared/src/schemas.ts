@@ -91,6 +91,7 @@ export type GameState = z.infer<typeof GameStateSchema>;
 export const GameCreatePayloadSchema = z.object({
   settings: GameSettingsSchema,
   roomId: z.string().optional(), // if launching from a meeting
+  customQuestions: z.array(QuestionSchema).optional(),
 });
 export type GameCreatePayload = z.infer<typeof GameCreatePayloadSchema>;
 

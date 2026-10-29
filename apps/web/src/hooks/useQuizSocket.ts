@@ -129,10 +129,10 @@ export function useQuizSocket() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  function createGame(settings: Parameters<typeof store.setPlayers>[0] extends infer _ ? unknown : never) {
+  function createGame(settings: unknown, customQuestions?: unknown[]) {
     const socket = socketRef.current;
     if (!socket) return;
-    socket.emit(GAME_EVENTS.CREATE, { settings }, (res: { gameId: string; pin: string }) => {
+    socket.emit(GAME_EVENTS.CREATE, { settings, customQuestions }, (res: { gameId: string; pin: string }) => {
       store.setGameId(res.gameId);
       store.setPin(res.pin);
       store.setStatus('lobby');
