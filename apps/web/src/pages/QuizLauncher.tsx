@@ -11,7 +11,7 @@ import {
   FileText, Upload, Library, Download, ArrowUp, ArrowDown,
   ListOrdered, Scale, Edit3, FolderOpen,
 } from 'lucide-react';
-import { QUESTION_CATEGORIES, type Question, type QuestionType } from '@jumbo/shared';
+import { QUESTION_CATEGORIES, type Question, type QuestionType, type AnswerOption } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
 import { extractTextFromPdfFile, parseQuestionsFromRawText } from '../lib/pdfExtractor';
@@ -125,6 +125,18 @@ export default function QuizLauncher() {
   const [rawPastedText, setRawPastedText] = useState('');
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonImportRef = useRef<HTMLInputElement>(null);
+
+  // Builder edit state
+  const [editingQuestionIdx, setEditingQuestionIdx] = useState<number | null>(null);
+
+  // Extracted question modal edit state
+  const [editingExtractedIdx, setEditingExtractedIdx] = useState<number | null>(null);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editType, setEditType] = useState<QuestionType>('multiple_choice');
+  const [editOptions, setEditOptions] = useState<{ id: string; text: string; isCorrect: boolean }[]>([]);
+  const [editCorrectIdx, setEditCorrectIdx] = useState(0);
+  const [editTfAnswer, setEditTfAnswer] = useState<boolean>(true);
+  const [editPuzzleSteps, setEditPuzzleSteps] = useState<string[]>([]);
 
   // Refresh saved decks on load
   useEffect(() => {
@@ -300,7 +312,10 @@ export default function QuizLauncher() {
     }
 
     const draft: CustomDraftQuestion = {
-      id: crypto.randomUUID(),
+      id:
+        editingQuestionIdx !== null && customQuestions[editingQuestionIdx]
+          ? customQuestions[editingQuestionIdx]!.id
+          : crypto.randomUUID(),
       type: qType,
       text: newText.trim(),
       timeLimit: newTimeLimit,
@@ -309,10 +324,117 @@ export default function QuizLauncher() {
       correctOrder,
     };
 
-    setCustomQuestions((prev) => [...prev, draft]);
+    if (editingQuestionIdx !== null) {
+      setCustomQuestions((prev) => {
+        const next = [...prev];
+        next[editingQuestionIdx] = draft;
+        return next;
+      });
+      setEditingQuestionIdx(null);
+    } else {
+      setCustomQuestions((prev) => [...prev, draft]);
+    }
     setNewText('');
     setNewOptions(['', '', '', '']);
     setCorrectOptIdx(0);
+  }
+
+  function handleStartEditQuestion(idx: number) {
+    const q = customQuestions[idx];
+    if (!q) return;
+    setEditingQuestionIdx(idx);
+    setQType(q.type);
+    setNewText(q.text);
+    setNewTimeLimit(q.timeLimit);
+    setNewPoints(q.points);
+    if (q.type === 'true_false') {
+      const trueOpt = q.options.find((o) => o.text.toLowerCase() === 'true');
+      setTfAnswer(trueOpt ? trueOpt.isCorrect === true : true);
+    } else if (q.type === 'puzzle') {
+      setPuzzleSteps(q.options.map((o) => o.text));
+    } else {
+      const texts = q.options.map((o) => o.text);
+      while (texts.length < 4) texts.push('');
+      setNewOptions(texts);
+      const cIdx = q.options.findIndex((o) => o.isCorrect);
+      setCorrectOptIdx(cIdx >= 0 ? cIdx : 0);
+    }
+  }
+
+  function handleCancelEditQuestion() {
+    setEditingQuestionIdx(null);
+    setNewText('');
+    setNewOptions(['', '', '', '']);
+    setCorrectOptIdx(0);
+    setQType('multiple_choice');
+  }
+
+  function handleStartEditExtracted(qIdx: number) {
+    if (!extractedQuestions || !extractedQuestions[qIdx]) return;
+    const q = extractedQuestions[qIdx]!;
+    setEditingExtractedIdx(qIdx);
+    setEditPrompt(q.text);
+    setEditType(q.type);
+    if (q.type === 'true_false') {
+      const trueOpt = q.options.find((o) => o.text.toLowerCase() === 'true');
+      setEditTfAnswer(trueOpt ? trueOpt.isCorrect === true : true);
+    } else if (q.type === 'puzzle') {
+      setEditPuzzleSteps(q.options.map((o) => o.text));
+    } else {
+      setEditOptions(q.options.map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect ?? false })));
+      const cIdx = q.options.findIndex((o) => o.isCorrect);
+      setEditCorrectIdx(cIdx >= 0 ? cIdx : 0);
+    }
+  }
+
+  function handleSaveEditExtracted() {
+    if (editingExtractedIdx === null || !extractedQuestions) return;
+    const trimmed = editPrompt.trim();
+    if (!trimmed) return;
+
+    let finalOpts: AnswerOption[] = [];
+    let correctOrder: string[] | undefined;
+
+    if (editType === 'true_false') {
+      finalOpts = [
+        { id: `opt_${editingExtractedIdx}_true`, text: 'True', isCorrect: editTfAnswer === true },
+        { id: `opt_${editingExtractedIdx}_false`, text: 'False', isCorrect: editTfAnswer === false },
+      ];
+    } else if (editType === 'puzzle') {
+      const validSteps = editPuzzleSteps.map((s) => s.trim()).filter(Boolean);
+      finalOpts = validSteps.map((step, idx) => ({
+        id: `puz_${editingExtractedIdx}_${idx + 1}`,
+        text: step,
+        isCorrect: true,
+      }));
+      correctOrder = finalOpts.map((o) => o.id);
+    } else {
+      finalOpts = editOptions.map((o, idx) => ({
+        id: o.id || `opt_${editingExtractedIdx}_${idx + 1}`,
+        text: o.text.trim() || `Option ${idx + 1}`,
+        isCorrect: idx === editCorrectIdx,
+      }));
+    }
+
+    setExtractedQuestions((prev) => {
+      if (!prev) return null;
+      const next = [...prev];
+      const target = next[editingExtractedIdx]!;
+      next[editingExtractedIdx] = {
+        ...target,
+        text: trimmed,
+        type: editType,
+        options: finalOpts,
+        correctOrder,
+      };
+      return next;
+    });
+
+    setEditingExtractedIdx(null);
+  }
+
+  function handleCancelEditExtracted() {
+    setEditingExtractedIdx(null);
   }
 
   function handleSaveCurrentDeck() {
@@ -1001,7 +1123,18 @@ export default function QuizLauncher() {
                 {/* Prompt */}
                 <div>
                   <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
-                    <span>Question Prompt #{customQuestions.length + 1}</span>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {editingQuestionIdx !== null
+                          ? `Editing Question #${editingQuestionIdx + 1}`
+                          : `Question Prompt #${customQuestions.length + 1}`}
+                      </span>
+                      {editingQuestionIdx !== null && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Editing Mode
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-slate-400">Time:</span>
                       {[10, 20, 30].map((t) => (
@@ -1132,14 +1265,38 @@ export default function QuizLauncher() {
 
                 {builderError && <p className="text-xs text-rose-400">{builderError}</p>}
 
-                <button
-                  type="button"
-                  onClick={handleAddQuestion}
-                  className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Question to Deck</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {editingQuestionIdx !== null && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditQuestion}
+                      className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAddQuestion}
+                    className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 transition-all ${
+                      editingQuestionIdx !== null
+                        ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30'
+                        : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
+                    }`}
+                  >
+                    {editingQuestionIdx !== null ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Changes to Question #{editingQuestionIdx + 1}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Question to Deck</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Questions in Deck list */}
@@ -1169,13 +1326,27 @@ export default function QuizLauncher() {
                             {q.type === 'puzzle' ? 'Puzzle' : q.type === 'true_false' ? 'T/F' : 'Quiz'}
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setCustomQuestions((prev) => prev.filter((_, i) => i !== idx))}
-                          className="p-1 text-slate-500 hover:text-rose-400 flex-shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditQuestion(idx)}
+                            className="p-1 text-slate-400 hover:text-amber-400 transition-colors"
+                            title="Edit this question"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editingQuestionIdx === idx) handleCancelEditQuestion();
+                              setCustomQuestions((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="p-1 text-slate-500 hover:text-rose-400 flex-shrink-0"
+                            title="Delete question"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1286,61 +1457,240 @@ export default function QuizLauncher() {
                     <div className="flex-1 flex flex-col min-h-0 space-y-3">
                       <div className="flex items-center justify-between text-xs font-bold text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 p-2.5 rounded-xl">
                         <span>Extracted {extractedQuestions.length} Questions</span>
-                        <span className="text-slate-400 font-normal">Click any option to change correct answer</span>
+                        <span className="text-slate-400 font-normal">Click pencil to edit prompt/options or click an option to tick correct</span>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[360px]">
-                        {extractedQuestions.map((q, qIdx) => (
-                          <div key={q.id} className="p-3 rounded-xl bg-[#141b2c] border border-white/10 space-y-2 text-xs">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="font-bold text-white">
-                                #{qIdx + 1}. {q.text}
-                              </span>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/20 text-violet-300 border border-violet-500/30 font-bold uppercase">
-                                  {q.type}
+                      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[380px]">
+                        {extractedQuestions.map((q, qIdx) => {
+                          const isEditingThis = editingExtractedIdx === qIdx;
+
+                          if (isEditingThis) {
+                            return (
+                              <div
+                                key={q.id}
+                                className="p-3.5 rounded-2xl bg-[#141b2c] border-2 border-amber-500/50 shadow-xl space-y-3 text-xs"
+                              >
+                                <div className="flex items-center justify-between pb-1 border-b border-white/10">
+                                  <span className="font-bold text-amber-300">Editing Question #{qIdx + 1}</span>
+                                  {/* Type Switcher */}
+                                  <div className="flex items-center gap-1">
+                                    {(['multiple_choice', 'true_false', 'puzzle'] as QuestionType[]).map((t) => (
+                                      <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => {
+                                          setEditType(t);
+                                          if (t === 'true_false' && editOptions.length !== 2) {
+                                            setEditOptions([
+                                              { id: `opt_${qIdx}_true`, text: 'True', isCorrect: true },
+                                              { id: `opt_${qIdx}_false`, text: 'False', isCorrect: false },
+                                            ]);
+                                          }
+                                        }}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                                          editType === t
+                                            ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                                            : 'bg-[#0b101c] border-white/5 text-slate-400'
+                                        }`}
+                                      >
+                                        {t === 'multiple_choice' ? 'Choice' : t === 'true_false' ? 'T/F' : 'Puzzle'}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Prompt Editor */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-slate-400 uppercase">Question Prompt:</label>
+                                  <textarea
+                                    rows={2}
+                                    value={editPrompt}
+                                    onChange={(e) => setEditPrompt(e.target.value)}
+                                    placeholder="Type question prompt..."
+                                    className="w-full p-2 rounded-xl bg-[#0b101c] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  />
+                                </div>
+
+                                {/* Options Editor */}
+                                {editType === 'true_false' ? (
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Correct Answer:</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditTfAnswer(true)}
+                                        className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                                          editTfAnswer === true
+                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                                            : 'bg-[#0b101c] border-white/5 text-slate-400'
+                                        }`}
+                                      >
+                                        True {editTfAnswer === true ? '✓' : ''}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditTfAnswer(false)}
+                                        className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                                          editTfAnswer === false
+                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                                            : 'bg-[#0b101c] border-white/5 text-slate-400'
+                                        }`}
+                                      >
+                                        False {editTfAnswer === false ? '✓' : ''}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                      <span>Options (Click circle to tick correct):</span>
+                                      {editOptions.length < 6 && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setEditOptions((prev) => [
+                                              ...prev,
+                                              { id: `opt_${Date.now()}`, text: '', isCorrect: false },
+                                            ])
+                                          }
+                                          className="text-amber-400 hover:underline flex items-center gap-0.5 normal-case font-semibold"
+                                        >
+                                          <Plus className="w-3 h-3" /> Add Choice
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {editOptions.map((opt, oIdx) => (
+                                      <div key={opt.id || oIdx} className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditCorrectIdx(oIdx)}
+                                          className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
+                                            oIdx === editCorrectIdx
+                                              ? 'border-emerald-400 bg-emerald-500 text-black'
+                                              : 'border-slate-600 hover:border-slate-400 text-transparent'
+                                          }`}
+                                          title="Mark as correct answer"
+                                        >
+                                          <Check className="w-3 h-3 stroke-[3]" />
+                                        </button>
+                                        <input
+                                          type="text"
+                                          value={opt.text}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setEditOptions((prev) => {
+                                              const next = [...prev];
+                                              next[oIdx] = { ...next[oIdx]!, text: val };
+                                              return next;
+                                            });
+                                          }}
+                                          placeholder={`Option ${String.fromCharCode(65 + oIdx)}...`}
+                                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#0b101c] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                                        />
+                                        {editOptions.length > 2 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setEditOptions((prev) => prev.filter((_, i) => i !== oIdx));
+                                              if (editCorrectIdx >= editOptions.length - 1) setEditCorrectIdx(0);
+                                            }}
+                                            className="p-1 text-slate-500 hover:text-rose-400"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Editor Action Buttons */}
+                                <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/10">
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelEditExtracted}
+                                    className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleSaveEditExtracted}
+                                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-600/30"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Save Question #{qIdx + 1}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div key={q.id} className="p-3 rounded-xl bg-[#141b2c] border border-white/10 space-y-2 text-xs">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-bold text-white leading-relaxed">
+                                  #{qIdx + 1}. {q.text}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setExtractedQuestions((prev) => prev?.filter((_, i) => i !== qIdx) || null)}
-                                  className="text-slate-500 hover:text-rose-400"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/20 text-violet-300 border border-violet-500/30 font-bold uppercase">
+                                    {q.type}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEditExtracted(qIdx)}
+                                    className="p-1 text-slate-400 hover:text-amber-400 transition-colors"
+                                    title="Edit prompt or options"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExtractedQuestions((prev) => prev?.filter((_, i) => i !== qIdx) || null)
+                                    }
+                                    className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                                    title="Delete question"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {q.options.map((opt, optIdx) => (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setExtractedQuestions((prev) => {
+                                        if (!prev) return null;
+                                        const next = [...prev];
+                                        const updatedQ = { ...next[qIdx]! };
+                                        updatedQ.options = updatedQ.options.map((o, i) => ({
+                                          ...o,
+                                          isCorrect: i === optIdx,
+                                        }));
+                                        next[qIdx] = updatedQ;
+                                        return next;
+                                      });
+                                    }}
+                                    className={`p-1.5 rounded-lg border text-left text-[11px] truncate flex items-center justify-between transition-all ${
+                                      opt.isCorrect
+                                        ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 font-bold'
+                                        : 'bg-[#0b101c] border-white/5 text-slate-400 hover:text-white'
+                                    }`}
+                                    title="Click to toggle as correct answer"
+                                  >
+                                    <span className="truncate">{opt.text}</span>
+                                    {opt.isCorrect && <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
+                                  </button>
+                                ))}
                               </div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {q.options.map((opt, optIdx) => (
-                                <button
-                                  key={opt.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setExtractedQuestions((prev) => {
-                                      if (!prev) return null;
-                                      const next = [...prev];
-                                      const updatedQ = { ...next[qIdx]! };
-                                      updatedQ.options = updatedQ.options.map((o, i) => ({
-                                        ...o,
-                                        isCorrect: i === optIdx,
-                                      }));
-                                      next[qIdx] = updatedQ;
-                                      return next;
-                                    });
-                                  }}
-                                  className={`p-1.5 rounded-lg border text-left text-[11px] truncate flex items-center justify-between ${
-                                    opt.isCorrect
-                                      ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 font-bold'
-                                      : 'bg-[#0b101c] border-white/5 text-slate-400 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="truncate">{opt.text}</span>
-                                  {opt.isCorrect && <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       <div className="flex items-center gap-2 pt-2 border-t border-white/10">
@@ -1354,10 +1704,24 @@ export default function QuizLauncher() {
                         <button
                           type="button"
                           onClick={handleApplyExtractedQuestions}
-                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-white/10 flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Add All {extractedQuestions.length} to Custom Deck</span>
+                          <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Add to Deck & Edit in Builder</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={creating}
+                          onClick={() => {
+                            if (extractedQuestions && extractedQuestions.length > 0) {
+                              setShowPdfModal(false);
+                              handleLaunchWithQuestions(extractedQuestions);
+                            }
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 hover:brightness-110 transition-all"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          <span>Launch Quiz Now ({extractedQuestions.length} Qs)</span>
                         </button>
                       </div>
                     </div>
