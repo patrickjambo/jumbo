@@ -137,6 +137,8 @@ export default function QuizLauncher() {
   const [editCorrectIdx, setEditCorrectIdx] = useState(0);
   const [editTfAnswer, setEditTfAnswer] = useState<boolean>(true);
   const [editPuzzleSteps, setEditPuzzleSteps] = useState<string[]>([]);
+  // Title for saving extracted quiz to library
+  const [extractedDeckTitle, setExtractedDeckTitle] = useState('');
 
   // Refresh saved decks on load
   useEffect(() => {
@@ -1453,14 +1455,38 @@ export default function QuizLauncher() {
                       )}
                     </div>
                   ) : (
-                    /* Review Extracted Questions */
-                    <div className="flex-1 flex flex-col min-h-0 space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 p-2.5 rounded-xl">
-                        <span>Extracted {extractedQuestions.length} Questions</span>
-                        <span className="text-slate-400 font-normal">Click pencil to edit prompt/options or click an option to tick correct</span>
+                    /* ─── Review & Edit Extracted Questions ─── */
+                    <div className="flex-1 flex flex-col min-h-0 gap-3">
+
+                      {/* Header: count + type breakdown */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-bold text-emerald-400">
+                            ✓ {extractedQuestions.length} Questions Extracted
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {extractedQuestions.filter((q) => q.type === 'multiple_choice').length > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-bold border border-violet-500/20">
+                                {extractedQuestions.filter((q) => q.type === 'multiple_choice').length} MC
+                              </span>
+                            )}
+                            {extractedQuestions.filter((q) => q.type === 'true_false').length > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/20">
+                                {extractedQuestions.filter((q) => q.type === 'true_false').length} T/F
+                              </span>
+                            )}
+                            {extractedQuestions.filter((q) => q.type === 'puzzle').length > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/20">
+                                {extractedQuestions.filter((q) => q.type === 'puzzle').length} Puzzle
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-slate-500">Click ✏️ to fix errors · click option to change correct answer</span>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[380px]">
+                      {/* Scrollable question list — no arbitrary max-height, fills modal */}
+                      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                         {extractedQuestions.map((q, qIdx) => {
                           const isEditingThis = editingExtractedIdx === qIdx;
 
@@ -1693,36 +1719,75 @@ export default function QuizLauncher() {
                         })}
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                        <button
-                          type="button"
-                          onClick={() => setExtractedQuestions(null)}
-                          className="px-3 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white"
-                        >
-                          Back
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleApplyExtractedQuestions}
-                          className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-white/10 flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Add to Deck & Edit in Builder</span>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={creating}
-                          onClick={() => {
-                            if (extractedQuestions && extractedQuestions.length > 0) {
+                      {/* ── Bottom Actions ─────────────────────────────────────────────── */}
+                      <div className="pt-2 border-t border-white/10 space-y-2">
+                        {/* Save to Library row */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 relative">
+                            <Library className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={extractedDeckTitle}
+                              onChange={(e) => setExtractedDeckTitle(e.target.value)}
+                              placeholder="Quiz deck name (to save for future sessions)"
+                              className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-[#0b101c] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!extractedQuestions || extractedQuestions.length === 0) return;
+                              const title = extractedDeckTitle.trim() || `Imported Quiz (${extractedQuestions.length} Questions)`;
+                              saveQuizDeckToLibrary({
+                                title,
+                                description: `Extracted from PDF — ${extractedQuestions.length} questions`,
+                                questions: extractedQuestions,
+                                tags: ['Imported', 'PDF'],
+                              });
+                              setSavedDecks(getSavedQuizLibrary());
+                              setExtractedDeckTitle('');
+                              setExtractedQuestions(null);
                               setShowPdfModal(false);
-                              handleLaunchWithQuestions(extractedQuestions);
-                            }
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 hover:brightness-110 transition-all"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-white" />
-                          <span>Launch Quiz Now ({extractedQuestions.length} Qs)</span>
-                        </button>
+                              setMode('library');
+                            }}
+                            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1.5 flex-shrink-0 shadow-md shadow-amber-500/30 transition-all"
+                          >
+                            <Library className="w-3.5 h-3.5" />
+                            <span>Save to Library</span>
+                          </button>
+                        </div>
+                        {/* Secondary: Back | Edit in Builder | Launch Now */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setExtractedQuestions(null)}
+                            className="px-3 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white flex-shrink-0"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleApplyExtractedQuestions}
+                            className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-white/10 flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Edit in Builder</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={creating}
+                            onClick={() => {
+                              if (extractedQuestions && extractedQuestions.length > 0) {
+                                setShowPdfModal(false);
+                                handleLaunchWithQuestions(extractedQuestions);
+                              }
+                            }}
+                            className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 hover:brightness-110 transition-all disabled:opacity-60"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-white" />
+                            <span>Launch Now ({extractedQuestions.length} Qs)</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
