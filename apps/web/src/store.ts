@@ -119,11 +119,12 @@ export interface QuizState {
   gameId: string | null;
   pin: string | null;
   players: QuizPlayer[];
-  status: 'idle' | 'lobby' | 'generating' | 'active' | 'reveal' | 'finished';
+  status: 'idle' | 'lobby' | 'generating' | 'active' | 'paused' | 'reveal' | 'finished';
   currentQuestion: QuizQuestion | null;
   questionIndex: number;
   totalQuestions: number;
   serverStartTime: number;
+  remainingMs: number | null;
   answeredCount: number;
   totalPlayers: number;
   selectedOptionId: string | null;
@@ -138,6 +139,8 @@ export interface QuizState {
   setPin: (pin: string) => void;
   setPlayers: (ps: QuizPlayer[]) => void;
   setStatus: (s: QuizState['status']) => void;
+  setRemainingMs: (ms: number | null) => void;
+  setServerStartTime: (serverStartTime: number) => void;
   showQuestion: (q: QuizQuestion, idx: number, total: number, serverStart: number) => void;
   setAnsweredCount: (n: number, total: number) => void;
   submitAnswer: (optionId: string) => void;
@@ -157,6 +160,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   questionIndex: 0,
   totalQuestions: 0,
   serverStartTime: 0,
+  remainingMs: null,
   answeredCount: 0,
   totalPlayers: 0,
   selectedOptionId: null,
@@ -171,8 +175,10 @@ export const useQuizStore = create<QuizState>((set) => ({
   setPin: (pin) => set({ pin }),
   setPlayers: (players) => set({ players, totalPlayers: players.length }),
   setStatus: (status) => set({ status }),
+  setRemainingMs: (remainingMs) => set({ remainingMs }),
+  setServerStartTime: (serverStartTime) => set({ serverStartTime }),
   showQuestion: (currentQuestion, questionIndex, totalQuestions, serverStartTime) =>
-    set({ currentQuestion, questionIndex, totalQuestions, serverStartTime, selectedOptionId: null, playerResult: null, correctOptionId: null, optionResults: [], answeredCount: 0, status: 'active' }),
+    set({ currentQuestion, questionIndex, totalQuestions, serverStartTime, remainingMs: null, selectedOptionId: null, playerResult: null, correctOptionId: null, optionResults: [], answeredCount: 0, status: 'active' }),
   setAnsweredCount: (answeredCount, totalPlayers) => set({ answeredCount, totalPlayers }),
   submitAnswer: (selectedOptionId) => set({ selectedOptionId }),
   showReveal: (correctOptionId, optionResults, playerResult) =>
@@ -183,7 +189,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   reset: () => set({
     gameId: null, pin: null, players: [], status: 'idle',
     currentQuestion: null, questionIndex: 0, totalQuestions: 0,
-    serverStartTime: 0, answeredCount: 0, totalPlayers: 0,
+    serverStartTime: 0, remainingMs: null, answeredCount: 0, totalPlayers: 0,
     selectedOptionId: null, playerResult: null, correctOptionId: null,
     optionResults: [], leaderboard: [], clockOffset: 0, isHost: false,
   }),

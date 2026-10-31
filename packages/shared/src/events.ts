@@ -10,6 +10,8 @@ export const GAME_EVENTS = {
   CREATE: 'game:create',
   JOIN: 'game:join',
   START: 'game:start',
+  PAUSE: 'game:pause',
+  RESUME: 'game:resume',
   NEXT: 'game:next',
   END: 'game:end',
   KICK: 'game:kick',

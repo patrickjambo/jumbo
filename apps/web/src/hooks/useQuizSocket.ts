@@ -107,8 +107,14 @@ export function useQuizSocket() {
       store.setStatus('finished');
     });
 
-    socket.on(SERVER_EVENTS.GAME_STATE, (payload: { status: Parameters<typeof store.setStatus>[0] }) => {
+    socket.on(SERVER_EVENTS.GAME_STATE, (payload: { status: Parameters<typeof store.setStatus>[0]; serverStartTime?: number; remainingMs?: number }) => {
       store.setStatus(payload.status);
+      if (payload.serverStartTime !== undefined) {
+        store.setServerStartTime(payload.serverStartTime);
+      }
+      if (payload.remainingMs !== undefined) {
+        store.setRemainingMs(payload.remainingMs);
+      }
     });
 
     if (!socket.connected) socket.connect();
@@ -196,6 +202,16 @@ export function useQuizSocket() {
     });
   }
 
+  function pauseGame(gameId: string) {
+    if (!store.isHost) return;
+    socketRef.current?.emit(GAME_EVENTS.PAUSE, { gameId });
+  }
+
+  function resumeGame(gameId: string) {
+    if (!store.isHost) return;
+    socketRef.current?.emit(GAME_EVENTS.RESUME, { gameId });
+  }
+
   function nextQuestion(gameId: string) {
     if (!store.isHost) return;
     socketRef.current?.emit(GAME_EVENTS.NEXT, { gameId });
@@ -213,6 +229,8 @@ export function useQuizSocket() {
     joinGame,
     startGame,
     submitAnswer,
+    pauseGame,
+    resumeGame,
     nextQuestion,
     endGame,
   };

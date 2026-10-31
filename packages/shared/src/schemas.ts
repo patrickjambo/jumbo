@@ -72,6 +72,7 @@ export const GameStatusSchema = z.enum([
   'waiting',    // lobby
   'generating', // questions being generated
   'active',     // game running
+  'paused',     // game paused by host
   'finished',
 ]);
 export type GameStatus = z.infer<typeof GameStatusSchema>;

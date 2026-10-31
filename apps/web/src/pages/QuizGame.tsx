@@ -7,7 +7,7 @@ import {
   Triangle, Diamond, Circle, Square,
   ThumbsUp, Flame, Heart, Sparkles, PartyPopper, UserPlus,
   Video, Mic, Zap, ArrowRight, Timer, Home, LogOut,
-  ArrowUp, ArrowDown, ListOrdered,
+  ArrowUp, ArrowDown, ListOrdered, Pause, Play,
 } from 'lucide-react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore, type QuizPlayer, type QuizQuestion } from '../store';
@@ -71,7 +71,7 @@ export default function QuizGame() {
   const { pin } = useParams<{ pin: string }>();
   const navigate = useNavigate();
 
-  const { joinGame, submitAnswer, nextQuestion } = useQuizSocket();
+  const { joinGame, submitAnswer, nextQuestion, pauseGame, resumeGame } = useQuizSocket();
   const store = useQuizStore();
 
   useWakeLock(true);
@@ -109,7 +109,9 @@ export default function QuizGame() {
 
   useEffect(() => {
     if (!activeQuestion) return;
-    setTimeLeft(activeQuestion.timeLimit);
+    if (store.status !== 'paused') {
+      setTimeLeft(activeQuestion.timeLimit);
+    }
     lastTickRef.current = -1;
 
     if (store.status === 'active' && store.serverStartTime) {
@@ -126,7 +128,11 @@ export default function QuizGame() {
       syncTick();
       const interval = setInterval(syncTick, 200);
       return () => clearInterval(interval);
-    } else {
+    } else if (store.status === 'paused') {
+      if (store.remainingMs !== null && store.remainingMs !== undefined) {
+        setTimeLeft(Math.ceil(store.remainingMs / 1000));
+      }
+    } else if (isDemo) {
       // Demo mode: local countdown, independent of answer state
       const interval = setInterval(() => {
         setTimeLeft((prev) => {
@@ -138,7 +144,7 @@ export default function QuizGame() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [store.status, store.serverStartTime, store.clockOffset, activeQuestion?.id, activeQuestion?.timeLimit]);
+  }, [store.status, store.serverStartTime, store.remainingMs, store.clockOffset, activeQuestion?.id, activeQuestion?.timeLimit, isDemo]);
 
   // Puzzle / Order Sequence state
   const [puzzleItems, setPuzzleItems] = useState<{ id: string; text: string }[]>([]);
@@ -150,7 +156,7 @@ export default function QuizGame() {
   }, [activeQuestion?.id]);
 
   const movePuzzleItem = useCallback((idx: number, direction: 'up' | 'down') => {
-    if (store.selectedOptionId || (store.status !== 'active' && !isDemo)) return;
+    if (store.selectedOptionId || store.status === 'paused' || (store.status !== 'active' && !isDemo)) return;
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= puzzleItems.length) return;
     setPuzzleItems((prev) => {
@@ -175,7 +181,7 @@ export default function QuizGame() {
 
   // Handle answering — locks in answer but does NOT stop the timer
   const handleAnswer = useCallback((optId: string) => {
-    if (store.selectedOptionId || (store.status !== 'active' && !isDemo) || !activeQuestion) return;
+    if (store.selectedOptionId || store.status === 'paused' || (store.status !== 'active' && !isDemo) || !activeQuestion) return;
     quizAudio.playLockIn();
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([40, 20, 40]);
 
@@ -196,6 +202,28 @@ export default function QuizGame() {
     }
   }, [store.selectedOptionId, store.status, isDemo, activeQuestion, store.gameId, submitAnswer, store, timeLeft]);
 
+  // Host pause / resume actions
+  const handlePause = useCallback(() => {
+    if (isDemo) {
+      store.setStatus('paused');
+      store.setRemainingMs(timeLeft * 1000);
+      return;
+    }
+    if (store.gameId) {
+      pauseGame(store.gameId);
+    }
+  }, [isDemo, store, timeLeft, pauseGame]);
+
+  const handleResume = useCallback(() => {
+    if (isDemo) {
+      store.setStatus('active');
+      return;
+    }
+    if (store.gameId) {
+      resumeGame(store.gameId);
+    }
+  }, [isDemo, store, resumeGame]);
+
   // Floating score celebration when server sends playerResult
   useEffect(() => {
     if (store.playerResult && store.playerResult.correct) {
@@ -212,11 +240,26 @@ export default function QuizGame() {
     if (store.gameId) nextQuestion(store.gameId);
   }, [store.questionIndex, store.totalQuestions, store.status, store.gameId, nextQuestion, navigate, pin]);
 
-  // Keyboard shortcuts: 1/2/3/4 or A/B/C/D
+  // Keyboard shortcuts: 1/2/3/4 or A/B/C/D, plus Space/P for Host Pause/Resume
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (activeQuestion && !store.selectedOptionId && (store.status === 'active' || isDemo)) {
+
+      // Host Pause / Resume with Spacebar or 'P' key
+      if (store.isHost || isDemo) {
+        if (e.key === 'p' || e.key === 'P' || (e.key === ' ' && store.status === 'paused')) {
+          e.preventDefault();
+          if (store.status === 'active') {
+            handlePause();
+            return;
+          } else if (store.status === 'paused') {
+            handleResume();
+            return;
+          }
+        }
+      }
+
+      if (activeQuestion && !store.selectedOptionId && store.status !== 'paused' && (store.status === 'active' || isDemo)) {
         const key = e.key.toLowerCase();
         let idx = -1;
         if (key === '1' || key === 'a') idx = 0;
@@ -224,13 +267,13 @@ export default function QuizGame() {
         else if (key === '3' || key === 'c') idx = 2;
         else if (key === '4' || key === 'd') idx = 3;
         if (idx >= 0 && activeQuestion.options[idx]) { e.preventDefault(); handleAnswer(activeQuestion.options[idx]!.id); }
-      } else if (store.status === 'reveal' && store.isHost) {
+      } else if (store.status === 'reveal' && (store.isHost || isDemo)) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNext(); }
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeQuestion, store.selectedOptionId, store.status, isDemo, store.isHost, handleAnswer, handleNext]);
+  }, [activeQuestion, store.selectedOptionId, store.status, isDemo, store.isHost, handleAnswer, handleNext, handlePause, handleResume]);
 
   const realLeaderboard: QuizPlayer[] = useMemo(() => {
     if (store.leaderboard && store.leaderboard.length > 0) return store.leaderboard;
@@ -255,10 +298,14 @@ export default function QuizGame() {
   const totalQuestions = store.totalQuestions || 10;
   const progressPercent = Math.min(100, ((questionIndex + 1) / totalQuestions) * 100);
   const timeRatio = timeLeft / (activeQuestion?.timeLimit || 20);
-  const timerColor = timeLeft > 10 ? 'text-emerald-400 border-emerald-500/50 bg-emerald-950/30'
+  const timerColor = store.status === 'paused'
+    ? 'text-amber-400 border-amber-500/50 bg-amber-950/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+    : timeLeft > 10 ? 'text-emerald-400 border-emerald-500/50 bg-emerald-950/30'
     : timeLeft > 5 ? 'text-amber-400 border-amber-500/50 bg-amber-950/30'
     : 'text-red-400 border-red-500/60 bg-red-950/40 animate-pulse';
-  const timerBarColor = timeLeft > 10 ? 'bg-emerald-400' : timeLeft > 5 ? 'bg-amber-400' : 'bg-red-400';
+  const timerBarColor = store.status === 'paused'
+    ? 'bg-amber-400'
+    : timeLeft > 10 ? 'bg-emerald-400' : timeLeft > 5 ? 'bg-amber-400' : 'bg-red-400';
 
   const handleSendReaction = (icon: any, color: string) => {
     const id = Date.now();
@@ -340,6 +387,31 @@ export default function QuizGame() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Host Pause / Resume Button */}
+          {(store.isHost || isDemo) && (store.status === 'active' || store.status === 'paused') && (
+            <button
+              onClick={store.status === 'paused' ? handleResume : handlePause}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                store.status === 'paused'
+                  ? 'bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/50 text-emerald-300 shadow-emerald-500/20 animate-pulse'
+                  : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-300 hover:text-amber-200'
+              }`}
+              title={store.status === 'paused' ? 'Resume Game (Space / P)' : 'Pause Game (P)'}
+            >
+              {store.status === 'paused' ? (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-emerald-300" />
+                  <span>Resume</span>
+                </>
+              ) : (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Pause</span>
+                </>
+              )}
+            </button>
+          )}
+
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#141b2c] border border-[#222e47] text-xs font-semibold text-slate-300">
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-amber-400 font-bold">#{currentPlayer.rank ?? 1}</span>
@@ -372,7 +444,7 @@ export default function QuizGame() {
           Laptop  (lg 1024px): 12-col grid — left 3 cols, center 6 cols, right 3 cols
       */}
       <div className="relative z-10 w-full max-w-7xl">
-        <div className="bg-[#0b0f1a] border border-[#1e263d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-5 shadow-2xl backdrop-blur-xl flex flex-col gap-3 sm:gap-4 overflow-hidden">
+        <div className="bg-[#0b0f1a] border border-[#1e263d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-5 shadow-2xl backdrop-blur-xl flex flex-col gap-3 sm:gap-4 overflow-hidden relative">
 
           {/* ── Question progress + live countdown timer ────────────────────────── */}
           <div className="flex flex-col gap-1.5">
@@ -395,8 +467,17 @@ export default function QuizGame() {
 
               {/* ── Kahoot-style countdown: runs for ALL participants until 0 ── */}
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-bold text-sm transition-all duration-300 ${timerColor}`}>
-                <Timer className="w-4 h-4 flex-shrink-0" />
-                <span className="tabular-nums w-6 text-center">{timeLeft}</span>
+                {store.status === 'paused' ? (
+                  <>
+                    <Pause className="w-4 h-4 flex-shrink-0 animate-pulse" />
+                    <span className="tabular-nums font-mono">{timeLeft}s PAUSED</span>
+                  </>
+                ) : (
+                  <>
+                    <Timer className="w-4 h-4 flex-shrink-0" />
+                    <span className="tabular-nums w-6 text-center">{timeLeft}</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -889,6 +970,70 @@ export default function QuizGame() {
             </div>
 
           </div>
+
+          {/* ── Pause Overlay ─────────────────────────────────────────────────── */}
+          <AnimatePresence>
+            {store.status === 'paused' && (
+              <motion.div
+                initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                animate={{ opacity: 1, backdropFilter: 'blur(12px)' }}
+                exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-[#070b16]/90 p-6 text-center select-none"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, y: 10 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.8, y: 10 }}
+                  className="flex flex-col items-center max-w-md w-full"
+                >
+                  <div className="relative mb-5">
+                    <div className="absolute -inset-2 rounded-2xl bg-amber-500/25 blur-xl animate-pulse" />
+                    <div className="relative w-20 h-20 rounded-2xl bg-[#121828] border-2 border-amber-500/50 flex items-center justify-center text-amber-400 shadow-2xl">
+                      <Pause className="w-10 h-10" />
+                    </div>
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold tracking-wide uppercase mb-3 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    Game Paused
+                  </div>
+
+                  <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 tracking-tight">
+                    Game Paused by Host
+                  </h3>
+
+                  <p className="text-slate-300 text-sm sm:text-base mb-6 leading-relaxed">
+                    The timer is frozen at{' '}
+                    <span className="text-amber-400 font-bold tabular-nums text-base sm:text-lg px-2.5 py-0.5 rounded-lg bg-amber-400/10 border border-amber-400/30">
+                      {timeLeft}s
+                    </span>{' '}
+                    remaining. Answering is temporarily locked.
+                  </p>
+
+                  {store.isHost || isDemo ? (
+                    <div className="flex flex-col items-center gap-2 w-full">
+                      <button
+                        onClick={handleResume}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-base shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-105 active:scale-95"
+                      >
+                        <Play className="w-5 h-5 fill-white" />
+                        <span>Resume Game</span>
+                        <kbd className="text-[11px] bg-black/30 px-2 py-0.5 rounded text-emerald-100 font-mono border border-white/10">
+                          Space / P
+                        </kbd>
+                      </button>
+                      <span className="text-[11px] text-slate-400 mt-1">Press Spacebar or click button above to resume</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-slate-300 text-sm font-semibold shadow-inner">
+                      <Clock className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '3s' }} />
+                      <span>Stand by — the host will resume shortly</span>
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

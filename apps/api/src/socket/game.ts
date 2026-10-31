@@ -21,13 +21,14 @@ interface GameRecord {
   id: string;
   pin: string;
   hostSocketId: string;
-  status: 'waiting' | 'generating' | 'active' | 'finished';
+  status: 'waiting' | 'generating' | 'active' | 'paused' | 'finished';
   settings: GameSettings;
   players: Map<string, PlayerRecord>; // key: socket.id
   questions: Question[];
   customQuestions?: Question[] | undefined;
   currentQuestionIndex: number;
   questionStartTime: number; // server epoch ms
+  remainingTimeMs?: number | undefined;
   revealTimeout: ReturnType<typeof setTimeout> | null;
   nextTimeout: ReturnType<typeof setTimeout> | null;
 }
@@ -98,6 +99,7 @@ function sendQuestion(io: Server, game: GameRecord) {
   }
   game.status = 'active';
   game.questionStartTime = Date.now();
+  game.remainingTimeMs = undefined;
 
   io.to(game.pin).emit(SERVER_EVENTS.QUESTION_SHOW, {
     question: stripAnswers(q),
@@ -412,6 +414,56 @@ export function registerGameHandlers(io: Server) {
         if (game.revealTimeout) clearTimeout(game.revealTimeout);
         revealAnswer(io, game);
       }
+    });
+
+    // ── Pause game (host only) ────────────────────────────────────────────────
+    socket.on(GAME_EVENTS.PAUSE, (payload: { gameId: string }) => {
+      const game = games.get(payload?.gameId);
+      if (!game || socket.id !== game.hostSocketId) return;
+      if (game.status !== 'active') return;
+
+      if (game.revealTimeout) {
+        clearTimeout(game.revealTimeout);
+        game.revealTimeout = null;
+      }
+
+      const q = game.questions[game.currentQuestionIndex];
+      const totalMs = (q ? q.timeLimit : 20) * 1000;
+      const elapsedMs = Date.now() - game.questionStartTime;
+      const remainingMs = Math.max(1000, totalMs - elapsedMs);
+
+      game.remainingTimeMs = remainingMs;
+      game.status = 'paused';
+
+      io.to(game.pin).emit(SERVER_EVENTS.GAME_STATE, {
+        status: 'paused',
+        remainingMs,
+      });
+    });
+
+    // ── Resume game (host only) ───────────────────────────────────────────────
+    socket.on(GAME_EVENTS.RESUME, (payload: { gameId: string }) => {
+      const game = games.get(payload?.gameId);
+      if (!game || socket.id !== game.hostSocketId) return;
+      if (game.status !== 'paused') return;
+
+      const q = game.questions[game.currentQuestionIndex];
+      const totalMs = (q ? q.timeLimit : 20) * 1000;
+      const remainingMs = Math.max(1000, game.remainingTimeMs ?? totalMs);
+
+      game.questionStartTime = Date.now() - (totalMs - remainingMs);
+      game.status = 'active';
+
+      game.revealTimeout = setTimeout(
+        () => revealAnswer(io, game),
+        remainingMs + 500,
+      );
+
+      io.to(game.pin).emit(SERVER_EVENTS.GAME_STATE, {
+        status: 'active',
+        serverStartTime: game.questionStartTime,
+        remainingMs,
+      });
     });
 
     // ── Next question (host only) ──────────────────────────────────────────────
