@@ -37,8 +37,8 @@ export function useNoiseControl(
     enabled,
     onAutoMute,
     onSuggestHeadphones,
-    loudnessThresholdDb = -30,
-    speechSilenceSecs = 3,
+    loudnessThresholdDb = -6, // Only extreme continuous screeching/deafening feedback
+    speechSilenceSecs = 45,    // 45s of unbroken noise
   } = options;
 
   // Convert dBFS threshold to RMS
@@ -53,9 +53,13 @@ export function useNoiseControl(
   }, []);
 
   useEffect(() => {
-    if (!micStream || !enabled) return;
+    if (!micStream || !enabled || micStream.getAudioTracks().length === 0) {
+      loudSinceRef.current = null;
+      return;
+    }
 
-    const ctx = new AudioContext();
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioCtx({ latencyHint: 'interactive', sampleRate: 48000 });
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
     const source = ctx.createMediaStreamSource(micStream);
@@ -65,7 +69,7 @@ export function useNoiseControl(
     analyserRef.current = analyser;
     sourceRef.current = source;
 
-    const FRAME_INTERVAL = 200; // check every 200ms
+    const FRAME_INTERVAL = 300; // check every 300ms
     let lastCheck = 0;
 
     function loop(now: number) {
@@ -85,16 +89,15 @@ export function useNoiseControl(
         } else {
           const loudDuration = (nowMs - loudSinceRef.current) / 1000;
           if (loudDuration >= speechSilenceSecs && nowMs > graceUntilRef.current) {
-            // Loud for too long — auto-mute
-            // (Phase 2: add Silero VAD check here to confirm it's NOT speech)
+            // Sustained continuous loud drone for 20+ seconds — auto-mute
             const windowAge = nowMs - autoMuteWindowStartRef.current;
-            if (windowAge > 120_000) {
+            if (windowAge > 180_000) {
               autoMuteCountRef.current = 0;
               autoMuteWindowStartRef.current = nowMs;
             }
             autoMuteCountRef.current++;
             loudSinceRef.current = null;
-            graceUntilRef.current = nowMs + 10_000; // 10s grace
+            graceUntilRef.current = nowMs + 180_000; // 3-minute grace
 
             onAutoMute('Background noise detected. Jumbo muted your mic. Tap to unmute.');
 
@@ -104,6 +107,7 @@ export function useNoiseControl(
           }
         }
       } else {
+        // Natural speech pauses reset the counter so talking never triggers auto-mute!
         loudSinceRef.current = null;
       }
     }
@@ -119,7 +123,7 @@ export function useNoiseControl(
 
   /** Call this after a manual unmute to reset the grace period */
   const onManualUnmute = useCallback(() => {
-    graceUntilRef.current = Date.now() + 10_000;
+    graceUntilRef.current = Date.now() + 180_000; // 3-minute grace
     loudSinceRef.current = null;
   }, []);
 

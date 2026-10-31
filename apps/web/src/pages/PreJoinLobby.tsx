@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video, Mic, MicOff, VideoOff, Settings, ChevronDown, AlertCircle } from 'lucide-react';
+import { Video, Mic, MicOff, VideoOff, Settings, ChevronDown, AlertCircle, Copy, Check } from 'lucide-react';
 import { fetchLiveKitToken, createRoom } from '../lib/api';
+import { AppNavbar } from '../components/AppNavbar';
 
 export default function PreJoinLobby() {
   const { code } = useParams<{ code: string }>();
@@ -16,6 +17,7 @@ export default function PreJoinLobby() {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [micLevel, setMicLevel] = useState(0);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -104,7 +106,15 @@ export default function PreJoinLobby() {
       }
 
       // Pre-fetch token — we'll pass it via sessionStorage so MeetingRoom can use it
-      const { token, livekitUrl } = await fetchLiveKitToken(roomCode!, name.trim());
+      let token = '';
+      let livekitUrl = '';
+      try {
+        const tokenRes = await fetchLiveKitToken(roomCode!, name.trim());
+        token = tokenRes.token;
+        livekitUrl = tokenRes.livekitUrl;
+      } catch {
+        // Continue with native WebRTC mesh
+      }
       sessionStorage.setItem(`lk-token-${roomCode}`, token);
       sessionStorage.setItem('lk-url', livekitUrl);
       sessionStorage.setItem('lk-name', name.trim());
@@ -134,20 +144,50 @@ export default function PreJoinLobby() {
   const cams = devices.filter((d) => d.kind === 'videoinput');
 
   return (
-    <div className="relative min-h-dvh flex items-center justify-center p-4">
+    <div className="relative min-h-dvh flex flex-col overflow-x-hidden">
       <div className="ambient-bg" aria-hidden />
-      <motion.div
-        className="glass-card w-full max-w-md p-8 relative z-10"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
+      <AppNavbar showBack backTo="/home" backLabel="Home" />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <motion.div
+          className="glass-card w-full max-w-md p-8 relative z-10"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
         <h1 className="text-2xl font-bold mb-1">
-          {isNew ? 'Start a meeting' : `Join meeting ${code}`}
+          {isNew ? 'Start a meeting' : 'Join meeting'}
         </h1>
-        <p className="text-sm text-[var(--text-secondary)] mb-6">
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
           Check your camera and mic before joining.
         </p>
+
+        {!isNew && code && (
+          <div className="flex items-center justify-between p-3 mb-5 rounded-xl bg-brand-500/10 border border-brand-400/25">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-brand-300 uppercase tracking-wider">Meeting PIN:</span>
+              <span className="font-mono font-bold text-base text-white tracking-wider">{code}</span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(window.location.href);
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2000);
+              }}
+              className="text-xs text-brand-300 hover:text-white font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-500/20 hover:bg-brand-500/30 transition-colors"
+              title="Copy meeting link"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedLink ? 'Copied' : 'Copy link'}</span>
+            </button>
+          </div>
+        )}
+
+        {isNew && (
+          <div className="p-3 mb-5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-glass)] text-xs text-[var(--text-secondary)]">
+            A unique meeting PIN and invite link will be generated automatically when you start.
+          </div>
+        )}
 
         {/* Camera preview */}
         <div className="relative w-full aspect-video bg-[var(--surface-2)] rounded-[var(--radius-lg)] mb-4 overflow-hidden">
@@ -261,6 +301,7 @@ export default function PreJoinLobby() {
         </form>
         <button id="prejoin-back-btn" className="mt-4 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/home')}>← Back</button>
       </motion.div>
+      </div>
     </div>
   );
 }

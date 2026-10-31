@@ -12,9 +12,9 @@ export interface ChatMessage {
 }
 
 export interface MeetingState {
-  room: Room | null;
-  localParticipant: LocalParticipant | null;
-  remoteParticipants: RemoteParticipant[];
+  room: Room | any | null;
+  localParticipant: LocalParticipant | any | null;
+  remoteParticipants: (RemoteParticipant | any)[];
   isMicOn: boolean;
   isCamOn: boolean;
   isScreenSharing: boolean;
@@ -183,6 +183,6 @@ export const useQuizStore = create<QuizState>((set) => ({
     currentQuestion: null, questionIndex: 0, totalQuestions: 0,
     serverStartTime: 0, answeredCount: 0, totalPlayers: 0,
     selectedOptionId: null, playerResult: null, correctOptionId: null,
-    optionResults: [], leaderboard: [], clockOffset: 0,
+    optionResults: [], leaderboard: [], clockOffset: 0, isHost: false,
   }),
 }));

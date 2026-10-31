@@ -7,6 +7,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { tokenRoutes } from './routes/token.js';
 import { roomRoutes } from './routes/room.js';
 import { registerGameHandlers } from './socket/game.js';
+import { registerMeetingHandlers } from './socket/meeting.js';
 import { env } from './env.js';
 
 // ─── Fastify App ──────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ const io = new SocketIOServer(app.server, {
 });
 
 registerGameHandlers(io);
+registerMeetingHandlers(io);
 
 console.log(`\n🚀 Jumbo API ready → http://localhost:${env.PORT}\n`);
 console.log(`📡 Socket.IO listening on the same port\n`);

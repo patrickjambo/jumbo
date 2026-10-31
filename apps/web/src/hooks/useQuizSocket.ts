@@ -164,6 +164,7 @@ export function useQuizSocket() {
   }
 
   function startGame(gameId: string) {
+    if (!store.isHost) return;
     socketRef.current?.emit(GAME_EVENTS.START, { gameId });
     store.setStatus('generating');
   }
@@ -179,10 +180,12 @@ export function useQuizSocket() {
   }
 
   function nextQuestion(gameId: string) {
+    if (!store.isHost) return;
     socketRef.current?.emit(GAME_EVENTS.NEXT, { gameId });
   }
 
   function endGame(gameId: string) {
+    if (!store.isHost) return;
     socketRef.current?.emit(GAME_EVENTS.END, { gameId });
   }
 

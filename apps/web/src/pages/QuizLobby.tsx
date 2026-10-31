@@ -4,6 +4,7 @@ import { Gamepad2, Users, Copy, Check, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
+import { AppNavbar } from '../components/AppNavbar';
 
 export default function QuizLobby() {
   const { pin } = useParams<{ pin: string }>();
@@ -36,10 +37,12 @@ export default function QuizLobby() {
   const joinUrl = `${window.location.origin}/quiz?pin=${pin ?? ''}`;
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center p-4">
+    <div className="relative min-h-dvh flex flex-col overflow-x-hidden pb-8">
       <div className="ambient-bg" aria-hidden />
+      <AppNavbar showBack backTo="/quiz" backLabel="Quiz" />
 
-      <div className="w-full max-w-lg relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-lg relative z-10">
         {/* PIN display */}
         <motion.div className="glass-card p-8 mb-4 text-center" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm text-[var(--text-secondary)] font-medium uppercase tracking-wider mb-2">Game PIN</p>
@@ -108,7 +111,8 @@ export default function QuizLobby() {
           </div>
         )}
 
-        <button className="mt-3 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/quiz')}>← Back</button>
+        <button className="mt-3 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/quiz')}>← Back to Quiz</button>
+      </div>
       </div>
     </div>
   );

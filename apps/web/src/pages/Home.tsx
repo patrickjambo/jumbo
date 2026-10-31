@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Gamepad2, Plus, ArrowRight, Clock, Users } from 'lucide-react';
+import { AppNavbar } from '../components/AppNavbar';
 
 interface RecentMeeting {
   code: string;
@@ -45,7 +46,15 @@ export default function Home() {
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
-    const code = joinCode.trim().toUpperCase();
+    let raw = joinCode.trim();
+    // Support pasting full meeting URLs e.g. https://domain/join/CODE or .../room/CODE
+    if (raw.includes('/join/')) {
+      raw = raw.split('/join/')[1]?.split('?')[0]?.split('#')[0] || raw;
+    } else if (raw.includes('/room/')) {
+      raw = raw.split('/room/')[1]?.split('?')[0]?.split('#')[0] || raw;
+    }
+    // Clean up dashes, spaces, slashes
+    const code = raw.replace(/[-\s/]/g, '').toUpperCase();
     if (code.length >= 4) navigate(`/join/${code}`);
   }
 
@@ -54,18 +63,7 @@ export default function Home() {
       <div className="ambient-bg" aria-hidden />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 max-w-5xl mx-auto">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-accent-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Gamepad2 className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">Jumbo</span>
-        </button>
-        <div className="connection-pill connected">
-          <span className="dot" />
-          Ready
-        </div>
-      </header>
+      <AppNavbar />
 
       <main className="relative z-10 max-w-5xl mx-auto px-6 pt-6 pb-16">
         <h1 className="text-display-md mb-8">What would you like to do?</h1>
@@ -116,23 +114,22 @@ export default function Home() {
         {/* Quick join bar */}
         <div className="glass-card-sm p-5 mb-8">
           <h2 className="text-sm font-semibold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">
-            Join with a code
+            Join with a PIN or link
           </h2>
           <form onSubmit={handleJoin} className="flex gap-3">
             <input
               id="home-join-code-input"
               type="text"
-              placeholder="Room code or PIN"
+              placeholder="Enter meeting PIN (e.g. ABC123) or paste invite link"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              maxLength={10}
+              onChange={(e) => setJoinCode(e.target.value)}
               className="flex-1 bg-[var(--surface-2)] border border-[var(--border-glass)] rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-brand-400 transition-colors"
             />
             <button
               id="home-join-btn"
               type="submit"
               className="btn-primary px-6"
-              disabled={joinCode.trim().length < 4}
+              disabled={joinCode.trim().length < 3}
             >
               Join
             </button>

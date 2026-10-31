@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Gamepad2, Mic } from 'lucide-react';
+import { AppNavbar } from '../components/AppNavbar';
 
 /**
  * Design System page — shown only in development / Phase 0 review.
@@ -9,9 +11,10 @@ export default function DesignSystem() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-dvh p-8 max-w-4xl mx-auto">
+    <div className="min-h-dvh pb-12 max-w-4xl mx-auto px-4">
       <div className="ambient-bg" aria-hidden />
-      <div className="relative z-10">
+      <AppNavbar showBack backTo="/home" backLabel="Home" />
+      <div className="relative z-10 pt-4">
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-display-md">Design System</h1>
           <button className="btn-ghost text-sm" onClick={() => navigate('/home')}>
@@ -79,8 +82,8 @@ export default function DesignSystem() {
             <button className="btn-primary" disabled>Disabled</button>
             <button className="btn-ghost">Ghost button</button>
             <button className="btn-danger">Leave</button>
-            <button className="btn-icon"><span>🎮</span></button>
-            <button className="btn-icon active"><span>🎤</span></button>
+            <button className="btn-icon"><Gamepad2 className="w-5 h-5 text-white" /></button>
+            <button className="btn-icon active"><Mic className="w-5 h-5 text-white" /></button>
           </div>
           <div className="mt-3">
             <button className="btn-primary w-full max-w-xs">

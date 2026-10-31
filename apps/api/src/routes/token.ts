@@ -26,8 +26,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { roomName, participantName, participantIdentity, canPublish, canSubscribe, canPublishData } = body.data;
 
+    const uniqueIdentity = participantIdentity || `${participantName.replace(/[^a-zA-Z0-9_-]/g, '')}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+
     const at = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
-      identity: participantIdentity ?? participantName,
+      identity: uniqueIdentity,
       name: participantName,
       ttl: '1h',
     });

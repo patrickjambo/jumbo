@@ -2,142 +2,212 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Room, RoomEvent, Track, ParticipantEvent, ConnectionQuality,
+  Room, ParticipantEvent, ConnectionQuality,
   type RemoteParticipant, type LocalParticipant,
   VideoPresets,
 } from 'livekit-client';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MessageSquare,
-  Users, Gamepad2, Circle, PhoneOff, ChevronUp, X,
+  Users, Gamepad2, Circle, PhoneOff, X,
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
+  Copy, Check, Share2, Info, UserPlus, Home,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { MeetingQuizPanel } from '../components/MeetingQuizPanel';
+import { useMeetingWebRTC } from '../hooks/useMeetingWebRTC';
 
 // ─── Participant Tile ─────────────────────────────────────────────────────────
 function ParticipantTile({
   participant,
   isLocal,
   isLarge = false,
+  isActiveSpeaker = false,
+  fallbackStream = null,
 }: {
-  participant: LocalParticipant | RemoteParticipant;
+  participant: LocalParticipant | RemoteParticipant | any;
   isLocal: boolean;
   isLarge?: boolean;
+  isActiveSpeaker?: boolean;
+  fallbackStream?: MediaStream | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [quality, setQuality] = useState<ConnectionQuality>(participant.connectionQuality);
+  const [quality, setQuality] = useState<ConnectionQuality>(participant?.connectionQuality ?? ConnectionQuality.Excellent);
   const raisedHands = useMeetingStore((s) => s.raisedHands);
-  const isHandRaised = raisedHands.includes(participant.identity);
+  const isCamOn = useMeetingStore((s) => s.isCamOn);
+  const isMicOn = useMeetingStore((s) => s.isMicOn);
+  const isHandRaised = raisedHands.includes(participant?.identity);
 
   useEffect(() => {
-    function attachTracks() {
+    let unmounted = false;
+
+    function attach() {
+      if (unmounted) return;
+
       if (isLocal) {
-        const lp = participant as LocalParticipant;
-        const vPub = lp.getTrackPublication(Track.Source.Camera);
-        if (vPub?.track && videoRef.current) {
-          vPub.track.attach(videoRef.current);
-          setHasVideo(true);
+        const stream = fallbackStream || (participant as any)?.stream;
+        if (stream && isCamOn && videoRef.current) {
+          if (videoRef.current.srcObject !== stream) videoRef.current.srcObject = stream;
+          void videoRef.current.play().catch(() => {});
+          const vTracks = stream.getVideoTracks?.() || [];
+          setHasVideo(vTracks.length > 0 && vTracks.some((t: MediaStreamTrack) => t.enabled));
+        } else {
+          setHasVideo(false);
         }
       } else {
-        const rp = participant as RemoteParticipant;
-        rp.on(ParticipantEvent.TrackSubscribed, (track) => {
-          if (track.kind === Track.Kind.Video && videoRef.current) {
-            track.attach(videoRef.current);
-            setHasVideo(true);
+        const rp = participant as any;
+        const stream = fallbackStream || rp?.stream;
+        if (stream && videoRef.current) {
+          if (videoRef.current.srcObject !== stream) videoRef.current.srcObject = stream;
+          void videoRef.current.play().catch(() => {});
+          const vTracks = (stream as MediaStream).getVideoTracks?.() || [];
+          setHasVideo(vTracks.length > 0 && vTracks.some((t: MediaStreamTrack) => t.enabled) && rp.isCamOn !== false);
+        } else {
+          setHasVideo(false);
+        }
+
+        // Audio: isolate audio track to prevent bleed/interference
+        if (stream && audioRef.current) {
+          const aTracks = (stream as MediaStream).getAudioTracks?.() || [];
+          const firstAudioTrack = aTracks[0];
+          if (firstAudioTrack) {
+            const currentSrc = audioRef.current.srcObject as MediaStream | null;
+            const currentAudioTrack = currentSrc?.getAudioTracks?.()[0];
+            if (!currentAudioTrack || currentAudioTrack.id !== firstAudioTrack.id) {
+              audioRef.current.srcObject = new MediaStream([firstAudioTrack]);
+            }
+            void audioRef.current.play().catch(() => {});
           }
-        });
-        rp.on(ParticipantEvent.TrackUnsubscribed, (track) => {
-          if (track.kind === Track.Kind.Video) setHasVideo(false);
-        });
+        }
       }
     }
 
-    attachTracks();
+    attach();
 
     const handleSpeaking = (speaking: boolean) => setIsSpeaking(speaking);
     const handleQuality = (q: ConnectionQuality) => setQuality(q);
 
-    participant.on(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
-    participant.on(ParticipantEvent.ConnectionQualityChanged, handleQuality);
+    participant?.on?.(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
+    participant?.on?.(ParticipantEvent.ConnectionQualityChanged, handleQuality);
 
     return () => {
-      participant.off(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
-      participant.off(ParticipantEvent.ConnectionQualityChanged, handleQuality);
+      unmounted = true;
+      participant?.off?.(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
+      participant?.off?.(ParticipantEvent.ConnectionQualityChanged, handleQuality);
     };
-  }, [participant, isLocal]);
+  }, [participant, isLocal, isCamOn, (participant as any)?.isCamOn, fallbackStream]);
+
+  const displayName = participant?.name || participant?.displayName || 'Guest';
+  const initial = displayName[0]?.toUpperCase() ?? '?';
+  const speaking = isSpeaking || isActiveSpeaker;
 
   return (
     <div
-      className={`relative bg-[var(--surface-2)] rounded-[var(--radius-card)] overflow-hidden flex items-center justify-center transition-all ${
-        isSpeaking ? 'ring-2 ring-brand-400' : ''
-      } ${isLarge ? 'w-full h-full min-h-[360px]' : 'min-h-[160px]'}`}
+      className={`relative bg-[#1a1f2e] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-200 ${
+        speaking
+          ? 'ring-[3px] ring-green-400 shadow-[0_0_20px_rgba(74,222,128,0.35)]'
+          : 'ring-1 ring-white/10'
+      } ${isLarge ? 'w-full h-full' : 'w-full h-full'}`}
     >
+      {/* Video */}
       <video
         ref={videoRef}
         autoPlay
-        muted={isLocal}
+        muted
         playsInline
-        className={`w-full h-full object-cover ${!hasVideo ? 'hidden' : ''}`}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${
+          isLocal ? 'scale-x-[-1]' : ''
+        } ${!hasVideo ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'}`}
       />
+
+      {/* Remote audio — isolated per participant */}
+      {!isLocal && <audio ref={audioRef} autoPlay playsInline className="hidden" />}
+
+      {/* Avatar when camera off */}
       {!hasVideo && (
         <div className="flex flex-col items-center gap-2">
-          <div className={`${isLarge ? 'w-24 h-24 text-4xl' : 'w-14 h-14 text-xl'} rounded-full bg-brand-500/30 flex items-center justify-center font-bold text-brand-300 shadow-md`}>
-            {participant.name?.[0]?.toUpperCase() ?? '?'}
+          <div
+            className={`${isLarge ? 'w-24 h-24 text-3xl' : 'w-14 h-14 text-xl'} rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center font-bold text-white shadow-xl`}
+          >
+            {initial}
           </div>
-          <span className="text-xs sm:text-sm text-[var(--text-secondary)] font-medium">
-            {participant.name}
-          </span>
+          {!isLarge && (
+            <span className="text-xs text-white/70 font-medium max-w-[100px] truncate">
+              {displayName}
+            </span>
+          )}
         </div>
       )}
 
-      {/* Raised hand indicator (Spec §6.1) */}
+      {/* Raised hand indicator */}
       {isHandRaised && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: [1, 1.15, 1] }}
           transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute top-2.5 right-2.5 z-10 px-2 py-1 rounded-full bg-amber-500/95 text-white font-bold text-xs shadow-lg flex items-center gap-1 backdrop-blur-md"
+          className="absolute top-2 right-2 z-10 px-2 py-1 rounded-full bg-amber-500 text-white font-bold text-xs shadow-lg flex items-center gap-1"
         >
-          <span>✋</span>
-          <span className="text-[10px] hidden sm:inline">Raised</span>
+          <Hand className="w-3 h-3" />
+          <span className="hidden sm:inline text-[10px]">Raised</span>
         </motion.div>
       )}
 
-      {/* Name and audio indicator */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 bg-black/60 backdrop-blur-sm rounded-lg text-white text-xs z-10">
-        {isSpeaking && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-        <span className="truncate max-w-[120px] sm:max-w-[160px]">
-          {participant.name}{isLocal ? ' (You)' : ''}
-        </span>
+      {/* Bottom info bar: name + mic + quality */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2.5 py-1.5 bg-gradient-to-t from-black/70 to-transparent z-10">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Speaking pulse dot */}
+          {speaking && (
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+          )}
+          <span className="text-white text-xs font-semibold truncate max-w-[120px] sm:max-w-[160px]">
+            {displayName}{isLocal ? ' (You)' : ''}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Mic state */}
+          {isLocal ? (
+            isMicOn
+              ? <Mic className="w-3 h-3 text-white/70" />
+              : <MicOff className="w-3 h-3 text-red-400" />
+          ) : (
+            (participant as any)?.isMicOn === false
+              ? <MicOff className="w-3 h-3 text-red-400" />
+              : null
+          )}
+          {/* Signal bars */}
+          <div className="flex items-end gap-px">
+            <span className={`w-1 h-1.5 rounded-sm ${quality === ConnectionQuality.Poor ? 'bg-red-400' : 'bg-green-400'}`} />
+            <span className={`w-1 h-2.5 rounded-sm ${quality === ConnectionQuality.Poor ? 'bg-white/20' : quality === ConnectionQuality.Good ? 'bg-yellow-400' : 'bg-green-400'}`} />
+            <span className={`w-1 h-3.5 rounded-sm ${quality === ConnectionQuality.Excellent ? 'bg-green-400' : 'bg-white/20'}`} />
+          </div>
+        </div>
       </div>
 
-      {/* Connection quality signal bars (Spec §6.2) */}
-      <div
-        className="absolute bottom-2 right-2 flex items-center gap-0.5 px-1.5 py-1 bg-black/60 backdrop-blur-sm rounded-md z-10"
-        title={`Signal: ${quality === ConnectionQuality.Poor ? 'Poor' : quality === ConnectionQuality.Good ? 'Good' : 'Excellent'}`}
-      >
-        <span className={`w-1 h-1.5 rounded-sm ${quality === ConnectionQuality.Poor ? 'bg-red-400' : 'bg-green-400'}`} />
-        <span className={`w-1 h-2.5 rounded-sm ${quality === ConnectionQuality.Poor ? 'bg-white/20' : quality === ConnectionQuality.Good ? 'bg-yellow-400' : 'bg-green-400'}`} />
-        <span className={`w-1 h-3.5 rounded-sm ${quality === ConnectionQuality.Excellent ? 'bg-green-400' : 'bg-white/20'}`} />
-      </div>
-
-      {isSpeaking && (
-        <div className="absolute inset-0 rounded-[var(--radius-card)] ring-2 ring-brand-400 pointer-events-none" />
+      {/* Active speaker glow border */}
+      {speaking && (
+        <div className="absolute inset-0 rounded-2xl ring-[3px] ring-green-400 pointer-events-none" />
       )}
     </div>
   );
 }
 
 // ─── Chat Panel ───────────────────────────────────────────────────────────────
-function ChatPanel({ room, onClose }: { room: Room; onClose: () => void }) {
+function ChatPanel({
+  onSendMessage,
+  localIdentity,
+  onClose,
+}: {
+  onSendMessage: (text: string) => void;
+  localIdentity: string;
+  onClose: () => void;
+}) {
   const [input, setInput] = useState('');
   const messages = useMeetingStore((s) => s.chatMessages);
-  const addMessage = useMeetingStore((s) => s.addChatMessage);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -147,49 +217,101 @@ function ChatPanel({ room, onClose }: { room: Room; onClose: () => void }) {
   function send(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
-    const msg = {
-      id: crypto.randomUUID(),
-      senderName: room.localParticipant.name ?? 'You',
-      senderId: room.localParticipant.identity,
-      text: input.trim(),
-      ts: Date.now(),
-    };
-    addMessage(msg);
-    const encoder = new TextEncoder();
-    void room.localParticipant.publishData(encoder.encode(JSON.stringify({ type: 'chat', ...msg })), { reliable: true });
+    onSendMessage(input.trim());
     setInput('');
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b border-[var(--border-glass)]">
-        <h2 className="font-semibold text-sm">In-Call Chat</h2>
-        <button onClick={onClose} className="btn-icon w-8 h-8"><X className="w-4 h-4" /></button>
+    <div className="flex flex-col h-full bg-[#111827]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <h2 className="font-bold text-sm text-white flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-violet-400" />
+          In-Call Chat
+        </h2>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+          <X className="w-4 h-4" />
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 && (
-          <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">No messages yet. Send a chat to the room!</p>
+          <p className="text-center text-xs text-white/40 mt-8">No messages yet. Start the conversation!</p>
         )}
         {messages.map((m) => (
-          <div key={m.id} className={`flex flex-col ${m.senderId === room.localParticipant.identity ? 'items-end' : 'items-start'}`}>
-            <span className="text-[10px] text-[var(--text-tertiary)] mb-0.5">{m.senderName}</span>
-            <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${m.senderId === room.localParticipant.identity ? 'bg-brand-500 text-white' : 'bg-[var(--surface-3)] text-[var(--text-primary)]'}`}>
+          <div key={m.id} className={`flex flex-col ${m.senderId === localIdentity ? 'items-end' : 'items-start'}`}>
+            <span className="text-[10px] text-white/40 mb-0.5">{m.senderName}</span>
+            <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+              m.senderId === localIdentity
+                ? 'bg-violet-600 text-white rounded-br-sm'
+                : 'bg-white/10 text-white rounded-bl-sm'
+            }`}>
               {m.text}
             </div>
           </div>
         ))}
         <div ref={endRef} />
       </div>
-      <form onSubmit={send} className="p-3 border-t border-[var(--border-glass)] flex gap-2">
+      <form onSubmit={send} className="p-3 border-t border-white/10 flex gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message…"
-          className="flex-1 bg-[var(--surface-2)] border border-[var(--border-glass)] rounded-full px-4 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-brand-400"
+          className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-violet-400 transition-colors"
         />
-        <button type="submit" className="btn-icon active w-8 h-8 rounded-full" disabled={!input.trim()}><Send className="w-3.5 h-3.5" /></button>
+        <button
+          type="submit"
+          disabled={!input.trim()}
+          className="w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors"
+        >
+          <Send className="w-3.5 h-3.5 text-white" />
+        </button>
       </form>
     </div>
+  );
+}
+
+// ─── Control Button ───────────────────────────────────────────────────────────
+function CtrlBtn({
+  id,
+  icon,
+  label,
+  onClick,
+  active = false,
+  danger = false,
+  warning = false,
+  badge,
+}: {
+  id?: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  danger?: boolean;
+  warning?: boolean;
+  badge?: number;
+}) {
+  return (
+    <button
+      id={id}
+      onClick={onClick}
+      title={label}
+      className={`relative flex flex-col items-center gap-1 px-2 sm:px-3 py-2 rounded-xl transition-all min-w-[52px] sm:min-w-[60px] group ${
+        danger
+          ? 'bg-red-600 hover:bg-red-500 text-white'
+          : active
+          ? 'bg-white/20 text-white hover:bg-white/25'
+          : warning
+          ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+          : 'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
+      }`}
+    >
+      <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">{icon}</span>
+      <span className="text-[10px] font-medium truncate leading-none">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -200,11 +322,12 @@ export default function MeetingRoom() {
   const store = useMeetingStore();
   const roomRef = useRef<Room | null>(null);
 
-  // Keep screen awake during meeting (Spec §11, §21)
   useWakeLock(true);
 
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const [panel, setPanel] = useState<'chat' | 'participants' | 'quiz' | null>(null);
+  const [panel, setPanel] = useState<'chat' | 'participants' | 'quiz' | 'info' | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPin, setCopiedPin] = useState(false);
+  const [showReadyBanner, setShowReadyBanner] = useState(true);
   const [quizInvite, setQuizInvite] = useState<{ pin: string; hostName: string } | null>(null);
   const [handAlert, setHandAlert] = useState<string | null>(null);
   const [noiseAlert, setNoiseAlert] = useState<string | null>(null);
@@ -214,307 +337,159 @@ export default function MeetingRoom() {
   const [isRoomLocked, setIsRoomLocked] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const [unreadChat, setUnreadChat] = useState(0);
 
   const isHost = typeof window !== 'undefined' && sessionStorage.getItem('lk-is-host') === 'true';
+  const participantName = (typeof window !== 'undefined' && (sessionStorage.getItem('lk-name') || localStorage.getItem('jumbo-display-name'))) || 'Guest';
 
-  // Local mic stream for noise control
+  const {
+    localStream,
+    myIdentity,
+    toggleMic: webrtcToggleMic,
+    toggleCam: webrtcToggleCam,
+    toggleScreenShare: webrtcToggleScreenShare,
+    toggleHand: webrtcToggleHand,
+    sendChatMessage: webrtcSendChatMessage,
+    hostMute: webrtcHostMute,
+    hostRemove: webrtcHostRemove,
+    hostToggleLock: webrtcHostToggleLock,
+    hostEndMeeting: webrtcHostEndMeeting,
+    broadcastData: webrtcBroadcastData,
+  } = useMeetingWebRTC({
+    roomCode: code || '',
+    participantName,
+    isHost,
+    onQuizInvite: (inv) => setQuizInvite(inv),
+    onHandAlert: (alert) => { setHandAlert(alert); setTimeout(() => setHandAlert(null), 3500); },
+    onHostNotice: (notice) => { setHostNotice(notice); setTimeout(() => setHostNotice(null), 4000); },
+    onRoomLockedChanged: (locked) => setIsRoomLocked(locked),
+    onMeetingEnded: () => { alert('The host has ended the meeting.'); navigate('/home'); },
+    onRemovedByHost: () => { alert('You were removed from the meeting.'); navigate('/home'); },
+  });
+
+  // Track unread chat messages when panel is closed
+  useEffect(() => {
+    if (panel !== 'chat') {
+      setUnreadChat((n) => n + 1);
+    }
+  }, [store.chatMessages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (panel === 'chat') setUnreadChat(0);
+  }, [panel]);
+
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  useEffect(() => { if (localStream) setMicStream(localStream); }, [localStream]);
 
-  // Phase 2: Noise control hook
   const { onManualUnmute } = useNoiseControl(micStream, {
-    enabled: true,
-    onAutoMute: (reason) => {
-      setNoiseAlert(reason);
-      roomRef.current?.localParticipant.setMicrophoneEnabled(false);
-      store.setMicOn(false);
-    },
+    enabled: store.isMicOn,
+    onAutoMute: (reason) => { setNoiseAlert(reason); webrtcToggleMic(); },
     onSuggestHeadphones: () => setShowHeadphonesHint(true),
   });
 
-  // Auto-hide controls
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    function reset() {
-      setControlsVisible(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setControlsVisible(false), 4500);
-    }
-    reset();
-    window.addEventListener('mousemove', reset);
-    window.addEventListener('touchstart', reset);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('mousemove', reset);
-      window.removeEventListener('touchstart', reset);
-    };
-  }, []);
-
-  // Connect to LiveKit SFU
+  // Optional: LiveKit SFU in parallel
   useEffect(() => {
     const token = sessionStorage.getItem(`lk-token-${code}`);
-    const livekitUrl = sessionStorage.getItem('lk-url');
-
-    async function connect() {
-      const url = livekitUrl ?? (import.meta.env['VITE_LIVEKIT_URL'] as string | undefined);
-      if (!token || !url) {
-        store.setConnectionState('disconnected');
-        return;
-      }
-
-      store.setConnectionState('connecting');
-      const room = new Room({
-        adaptiveStream: true,
-        dynacast: true,
-        videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
-      });
-      roomRef.current = room;
-
-      room.on(RoomEvent.Connected, () => {
-        store.setConnectionState('connected');
-        store.setLocalParticipant(room.localParticipant);
-        store.setRemoteParticipants([...room.remoteParticipants.values()]);
-
-        const micTrack = room.localParticipant.getTrackPublication(Track.Source.Microphone);
-        if (micTrack?.track?.mediaStream) {
-          setMicStream(micTrack.track.mediaStream);
-        }
-      });
-
-      room.on(RoomEvent.Disconnected, () => store.setConnectionState('disconnected'));
-      room.on(RoomEvent.Reconnecting, () => store.setConnectionState('reconnecting'));
-      room.on(RoomEvent.Reconnected, () => store.setConnectionState('connected'));
-
-      room.on(RoomEvent.ParticipantConnected, () =>
-        store.setRemoteParticipants([...room.remoteParticipants.values()])
-      );
-      room.on(RoomEvent.ParticipantDisconnected, () =>
-        store.setRemoteParticipants([...room.remoteParticipants.values()])
-      );
-
-      // Active speaker detection for Speaker View (Spec §6.1, §6.3)
-      room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
-        if (speakers[0]) {
-          store.setActiveSpeakerId(speakers[0].identity);
-        }
-      });
-
-      // Data channel messages (chat, quiz invites, raised hands)
-      room.on(RoomEvent.DataReceived, async (data: Uint8Array, participant) => {
-        try {
-          const msg = JSON.parse(new TextDecoder().decode(data)) as any;
-          if (msg.type === 'chat') {
-            store.addChatMessage({ id: msg.id, senderName: msg.senderName, senderId: msg.senderId, text: msg.text, ts: msg.ts });
-          } else if (msg.type === 'quiz_invite') {
-            setQuizInvite({ pin: msg.pin, hostName: msg.hostName || participant?.name || 'Meeting Host' });
-          } else if (msg.type === 'raise_hand') {
-            if (msg.raised) {
-              store.toggleRaiseHand(msg.identity);
-              setHandAlert(`${msg.name || 'Participant'} raised hand ✋`);
-              setTimeout(() => setHandAlert(null), 3500);
-            } else {
-              store.lowerHand(msg.identity);
-            }
-          } else if (msg.type === 'host_mute') {
-            if (msg.targetIdentity === room.localParticipant.identity) {
-              void room.localParticipant.setMicrophoneEnabled(false);
-              store.setMicOn(false);
-              setHostNotice('The meeting host muted your microphone.');
-              setTimeout(() => setHostNotice(null), 4000);
-            }
-          } else if (msg.type === 'host_remove') {
-            if (msg.targetIdentity === room.localParticipant.identity) {
-              await room.disconnect();
-              alert('You have been removed from the meeting by the host.');
-              navigate('/home');
-            }
-          } else if (msg.type === 'meeting_ended') {
-            await room.disconnect();
-            alert('The host has ended the meeting for all participants.');
-            navigate('/home');
-          } else if (msg.type === 'room_lock_changed') {
-            setIsRoomLocked(msg.locked);
-          }
-        } catch { /* ignore */ }
-      });
-
+    const livekitUrl = sessionStorage.getItem('lk-url') ?? (import.meta.env['VITE_LIVEKIT_URL'] as string | undefined);
+    if (!token || !livekitUrl || livekitUrl.includes('placeholder.livekit.cloud')) return;
+    async function connectLiveKit() {
       try {
-        await room.connect(url, token);
+        const room = new Room({ adaptiveStream: true, dynacast: true, videoCaptureDefaults: { resolution: VideoPresets.h720.resolution } });
+        roomRef.current = room;
+        await room.connect(livekitUrl!, token!);
         await room.localParticipant.enableCameraAndMicrophone();
-      } catch (e) {
-        console.error('LiveKit connect error', e);
-        store.setConnectionState('disconnected');
-      }
+      } catch (e) { console.warn('LiveKit cloud skipped, using native WebRTC', e); }
     }
+    void connectLiveKit();
+    return () => { roomRef.current?.disconnect(); };
+  }, [code]);
 
-    void connect();
-
-    return () => {
-      roomRef.current?.disconnect();
-      store.reset();
-    };
-  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function toggleMic() {
-    const room = roomRef.current;
-    if (!room) return;
-    const next = !store.isMicOn;
-    await room.localParticipant.setMicrophoneEnabled(next);
-    store.setMicOn(next);
-    if (next) onManualUnmute();
-    setNoiseAlert(null);
-  }
-
-  async function toggleCam() {
-    const room = roomRef.current;
-    if (!room) return;
-    const next = !store.isCamOn;
-    await room.localParticipant.setCameraEnabled(next);
-    store.setCamOn(next);
-  }
-
-  async function toggleScreenShare() {
-    const room = roomRef.current;
-    if (!room) return;
-    if (!store.isScreenSharing) {
-      await room.localParticipant.setScreenShareEnabled(true);
-      store.setScreenSharing(true);
-    } else {
-      await room.localParticipant.setScreenShareEnabled(false);
-      store.setScreenSharing(false);
-    }
-  }
-
-  function toggleHand() {
-    if (!roomRef.current?.localParticipant) return;
-    const lp = roomRef.current.localParticipant;
-    const isRaised = store.raisedHands.includes(lp.identity);
-    const nextRaised = !isRaised;
-
-    store.toggleRaiseHand(lp.identity);
-    const data = new TextEncoder().encode(
-      JSON.stringify({
-        type: 'raise_hand',
-        identity: lp.identity,
-        name: lp.name || 'Participant',
-        raised: nextRaised,
-      })
-    );
-    void lp.publishData(data, { reliable: true });
-  }
+  function toggleMic() { const next = webrtcToggleMic(); if (next) onManualUnmute(); setNoiseAlert(null); }
+  function toggleCam() { webrtcToggleCam(); }
+  async function toggleScreenShare() { await webrtcToggleScreenShare(); }
+  function toggleHand() { webrtcToggleHand(); }
 
   function startRecording() {
-    const stream = roomRef.current?.localParticipant.getTrackPublication(Track.Source.Camera)?.track?.mediaStream;
-    if (!stream) return;
+    if (!localStream) return;
     recordedChunksRef.current = [];
-    const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+    const mr = new MediaRecorder(localStream, { mimeType: 'video/webm;codecs=vp9' });
     mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
     mr.onstop = () => {
       const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `jumbo-recording-${Date.now()}.webm`; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `jumbo-recording-${Date.now()}.webm`; a.click();
     };
     mr.start(1000);
     setMediaRecorder(mr);
     store.setRecording(true);
   }
 
-  function stopRecording() {
-    mediaRecorder?.stop();
-    setMediaRecorder(null);
-    store.setRecording(false);
-  }
+  function stopRecording() { mediaRecorder?.stop(); setMediaRecorder(null); store.setRecording(false); }
 
   async function leave() {
     if (store.isRecording) stopRecording();
-    await roomRef.current?.disconnect();
+    store.reset();
     navigate('/home');
   }
 
-  function hostMuteParticipant(targetIdentity: string) {
-    if (!roomRef.current?.localParticipant || !isHost) return;
-    const data = new TextEncoder().encode(JSON.stringify({
-      type: 'host_mute',
-      targetIdentity,
-    }));
-    void roomRef.current.localParticipant.publishData(data, { reliable: true });
-  }
-
-  function hostRemoveParticipant(targetIdentity: string) {
-    if (!roomRef.current?.localParticipant || !isHost) return;
-    const data = new TextEncoder().encode(JSON.stringify({
-      type: 'host_remove',
-      targetIdentity,
-    }));
-    void roomRef.current.localParticipant.publishData(data, { reliable: true });
-  }
-
-  function toggleLockRoom() {
-    if (!roomRef.current?.localParticipant || !isHost) return;
-    const next = !isRoomLocked;
-    setIsRoomLocked(next);
-    const data = new TextEncoder().encode(JSON.stringify({
-      type: 'room_lock_changed',
-      locked: next,
-    }));
-    void roomRef.current.localParticipant.publishData(data, { reliable: true });
-  }
-
-  async function endMeetingForAll() {
-    if (!roomRef.current?.localParticipant || !isHost) return;
-    const data = new TextEncoder().encode(JSON.stringify({
-      type: 'meeting_ended',
-    }));
-    void roomRef.current.localParticipant.publishData(data, { reliable: true });
-    await leave();
-  }
+  function hostMuteParticipant(id: string) { if (isHost) webrtcHostMute(id); }
+  function hostRemoveParticipant(id: string) { if (isHost) webrtcHostRemove(id); }
+  function toggleLockRoom() { if (!isHost) return; const next = !isRoomLocked; setIsRoomLocked(next); webrtcHostToggleLock(next); }
+  async function endMeetingForAll() { if (!isHost) return; webrtcHostEndMeeting(); await leave(); }
 
   const allParticipants = store.localParticipant
     ? [store.localParticipant, ...store.remoteParticipants]
     : store.remoteParticipants;
 
-  // Keyboard Shortcuts (Spec §18, §20: M=Mic, V=Cam, H=Hand, C=Chat, P=Participants, Esc=Close)
+  const inviteUrl = typeof window !== 'undefined' ? `${window.location.origin}/join/${code}` : '';
+
+  const copyInviteLink = async () => {
+    try { await navigator.clipboard.writeText(inviteUrl); }
+    catch { const el = document.createElement('textarea'); el.value = inviteUrl; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }
+    setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2200);
+  };
+
+  const copyPin = async () => {
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code); }
+    catch { const el = document.createElement('textarea'); el.value = code; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }
+    setCopiedPin(true); setTimeout(() => setCopiedPin(false), 2200);
+  };
+
+  const shareMeeting = async () => {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try { await navigator.share({ title: 'Join my Jumbo meeting', text: `Join with PIN: ${code}\n${inviteUrl}`, url: inviteUrl }); }
+      catch { /* cancelled */ }
+    } else { await copyInviteLink(); }
+  };
+
+  // Keyboard shortcuts: M=Mic, V=Cam, H=Hand, C=Chat, P=Participants, I=Info, Esc=Close panel
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
       const key = e.key.toLowerCase();
-      if (key === 'm') {
-        e.preventDefault();
-        void toggleMic();
-      } else if (key === 'v') {
-        e.preventDefault();
-        void toggleCam();
-      } else if (key === 'h') {
-        e.preventDefault();
-        toggleHand();
-      } else if (key === 'c') {
-        e.preventDefault();
-        setPanel((p) => (p === 'chat' ? null : 'chat'));
-      } else if (key === 'p') {
-        e.preventDefault();
-        setPanel((p) => (p === 'participants' ? null : 'participants'));
-      } else if (e.key === 'Escape') {
-        setPanel(null);
-        setShowEndDialog(false);
-      }
+      if (key === 'm') { e.preventDefault(); toggleMic(); }
+      else if (key === 'v') { e.preventDefault(); toggleCam(); }
+      else if (key === 'h') { e.preventDefault(); toggleHand(); }
+      else if (key === 'c') { e.preventDefault(); setPanel((p) => p === 'chat' ? null : 'chat'); }
+      else if (key === 'p') { e.preventDefault(); setPanel((p) => p === 'participants' ? null : 'participants'); }
+      else if (key === 'i') { e.preventDefault(); setPanel((p) => p === 'info' ? null : 'info'); }
+      else if (e.key === 'Escape') { setPanel(null); setShowEndDialog(false); }
     }
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [store.isMicOn, store.isCamOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Active speaker resolution
-  const speakerParticipant = allParticipants.find((p) => p.identity === store.activeSpeakerId)
-    ?? store.remoteParticipants[0]
-    ?? store.localParticipant
-    ?? null;
-
+  const activeSpeakerId = store.activeSpeakerId;
   const isMyHandRaised = store.localParticipant ? store.raisedHands.includes(store.localParticipant.identity) : false;
 
+  // Gallery grid cols based on participant count
   const gridCols = allParticipants.length <= 1 ? 1
+    : allParticipants.length <= 2 ? 2
     : allParticipants.length <= 4 ? 2
-    : allParticipants.length <= 9 ? 3 : 4;
+    : allParticipants.length <= 6 ? 3
+    : 4;
 
   const connLabel = {
     disconnected: 'Disconnected',
@@ -523,274 +498,307 @@ export default function MeetingRoom() {
     reconnecting: 'Reconnecting…',
   }[store.connectionState];
 
+  const isConnected = store.connectionState === 'connected';
+
+  // Speaker view: find the active speaker or first remote participant
+  const speakerParticipant = allParticipants.find((p) => p.identity === activeSpeakerId)
+    ?? store.remoteParticipants[0]
+    ?? store.localParticipant
+    ?? null;
+
   return (
-    <div className="relative min-h-dvh bg-[var(--surface-base)] flex flex-col overflow-hidden select-none">
-      {/* Top Header Bar */}
-      <div className="absolute top-3 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
-        {/* Connection pill */}
-        <div className="pointer-events-auto">
-          <div className={`connection-pill ${store.connectionState === 'connected' ? 'connected' : 'reconnecting'}`}>
-            <span className="dot" />
-            {connLabel}
+    // Full viewport, no scrolling on the outer wrapper — layout is fixed.
+    <div className="fixed inset-0 bg-[#0f1117] text-white flex flex-col select-none overflow-hidden">
+
+      {/* ── TOP HEADER BAR ──────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-[#1a1f2e]/90 backdrop-blur-md border-b border-white/10 z-30">
+        {/* Left: Home button + connection + room code */}
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={() => {
+              if (window.confirm('Leave meeting and return to Home?')) {
+                leave();
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/70 hover:text-white transition-all flex-shrink-0"
+            title="Leave and return to Home"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Home</span>
+          </button>
+
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${
+            isConnected
+              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+              : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-ping'}`} />
+            <span>{connLabel}</span>
           </div>
+
+          {/* Room PIN — click to copy */}
+          {code && (
+            <button
+              onClick={copyInviteLink}
+              id="room-header-pin-btn"
+              title="Copy invite link"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/70 hover:text-white transition-all group"
+            >
+              <span className="text-[10px] font-bold tracking-wider text-violet-400">PIN:</span>
+              <span className="font-mono text-white font-bold tracking-wider">{code}</span>
+              {copiedLink
+                ? <Check className="w-3.5 h-3.5 text-emerald-400" />
+                : <Copy className="w-3.5 h-3.5 text-white/40 group-hover:text-white transition-colors" />
+              }
+            </button>
+          )}
         </div>
 
-        {/* View Mode Switcher: Gallery vs Speaker (Spec §6.1) */}
-        <div className="pointer-events-auto">
+        {/* Center: time */}
+        <div className="hidden sm:block text-xs text-white/50 font-mono tabular-nums">
+          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+
+        {/* Right: view switcher + invite */}
+        <div className="flex items-center gap-2">
           <button
             onClick={() => store.setViewMode(store.viewMode === 'gallery' ? 'speaker' : 'gallery')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface-2)]/80 hover:bg-[var(--surface-3)] border border-[var(--border-glass)] text-xs font-semibold text-[var(--text-secondary)] hover:text-white transition-all shadow-md backdrop-blur-md"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/70 hover:text-white transition-all"
             title={`Switch to ${store.viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}`}
           >
-            {store.viewMode === 'gallery' ? <UserSquare2 className="w-3.5 h-3.5 text-brand-300" /> : <LayoutGrid className="w-3.5 h-3.5 text-accent-300" />}
-            <span className="hidden sm:inline">{store.viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}</span>
+            {store.viewMode === 'gallery'
+              ? <UserSquare2 className="w-3.5 h-3.5 text-violet-300" />
+              : <LayoutGrid className="w-3.5 h-3.5 text-indigo-300" />
+            }
+            <span className="hidden sm:inline">{store.viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
+          </button>
+
+          <button
+            id="room-header-invite-btn"
+            onClick={() => setPanel(panel === 'info' ? null : 'info')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold transition-all ${
+              panel === 'info'
+                ? 'bg-violet-600 text-white border-violet-500'
+                : 'bg-violet-500/15 hover:bg-violet-500/25 border-violet-400/30 text-violet-300 hover:text-white'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Invite</span>
           </button>
         </div>
       </div>
 
-      {/* Floating Notifications Area */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 max-w-[92vw]">
-        {/* Hand Raised notification */}
+      {/* ── FLOATING TOASTS / NOTIFICATIONS ──────────────────────────────────── */}
+      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 max-w-[92vw] pointer-events-none">
         <AnimatePresence>
           {handAlert && (
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="px-4 py-2 rounded-full bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2"
-            >
-              <span>{handAlert}</span>
+            <motion.div key="hand" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto px-4 py-2 rounded-full bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-semibold shadow-lg backdrop-blur-md">
+              {handAlert}
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Host action notification */}
+        <AnimatePresence>
+          {(copiedLink || copiedPin) && (
+            <motion.div key="copy" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto px-4 py-2 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-300" />
+              {copiedPin ? `PIN ${code} copied!` : 'Invite link copied!'}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {hostNotice && (
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="px-4 py-2 rounded-full bg-blue-500/25 border border-blue-400/40 text-blue-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2"
-            >
-              <ShieldAlert className="w-4 h-4 text-blue-300 flex-shrink-0" />
-              <span>{hostNotice}</span>
+            <motion.div key="host" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto px-4 py-2 rounded-full bg-blue-500/25 border border-blue-400/40 text-blue-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-blue-300" /> {hostNotice}
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Noise alert banner */}
         <AnimatePresence>
           {noiseAlert && (
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs sm:text-sm text-center shadow-lg backdrop-blur-md"
-            >
+            <motion.div key="noise" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto flex items-center gap-3 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold shadow-lg backdrop-blur-md">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>{noiseAlert}</span>
-              <button
-                onClick={() => { void toggleMic(); setNoiseAlert(null); }}
-                className="underline font-semibold ml-1 flex-shrink-0"
-              >
-                Unmute
-              </button>
+              <button onClick={() => { toggleMic(); setNoiseAlert(null); }} className="underline font-bold ml-1">Unmute</button>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Quiz invite banner */}
         <AnimatePresence>
           {quizInvite && panel !== 'quiz' && (
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-2 rounded-full bg-brand-500/30 border border-brand-400/40 text-brand-200 text-xs sm:text-sm shadow-xl backdrop-blur-md"
-            >
-              <Gamepad2 className="w-4 h-4 text-brand-300 flex-shrink-0 animate-bounce" />
-              <span className="truncate">
-                <strong>{quizInvite.hostName}</strong> started a Quiz! PIN: <span className="font-mono font-bold text-white">{quizInvite.pin}</span>
-              </span>
-              <button
-                onClick={() => setPanel('quiz')}
-                className="px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-full text-xs font-bold transition-all shadow-md ml-1 flex-shrink-0"
-              >
-                Join
-              </button>
-              <button
-                onClick={() => setQuizInvite(null)}
-                className="btn-icon w-6 h-6 opacity-70 hover:opacity-100 flex-shrink-0"
-                aria-label="Dismiss invite"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+            <motion.div key="quiz" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto flex items-center gap-3 px-4 py-2 rounded-full bg-violet-500/30 border border-violet-400/40 text-violet-200 text-xs font-semibold shadow-xl backdrop-blur-md">
+              <Gamepad2 className="w-4 h-4 text-violet-300 animate-bounce flex-shrink-0" />
+              <span className="truncate"><strong>{quizInvite.hostName}</strong> started a Quiz! PIN: <span className="font-mono font-bold text-white">{quizInvite.pin}</span></span>
+              <button onClick={() => setPanel('quiz')} className="px-3 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded-full text-xs font-bold transition-all ml-1">Join</button>
+              <button onClick={() => setQuizInvite(null)} className="w-5 h-5 flex items-center justify-center text-white/50 hover:text-white"><X className="w-3.5 h-3.5" /></button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Headphones suggestion */}
+      {/* ── HEADPHONES HINT ──────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showHeadphonesHint && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute top-24 left-1/2 -translate-x-1/2 z-30 glass-card-sm p-4 flex items-center gap-3 max-w-xs shadow-xl"
-          >
-            <Headphones className="w-5 h-5 text-brand-400" />
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-16 left-4 z-40 bg-[#1e2740] border border-white/15 rounded-2xl p-4 flex items-center gap-3 max-w-xs shadow-2xl backdrop-blur-md">
+            <Headphones className="w-5 h-5 text-violet-400 flex-shrink-0" />
             <div className="text-xs">
-              <p className="font-semibold">Try headphones</p>
-              <p className="text-[var(--text-secondary)]">Multiple noise mutes detected. Headphones prevent acoustic echo.</p>
+              <p className="font-bold text-white">Try headphones</p>
+              <p className="text-white/60 mt-0.5">Prevents echo and acoustic interference for all participants.</p>
             </div>
-            <button onClick={() => setShowHeadphonesHint(false)} className="btn-icon w-6 h-6 flex-shrink-0"><X className="w-3 h-3" /></button>
+            <button onClick={() => setShowHeadphonesHint(false)} className="w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center flex-shrink-0">
+              <X className="w-3 h-3 text-white/50" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Video Area + Side Panel */}
-      <div className="flex flex-1 overflow-hidden pt-12 pb-24">
-        {/* Dynamic Video Stage: Speaker View vs Gallery View (Spec §6.1) */}
-        {store.viewMode === 'speaker' && speakerParticipant ? (
-          <div
-            className="flex-1 flex flex-col p-4 gap-3 overflow-hidden"
-            onClick={() => setControlsVisible(true)}
-          >
-            {/* Top thumbnail strip for other participants */}
-            {allParticipants.length > 1 && (
-              <div className="flex gap-2.5 overflow-x-auto pb-1 h-28 flex-shrink-0">
-                {allParticipants
-                  .filter((p) => p.identity !== speakerParticipant.identity)
-                  .map((p) => (
-                    <div
-                      key={p.identity}
-                      className="w-40 h-full flex-shrink-0 cursor-pointer rounded-xl overflow-hidden ring-1 ring-[var(--border-glass)] hover:ring-brand-400 transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        store.setActiveSpeakerId(p.identity);
-                      }}
-                    >
-                      <ParticipantTile
-                        participant={p}
-                        isLocal={p.identity === store.localParticipant?.identity}
-                      />
-                    </div>
-                  ))}
-              </div>
-            )}
-            {/* Central Stage Speaker */}
-            <div className="flex-1 h-full min-h-0">
-              <ParticipantTile
-                participant={speakerParticipant}
-                isLocal={speakerParticipant.identity === store.localParticipant?.identity}
-                isLarge
-              />
-            </div>
-          </div>
-        ) : (
-          /* Standard Gallery Grid (Spec §6.2) */
-          <div
-            className="flex-1 p-4 grid gap-3 content-start overflow-y-auto"
-            style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}
-            onClick={() => setControlsVisible(true)}
-          >
-            {store.localParticipant && (
-              <ParticipantTile participant={store.localParticipant} isLocal />
-            )}
-            {store.remoteParticipants.map((p) => (
-              <ParticipantTile key={p.identity} participant={p} isLocal={false} />
-            ))}
-            {allParticipants.length === 0 && (
-              <div className="col-span-full flex items-center justify-center h-48 text-[var(--text-tertiary)] text-sm">
-                {store.connectionState === 'connecting' ? 'Connecting to meeting…' : 'Waiting for others to join…'}
-              </div>
-            )}
-          </div>
-        )}
+      {/* ── MAIN CONTENT: VIDEO AREA + SIDE PANEL ─────────────────────────────
+          flex-1 takes remaining height between top bar and bottom controls.
+          overflow-hidden on parent; the video grid inside is scrollable.
+      */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* Side Panels (Chat, Participants, Quiz) */}
+        {/* ── VIDEO STAGE ─────────────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {store.viewMode === 'speaker' && speakerParticipant ? (
+            /* ── SPEAKER VIEW ── */
+            <div className="flex-1 flex flex-col min-h-0 p-3 gap-3">
+              {/* Thumbnail strip (other participants) — horizontally scrollable */}
+              {allParticipants.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto flex-shrink-0 h-28 pb-1 scrollbar-thin">
+                  {allParticipants
+                    .filter((p) => p.identity !== speakerParticipant.identity)
+                    .map((p) => (
+                      <div
+                        key={p.identity}
+                        onClick={() => store.setActiveSpeakerId(p.identity)}
+                        className="w-40 h-full flex-shrink-0 cursor-pointer rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-violet-400 transition-all"
+                      >
+                        <ParticipantTile
+                          participant={p}
+                          isLocal={p.identity === store.localParticipant?.identity}
+                          isActiveSpeaker={p.identity === activeSpeakerId}
+                          fallbackStream={p.identity === store.localParticipant?.identity ? localStream : (p as any).stream}
+                        />
+                      </div>
+                    ))}
+                </div>
+              )}
+              {/* Main speaker tile */}
+              <div className="flex-1 min-h-0 rounded-2xl overflow-hidden">
+                <ParticipantTile
+                  participant={speakerParticipant}
+                  isLocal={speakerParticipant.identity === store.localParticipant?.identity}
+                  isLarge
+                  isActiveSpeaker={speakerParticipant.identity === activeSpeakerId}
+                  fallbackStream={speakerParticipant.identity === store.localParticipant?.identity ? localStream : (speakerParticipant as any).stream}
+                />
+              </div>
+            </div>
+          ) : (
+            /* ── GALLERY VIEW — scrollable grid ── */
+            <div
+              className="flex-1 p-3 overflow-y-auto"
+              style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: '12px', alignContent: 'start' }}
+            >
+              {store.localParticipant && (
+                <div className="aspect-video rounded-2xl overflow-hidden">
+                  <ParticipantTile
+                    participant={store.localParticipant}
+                    isLocal
+                    isActiveSpeaker={store.localParticipant.identity === activeSpeakerId}
+                    fallbackStream={localStream}
+                  />
+                </div>
+              )}
+              {store.remoteParticipants.map((p) => (
+                <div key={p.identity} className="aspect-video rounded-2xl overflow-hidden">
+                  <ParticipantTile
+                    participant={p}
+                    isLocal={false}
+                    isActiveSpeaker={p.identity === activeSpeakerId}
+                    fallbackStream={(p as any).stream}
+                  />
+                </div>
+              ))}
+              {allParticipants.length === 0 && (
+                <div className="col-span-full flex flex-col items-center justify-center h-48 text-white/40 text-sm gap-2">
+                  <Users className="w-8 h-8" />
+                  <span>{store.connectionState === 'connecting' ? 'Connecting to meeting…' : 'Waiting for others to join…'}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── SIDE PANEL (Chat / Participants / Quiz / Info) ─────────────────── */}
         <AnimatePresence>
           {panel && (
             <motion.aside
-              initial={{ x: 320, opacity: 0 }}
+              initial={{ x: 340, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 320, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="w-80 md:w-96 glass-card rounded-none border-l border-[var(--border-glass)] flex flex-col z-20"
+              exit={{ x: 340, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="w-80 lg:w-96 flex-shrink-0 bg-[#111827] border-l border-white/10 flex flex-col z-20 overflow-hidden"
             >
-              {panel === 'chat' && roomRef.current && (
-                <ChatPanel room={roomRef.current} onClose={() => setPanel(null)} />
+              {panel === 'chat' && (
+                <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
               )}
 
               {panel === 'participants' && (
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between p-4 border-b border-[var(--border-glass)]">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                     <div className="flex items-center gap-2">
-                      <h2 className="font-semibold text-sm">Participants ({allParticipants.length})</h2>
+                      <Users className="w-4 h-4 text-violet-400" />
+                      <h2 className="font-bold text-sm text-white">Participants ({allParticipants.length})</h2>
                       {isHost && (
                         <button
                           onClick={toggleLockRoom}
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border transition-all ${
                             isRoomLocked
                               ? 'bg-red-500/20 border-red-400 text-red-300'
-                              : 'bg-[var(--surface-3)] border-[var(--border-glass)] text-[var(--text-tertiary)] hover:text-white'
+                              : 'bg-white/10 border-white/10 text-white/50 hover:text-white'
                           }`}
-                          title={isRoomLocked ? 'Room is locked. Click to unlock.' : 'Room is unlocked. Click to lock.'}
                         >
                           {isRoomLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                          <span>{isRoomLocked ? 'Locked' : 'Lock Room'}</span>
+                          <span>{isRoomLocked ? 'Locked' : 'Lock'}</span>
                         </button>
                       )}
                     </div>
-                    <button onClick={() => setPanel(null)} className="btn-icon w-8 h-8"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setPanel(null)} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
                     {allParticipants.map((p) => {
                       const isRaised = store.raisedHands.includes(p.identity);
-                      const isLocal = p.identity === store.localParticipant?.identity;
+                      const isLocalP = p.identity === store.localParticipant?.identity;
                       return (
-                        <div
-                          key={p.identity}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-colors"
-                        >
+                        <div key={p.identity} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-brand-500/30 flex items-center justify-center text-xs font-bold text-brand-300 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                               {p.name?.[0] ?? '?'}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-semibold truncate">{p.name ?? p.identity}</span>
-                              {isLocal && (
-                                <span className="text-[10px] text-brand-400 font-medium">(You{isHost ? ' · Host' : ''})</span>
-                              )}
+                              <span className="text-xs font-semibold truncate text-white">{p.name ?? p.identity}</span>
+                              {isLocalP && <span className="text-[10px] text-violet-400 font-medium">(You{isHost ? ' · Host' : ''})</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {isRaised && (
-                              <button
-                                onClick={() => store.lowerHand(p.identity)}
-                                className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[11px] font-bold flex items-center gap-1"
-                                title="Click to lower hand"
-                              >
-                                <span>✋</span>
-                                <span className="hidden sm:inline">Lower</span>
+                              <button onClick={() => store.lowerHand(p.identity)} className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                                <Hand className="w-3 h-3" /><span className="hidden sm:inline">Lower</span>
                               </button>
                             )}
-                            {isHost && !isLocal && (
+                            {isHost && !isLocalP && (
                               <>
-                                <button
-                                  onClick={() => hostMuteParticipant(p.identity)}
-                                  className="btn-icon w-7 h-7 rounded-lg text-[var(--text-tertiary)] hover:text-amber-400"
-                                  title="Mute participant"
-                                >
+                                <button onClick={() => hostMuteParticipant(p.identity)} className="w-7 h-7 rounded-lg hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center" title="Mute">
                                   <MicOff className="w-3.5 h-3.5" />
                                 </button>
-                                <button
-                                  onClick={() => hostRemoveParticipant(p.identity)}
-                                  className="btn-icon w-7 h-7 rounded-lg text-[var(--text-tertiary)] hover:text-red-400"
-                                  title="Remove from meeting"
-                                >
+                                <button onClick={() => hostRemoveParticipant(p.identity)} className="w-7 h-7 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center" title="Remove">
                                   <UserMinus className="w-3.5 h-3.5" />
                                 </button>
                               </>
@@ -803,181 +811,270 @@ export default function MeetingRoom() {
                 </div>
               )}
 
-              {panel === 'quiz' && roomRef.current && (
+              {panel === 'quiz' && (
                 <MeetingQuizPanel
-                  room={roomRef.current}
+                  room={roomRef.current || {
+                    localParticipant: {
+                      name: participantName,
+                      identity: myIdentity,
+                      publishData: (data: Uint8Array) => webrtcBroadcastData(data),
+                    },
+                  }}
                   initialPin={quizInvite?.pin}
                   onClose={() => setPanel(null)}
                 />
+              )}
+
+              {panel === 'info' && (
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <Info className="w-4 h-4 text-violet-400" />
+                      <h2 className="font-bold text-sm text-white">Meeting Details</h2>
+                    </div>
+                    <button onClick={() => setPanel(null)} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* PIN Card */}
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">Meeting PIN</span>
+                        <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-[10px] font-bold text-violet-300 border border-violet-400/20">Active</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-2xl font-black text-white tracking-widest select-all">{code}</span>
+                        <button onClick={copyPin} className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                          {copiedPin ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedPin ? 'Copied!' : 'Copy PIN'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    {/* Link */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 block">Invite Link</label>
+                      <div className="flex items-center gap-2 p-2.5 bg-white/5 rounded-xl border border-white/10">
+                        <input type="text" readOnly value={inviteUrl} className="bg-transparent text-xs text-white/60 font-mono flex-1 outline-none truncate select-all" />
+                        <button onClick={copyInviteLink} className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-xs font-bold rounded-lg flex items-center gap-1 flex-shrink-0 transition-colors">
+                          {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <button onClick={shareMeeting} className="w-full py-2.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/30 text-violet-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                      <Share2 className="w-4 h-4" /> Share joining info
+                    </button>
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-violet-400" /> How others join:
+                      </h3>
+                      <ol className="text-xs text-white/50 space-y-2 list-decimal list-inside leading-relaxed">
+                        <li><strong className="text-white">Link:</strong> Send the link — they click and join instantly.</li>
+                        <li><strong className="text-white">PIN:</strong> Open Jumbo → "Join with a code" → type <span className="font-mono font-bold text-violet-300">{code}</span>.</li>
+                        <li><strong className="text-white">Zero install:</strong> Works in any modern browser.</li>
+                      </ol>
+                    </div>
+
+                    {/* Quick navigation actions */}
+                    <div className="pt-2 border-t border-white/10 space-y-2">
+                      <button
+                        onClick={() => setPanel('quiz')}
+                        className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-md"
+                      >
+                        <Gamepad2 className="w-4 h-4" />
+                        <span>Play In-Meeting Quiz</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Leave meeting and return to Home?')) {
+                            leave();
+                          }
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/70 hover:text-red-300 font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Home className="w-4 h-4" />
+                        <span>Leave to Home</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </motion.aside>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Floating Glass Control Bar */}
-      <AnimatePresence>
-        {controlsVisible && (
-          <motion.div
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 max-w-[95vw]"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.2 }}
+      {/* ── BOTTOM CONTROL BAR ────────────────────────────────────────────────
+          Always visible (not auto-hidden). Positioned as the last flex child.
+          On mobile the buttons show an icon + small label underneath.
+          On desktop they're a bit wider with more padding.
+      */}
+      <div className="flex-shrink-0 bg-[#1a1f2e]/95 backdrop-blur-xl border-t border-white/10 z-30">
+        {/* Recording indicator stripe */}
+        {store.isRecording && (
+          <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse" />
+        )}
+
+        <div className="flex items-center justify-center gap-1 sm:gap-2 px-3 py-3 overflow-x-auto">
+          {/* Core media controls */}
+          <CtrlBtn
+            id="room-mic-btn"
+            icon={store.isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-red-400" />}
+            label={store.isMicOn ? 'Mute' : 'Unmute'}
+            onClick={toggleMic}
+            active={store.isMicOn}
+          />
+
+          <CtrlBtn
+            id="room-cam-btn"
+            icon={store.isCamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-red-400" />}
+            label={store.isCamOn ? 'Stop Video' : 'Start Video'}
+            onClick={toggleCam}
+            active={store.isCamOn}
+          />
+
+          <CtrlBtn
+            id="room-share-btn"
+            icon={<Monitor className={`w-5 h-5 ${store.isScreenSharing ? 'text-violet-300' : ''}`} />}
+            label={store.isScreenSharing ? 'Stop Share' : 'Share Screen'}
+            onClick={() => void toggleScreenShare()}
+            active={store.isScreenSharing}
+          />
+
+          <CtrlBtn
+            id="room-hand-btn"
+            icon={<Hand className="w-5 h-5" />}
+            label={isMyHandRaised ? 'Lower Hand' : 'Raise Hand'}
+            onClick={toggleHand}
+            warning={isMyHandRaised}
+          />
+
+          {/* Separator */}
+          <div className="w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
+
+          <CtrlBtn
+            id="room-chat-btn"
+            icon={<MessageSquare className="w-5 h-5" />}
+            label="Chat"
+            onClick={() => setPanel(panel === 'chat' ? null : 'chat')}
+            active={panel === 'chat'}
+            badge={panel !== 'chat' ? unreadChat : undefined}
+          />
+
+          <CtrlBtn
+            id="room-participants-btn"
+            icon={<Users className="w-5 h-5" />}
+            label={`People (${allParticipants.length})`}
+            onClick={() => setPanel(panel === 'participants' ? null : 'participants')}
+            active={panel === 'participants'}
+          />
+
+          <CtrlBtn
+            id="room-quiz-btn"
+            icon={<Gamepad2 className="w-5 h-5" />}
+            label="Quiz"
+            onClick={() => setPanel(panel === 'quiz' ? null : 'quiz')}
+            active={panel === 'quiz'}
+          />
+
+          <CtrlBtn
+            id="room-info-btn"
+            icon={<Info className="w-5 h-5" />}
+            label="Info / PIN"
+            onClick={() => setPanel(panel === 'info' ? null : 'info')}
+            active={panel === 'info'}
+          />
+
+          <CtrlBtn
+            id="room-record-btn"
+            icon={<Circle className={`w-5 h-5 ${store.isRecording ? 'fill-red-500 text-red-500 animate-pulse' : ''}`} />}
+            label={store.isRecording ? 'Stop Rec' : 'Record'}
+            onClick={store.isRecording ? stopRecording : startRecording}
+            active={store.isRecording}
+          />
+
+          {/* Separator + Leave */}
+          <div className="w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
+
+          <button
+            id="room-leave-btn"
+            onClick={() => {
+              if (isHost && allParticipants.length > 1) setShowEndDialog(true);
+              else void leave();
+            }}
+            className="flex flex-col items-center gap-1 px-3 sm:px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all min-w-[52px] sm:min-w-[64px]"
           >
-            <div className="glass-card-sm px-3 sm:px-4 py-2.5 flex items-center gap-1.5 sm:gap-2 shadow-2xl">
-              <button
-                id="room-mic-btn"
-                className={`btn-icon ${store.isMicOn ? 'active' : ''}`}
-                onClick={toggleMic}
-                aria-label={store.isMicOn ? 'Mute' : 'Unmute'}
-                title={store.isMicOn ? 'Mute' : 'Unmute'}
-              >
-                {store.isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </button>
+            <PhoneOff className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Leave</span>
+          </button>
+        </div>
+      </div>
 
-              <button
-                id="room-cam-btn"
-                className={`btn-icon ${store.isCamOn ? 'active' : ''}`}
-                onClick={toggleCam}
-                aria-label={store.isCamOn ? 'Stop video' : 'Start video'}
-                title={store.isCamOn ? 'Stop video' : 'Start video'}
-              >
-                {store.isCamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+      {/* ── "MEETING IS READY" INVITE BANNER (appears when alone) ─────────── */}
+      <AnimatePresence>
+        {showReadyBanner && allParticipants.length <= 1 && code && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="absolute bottom-24 left-4 z-40 w-80 sm:w-96 bg-[#1e2740] border border-white/15 rounded-2xl p-5 shadow-2xl backdrop-blur-md"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-bold text-sm text-white">Your meeting is ready</h3>
+                <p className="text-xs text-white/50 mt-0.5">Share this info with people you want to join.</p>
+              </div>
+              <button onClick={() => setShowReadyBanner(false)} className="text-white/40 hover:text-white p-1 rounded transition-colors">
+                <X className="w-4 h-4" />
               </button>
-
-              <button
-                id="room-share-btn"
-                className={`btn-icon ${store.isScreenSharing ? 'active' : ''}`}
-                onClick={toggleScreenShare}
-                aria-label="Share screen"
-                title="Share screen"
-              >
-                <Monitor className="w-5 h-5" />
+            </div>
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1.5 mb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Meeting PIN</span>
+                <span className="font-mono text-base font-bold text-violet-300 tracking-wider">{code}</span>
+              </div>
+              <div className="text-xs text-white/40 truncate font-mono">{inviteUrl}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={copyInviteLink} className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedLink ? 'Link Copied!' : 'Copy invite link'}</span>
               </button>
-
-              {/* Raise Hand Button (Spec §6.1) */}
-              <button
-                id="room-hand-btn"
-                className={`btn-icon ${isMyHandRaised ? 'active bg-amber-500/25 text-amber-300 border border-amber-400/50' : ''}`}
-                onClick={toggleHand}
-                aria-label={isMyHandRaised ? 'Lower Hand' : 'Raise Hand'}
-                title={isMyHandRaised ? 'Lower Hand' : 'Raise Hand'}
-              >
-                <Hand className="w-5 h-5" />
+              <button onClick={copyPin} className="px-3 py-2 bg-white/10 hover:bg-white/15 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors">
+                {copiedPin ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>PIN</span>
               </button>
-
-              {/* Quiz in Meeting Button (Spec §11) */}
-              <button
-                id="room-quiz-btn"
-                className={`btn-icon ${panel === 'quiz' ? 'active' : ''}`}
-                onClick={() => setPanel(panel === 'quiz' ? null : 'quiz')}
-                aria-label="Meeting Quiz"
-                title="Meeting Quiz"
-              >
-                <Gamepad2 className="w-5 h-5" />
-              </button>
-
-              <button
-                id="room-chat-btn"
-                className={`btn-icon ${panel === 'chat' ? 'active' : ''}`}
-                onClick={() => setPanel(panel === 'chat' ? null : 'chat')}
-                aria-label="Chat"
-                title="Chat"
-              >
-                <MessageSquare className="w-5 h-5" />
-              </button>
-
-              <button
-                id="room-participants-btn"
-                className={`btn-icon ${panel === 'participants' ? 'active' : ''}`}
-                onClick={() => setPanel(panel === 'participants' ? null : 'participants')}
-                aria-label="Participants"
-                title="Participants"
-              >
-                <Users className="w-5 h-5" />
-              </button>
-
-              <button
-                id="room-record-btn"
-                className={`btn-icon ${store.isRecording ? 'active' : ''}`}
-                onClick={store.isRecording ? stopRecording : startRecording}
-                aria-label={store.isRecording ? 'Stop recording' : 'Record'}
-                title={store.isRecording ? 'Stop recording' : 'Record'}
-              >
-                <Circle className={`w-5 h-5 ${store.isRecording ? 'fill-red-500 text-red-500 animate-pulse' : ''}`} />
-              </button>
-
-              <div className="w-px h-7 bg-[var(--border-glass-strong)] mx-0.5 sm:mx-1" />
-
-              <button
-                id="room-leave-btn"
-                className="btn-danger flex items-center gap-1.5 px-3 sm:px-4 text-xs sm:text-sm font-bold"
-                onClick={() => {
-                  if (isHost && allParticipants.length > 1) {
-                    setShowEndDialog(true);
-                  } else {
-                    void leave();
-                  }
-                }}
-              >
-                <PhoneOff className="w-4 h-4" />
-                <span>Leave</span>
-              </button>
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <button onClick={shareMeeting} className="px-2.5 py-2 bg-white/10 hover:bg-white/15 rounded-xl text-xs font-bold transition-colors">
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {!controlsVisible && (
-        <button
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-xs text-[var(--text-tertiary)] flex items-center gap-1 hover:text-white"
-          onClick={() => setControlsVisible(true)}
-        >
-          <ChevronUp className="w-3 h-3" />Tap for controls
-        </button>
-      )}
-
-      {/* End Meeting / Leave Dialog for Host (Spec §6.1) */}
+      {/* ── END MEETING DIALOG (host) ─────────────────────────────────────── */}
       <AnimatePresence>
         {showEndDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <div className="glass-card w-full max-w-sm p-6 space-y-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-                <PhoneOff className="w-6 h-6" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              className="bg-[#1e2740] border border-white/15 rounded-2xl w-full max-w-sm p-6 space-y-4 text-center shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
+                <PhoneOff className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="font-bold text-base">Leave or End Meeting?</h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  You are the meeting host. You can leave the call or end it for all participants.
-                </p>
+                <h3 className="font-bold text-base text-white">Leave or End Meeting?</h3>
+                <p className="text-xs text-white/50 mt-1">You are the host. Leave just for yourself or end for all.</p>
               </div>
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={endMeetingForAll}
-                  className="btn-danger w-full py-2.5 rounded-xl text-xs font-bold"
-                >
-                  End Meeting for All
-                </button>
-                <button
-                  onClick={leave}
-                  className="btn-secondary w-full py-2.5 rounded-xl text-xs font-semibold"
-                >
-                  Leave Meeting Only
-                </button>
-                <button
-                  onClick={() => setShowEndDialog(false)}
-                  className="btn-ghost w-full py-2 text-xs text-[var(--text-tertiary)]"
-                >
-                  Cancel
-                </button>
+              <div className="space-y-2 pt-1">
+                <button onClick={endMeetingForAll} className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors">End Meeting for All</button>
+                <button onClick={() => void leave()} className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors">Leave Meeting Only</button>
+                <button onClick={() => setShowEndDialog(false)} className="w-full py-2 text-xs text-white/40 hover:text-white transition-colors">Cancel</button>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
