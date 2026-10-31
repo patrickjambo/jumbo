@@ -589,12 +589,17 @@ export default function MeetingRoom() {
   const activeSpeakerId = store.activeSpeakerId;
   const isMyHandRaised = store.localParticipant ? store.raisedHands.includes(store.localParticipant.identity) : false;
 
-  // Gallery grid cols based on participant count
-  const gridCols = allParticipants.length <= 1 ? 1
-    : allParticipants.length <= 2 ? 2
-    : allParticipants.length <= 4 ? 2
-    : allParticipants.length <= 6 ? 3
+  // Gallery grid cols based on participant count.
+  // Fewer columns = bigger tiles = no overlap. Rows fill available height evenly.
+  const count = allParticipants.length;
+  const gridCols = count <= 1 ? 1
+    : count <= 2 ? 2
+    : count <= 4 ? 2
+    : count <= 6 ? 3
+    : count <= 9 ? 3
     : 4;
+  // Number of rows needed — used to give each row equal height inside the container
+  const gridRows = Math.ceil(count / gridCols);
 
   const connLabel = {
     disconnected: 'Disconnected',
@@ -804,13 +809,21 @@ export default function MeetingRoom() {
               </div>
             </div>
           ) : (
-            /* ── GALLERY VIEW — scrollable grid ── */
+            /* ── GALLERY VIEW — height-distributed grid, NO overlap ── */
             <div
-              className="flex-1 p-3 overflow-y-auto"
-              style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: '12px', alignContent: 'start' }}
+              className="flex-1 min-h-0 p-3"
+              style={{
+                display: 'grid',
+                // Each column takes equal width
+                gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+                // Each row takes equal share of the container height — prevents overlap
+                gridTemplateRows: count > 0 ? `repeat(${gridRows}, minmax(0, 1fr))` : '1fr',
+                gap: '10px',
+              }}
             >
               {store.localParticipant && (
-                <div className="aspect-video rounded-2xl overflow-hidden">
+                // min-h-0 is critical — prevents grid items from expanding beyond their cell
+                <div className="min-h-0 rounded-2xl overflow-hidden">
                   <ParticipantTile
                     participant={store.localParticipant}
                     isLocal
@@ -820,7 +833,7 @@ export default function MeetingRoom() {
                 </div>
               )}
               {store.remoteParticipants.map((p) => (
-                <div key={p.identity} className="aspect-video rounded-2xl overflow-hidden">
+                <div key={p.identity} className="min-h-0 rounded-2xl overflow-hidden">
                   <ParticipantTile
                     participant={p}
                     isLocal={false}
@@ -830,7 +843,10 @@ export default function MeetingRoom() {
                 </div>
               ))}
               {allParticipants.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center h-48 text-white/40 text-sm gap-2">
+                <div
+                  className="flex flex-col items-center justify-center text-white/40 text-sm gap-2"
+                  style={{ gridColumn: `1 / -1` }}
+                >
                   <Users className="w-8 h-8" />
                   <span>{store.connectionState === 'connecting' ? 'Connecting to meeting…' : 'Waiting for others to join…'}</span>
                 </div>
@@ -840,6 +856,8 @@ export default function MeetingRoom() {
         </div>
 
         {/* ── SIDE PANEL (Chat / Participants / Quiz / Info) ─────────────────── */}
+        {/* On mobile: absolute overlay (doesn't push/squeeze video grid).
+            On sm+: inline flex sibling (static layout).  */}
         <AnimatePresence>
           {panel && (
             <motion.aside
@@ -847,7 +865,7 @@ export default function MeetingRoom() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 340, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="w-80 lg:w-96 flex-shrink-0 bg-[#111827] border-l border-white/10 flex flex-col z-20 overflow-hidden"
+              className="absolute sm:relative inset-y-0 right-0 w-[calc(100%-48px)] sm:w-80 lg:w-96 flex-shrink-0 bg-[#111827] sm:border-l border-white/10 flex flex-col z-20 overflow-hidden shadow-2xl"
             >
               {panel === 'chat' && (
                 <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
@@ -1050,9 +1068,10 @@ export default function MeetingRoom() {
       </div>
 
       {/* ── BOTTOM CONTROL BAR ────────────────────────────────────────────────
-          Always visible (not auto-hidden). Positioned as the last flex child.
-          On mobile the buttons show an icon + small label underneath.
-          On desktop they're a bit wider with more padding.
+          Two rows on mobile, single row on sm+.
+          Row 1 (mobile): primary media controls + Leave
+          Row 2 (mobile): secondary panel controls
+          On sm+ all buttons fit in one scrollable row.
       */}
       <div className="flex-shrink-0 bg-[#1a1f2e]/95 backdrop-blur-xl border-t border-white/10 z-30">
         {/* Recording indicator stripe */}
@@ -1060,7 +1079,94 @@ export default function MeetingRoom() {
           <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse" />
         )}
 
-        <div className="flex items-center justify-center gap-1 sm:gap-2 px-3 py-3 overflow-x-auto">
+        {/* ── MOBILE: Two-row layout ── */}
+        <div className="flex flex-col sm:hidden px-2 py-2 gap-1.5">
+          {/* Row 1: core media + leave */}
+          <div className="flex items-center justify-between gap-1">
+            <CtrlBtn
+              id="room-mic-btn-m"
+              icon={store.isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-red-400" />}
+              label={store.isMicOn ? 'Mute' : 'Unmute'}
+              onClick={toggleMic}
+              active={store.isMicOn}
+            />
+            <CtrlBtn
+              id="room-cam-btn-m"
+              icon={store.isCamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-red-400" />}
+              label={store.isCamOn ? 'Camera' : 'Camera Off'}
+              onClick={toggleCam}
+              active={store.isCamOn}
+            />
+            <CtrlBtn
+              id="room-share-btn-m"
+              icon={<Monitor className={`w-5 h-5 ${store.isScreenSharing ? 'text-violet-300' : ''}`} />}
+              label={store.isScreenSharing ? 'Stop' : 'Share'}
+              onClick={() => void toggleScreenShare()}
+              active={store.isScreenSharing}
+            />
+            <CtrlBtn
+              id="room-hand-btn-m"
+              icon={<Hand className="w-5 h-5" />}
+              label={isMyHandRaised ? 'Lower' : 'Hand'}
+              onClick={toggleHand}
+              warning={isMyHandRaised}
+            />
+            {/* Leave — always visible */}
+            <button
+              id="room-leave-btn-m"
+              onClick={() => {
+                if (isHost && allParticipants.length > 1) setShowEndDialog(true);
+                else void leave();
+              }}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all flex-shrink-0"
+            >
+              <PhoneOff className="w-5 h-5" />
+              <span className="text-[10px] font-bold">Leave</span>
+            </button>
+          </div>
+          {/* Row 2: panel toggles */}
+          <div className="flex items-center justify-around gap-1">
+            <CtrlBtn
+              id="room-chat-btn-m"
+              icon={<MessageSquare className="w-5 h-5" />}
+              label="Chat"
+              onClick={() => setPanel(panel === 'chat' ? null : 'chat')}
+              active={panel === 'chat'}
+              badge={panel !== 'chat' ? unreadChat : undefined}
+            />
+            <CtrlBtn
+              id="room-participants-btn-m"
+              icon={<Users className="w-5 h-5" />}
+              label={`People`}
+              onClick={() => setPanel(panel === 'participants' ? null : 'participants')}
+              active={panel === 'participants'}
+            />
+            <CtrlBtn
+              id="room-quiz-btn-m"
+              icon={<Gamepad2 className="w-5 h-5" />}
+              label="Quiz"
+              onClick={() => setPanel(panel === 'quiz' ? null : 'quiz')}
+              active={panel === 'quiz'}
+            />
+            <CtrlBtn
+              id="room-info-btn-m"
+              icon={<Info className="w-5 h-5" />}
+              label="Info"
+              onClick={() => setPanel(panel === 'info' ? null : 'info')}
+              active={panel === 'info'}
+            />
+            <CtrlBtn
+              id="room-record-btn-m"
+              icon={<Circle className={`w-5 h-5 ${store.isRecording ? 'fill-red-500 text-red-500 animate-pulse' : ''}`} />}
+              label={store.isRecording ? 'Stop' : 'Record'}
+              onClick={store.isRecording ? stopRecording : startRecording}
+              active={store.isRecording}
+            />
+          </div>
+        </div>
+
+        {/* ── DESKTOP: Single row (sm and above) ── */}
+        <div className="hidden sm:flex items-center justify-center gap-1.5 px-3 py-3">
           {/* Core media controls */}
           <CtrlBtn
             id="room-mic-btn"
@@ -1069,7 +1175,6 @@ export default function MeetingRoom() {
             onClick={toggleMic}
             active={store.isMicOn}
           />
-
           <CtrlBtn
             id="room-cam-btn"
             icon={store.isCamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-red-400" />}
@@ -1077,7 +1182,6 @@ export default function MeetingRoom() {
             onClick={toggleCam}
             active={store.isCamOn}
           />
-
           <CtrlBtn
             id="room-share-btn"
             icon={<Monitor className={`w-5 h-5 ${store.isScreenSharing ? 'text-violet-300' : ''}`} />}
@@ -1085,7 +1189,6 @@ export default function MeetingRoom() {
             onClick={() => void toggleScreenShare()}
             active={store.isScreenSharing}
           />
-
           <CtrlBtn
             id="room-hand-btn"
             icon={<Hand className="w-5 h-5" />}
@@ -1093,10 +1196,7 @@ export default function MeetingRoom() {
             onClick={toggleHand}
             warning={isMyHandRaised}
           />
-
-          {/* Separator */}
           <div className="w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
-
           <CtrlBtn
             id="room-chat-btn"
             icon={<MessageSquare className="w-5 h-5" />}
@@ -1105,7 +1205,6 @@ export default function MeetingRoom() {
             active={panel === 'chat'}
             badge={panel !== 'chat' ? unreadChat : undefined}
           />
-
           <CtrlBtn
             id="room-participants-btn"
             icon={<Users className="w-5 h-5" />}
@@ -1113,7 +1212,6 @@ export default function MeetingRoom() {
             onClick={() => setPanel(panel === 'participants' ? null : 'participants')}
             active={panel === 'participants'}
           />
-
           <CtrlBtn
             id="room-quiz-btn"
             icon={<Gamepad2 className="w-5 h-5" />}
@@ -1121,7 +1219,6 @@ export default function MeetingRoom() {
             onClick={() => setPanel(panel === 'quiz' ? null : 'quiz')}
             active={panel === 'quiz'}
           />
-
           <CtrlBtn
             id="room-info-btn"
             icon={<Info className="w-5 h-5" />}
@@ -1129,7 +1226,6 @@ export default function MeetingRoom() {
             onClick={() => setPanel(panel === 'info' ? null : 'info')}
             active={panel === 'info'}
           />
-
           <CtrlBtn
             id="room-record-btn"
             icon={<Circle className={`w-5 h-5 ${store.isRecording ? 'fill-red-500 text-red-500 animate-pulse' : ''}`} />}
@@ -1137,17 +1233,14 @@ export default function MeetingRoom() {
             onClick={store.isRecording ? stopRecording : startRecording}
             active={store.isRecording}
           />
-
-          {/* Separator + Leave */}
           <div className="w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
-
           <button
             id="room-leave-btn"
             onClick={() => {
               if (isHost && allParticipants.length > 1) setShowEndDialog(true);
               else void leave();
             }}
-            className="flex flex-col items-center gap-1 px-3 sm:px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all min-w-[52px] sm:min-w-[64px]"
+            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all min-w-[64px]"
           >
             <PhoneOff className="w-5 h-5" />
             <span className="text-[10px] font-bold">Leave</span>
