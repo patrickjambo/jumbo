@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gamepad2, Zap, SlidersHorizontal, ChevronRight, AlertCircle,
@@ -74,17 +74,23 @@ interface CustomDraftQuestion {
 
 export default function QuizLauncher() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
   const [mode, setMode] = useState<'auto' | 'categories' | 'builder' | 'library' | null>(null);
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['general_knowledge', 'science', 'geography']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
-  const [joinPin, setJoinPin] = useState('');
+  const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
   const [joining, setJoining] = useState(false);
   const [creating, setCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (urlPin) setJoinPin(urlPin);
+  }, [urlPin]);
 
   // Library state
   const [savedDecks, setSavedDecks] = useState<SavedQuizDeck[]>(() => getSavedQuizLibrary());
@@ -157,6 +163,7 @@ export default function QuizLauncher() {
         setCreating(false);
         navigate(`/quiz/lobby/${pin}`);
       },
+      trimmed,
     );
     setTimeout(() => { setCreating(false); }, 8000);
   }, [displayName, selectedCats, questionCount, createGame, navigate]);
@@ -172,22 +179,63 @@ export default function QuizLauncher() {
     setCreating(true);
     localStorage.setItem('jumbo-display-name', trimmed);
 
+    // Deep sanitize and ensure every question is 100% compliant with QuestionSchema
+    const sanitizedQuestions: Question[] = questions.map((q, idx) => {
+      const qId = q.id || `q_${idx}_${Date.now()}`;
+      const qType: QuestionType = q.type || 'multiple_choice';
+      const rawText = (q.text || `Question ${idx + 1}`).trim();
+
+      let rawOptions = Array.isArray(q.options) && q.options.length >= 2 ? q.options : [
+        { id: `opt_${idx}_1`, text: 'Option A', isCorrect: true },
+        { id: `opt_${idx}_2`, text: 'Option B', isCorrect: false },
+      ];
+
+      const opts = rawOptions.slice(0, 10).map((opt, oIdx) => ({
+        id: opt.id || `opt_${idx}_${oIdx + 1}`,
+        text: (opt.text || `Option ${oIdx + 1}`).trim().slice(0, 1000),
+        isCorrect: Boolean(opt.isCorrect),
+      }));
+
+      if (qType !== 'puzzle' && !opts.some((o) => o.isCorrect)) {
+        opts[0]!.isCorrect = true;
+      }
+
+      const correctOrder = qType === 'puzzle'
+        ? (q.correctOrder && q.correctOrder.length >= 2 ? q.correctOrder : opts.map((o) => o.id))
+        : undefined;
+
+      return {
+        id: qId,
+        type: qType,
+        text: rawText.slice(0, 3000),
+        options: opts,
+        timeLimit: Math.max(5, Math.min(180, q.timeLimit || 20)),
+        category: (q.category || 'Custom Quiz').slice(0, 100),
+        difficulty: (['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium') as 'easy' | 'medium' | 'hard',
+        points: q.points || 1000,
+        correctOrder,
+      };
+    });
+
+    const safeCount = Math.max(1, Math.min(200, sanitizedQuestions.length));
+
     createGame(
       {
         categories: ['general_knowledge'],
-        questionCount: questions.length,
+        questionCount: safeCount,
         leaderboardVisibility: 'live',
         streakBonus: true,
         strictMode: false,
         soundEffects: false,
       },
-      questions,
+      sanitizedQuestions,
       (pin) => {
         setCreating(false);
         navigate(`/quiz/lobby/${pin}`);
       },
+      trimmed,
     );
-    setTimeout(() => { setCreating(false); }, 8000);
+    setTimeout(() => { setCreating(false); }, 10000);
   }, [displayName, createGame, navigate]);
 
   const handleCreateCustom = useCallback(() => {

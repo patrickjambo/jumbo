@@ -13,8 +13,8 @@ export type QuestionType = z.infer<typeof QuestionTypeSchema>;
 
 export const AnswerOptionSchema = z.object({
   id: z.string(),
-  text: z.string().max(200),
-  imageUrl: z.string().url().optional(),
+  text: z.string().max(1000),
+  imageUrl: z.string().optional(),
   isCorrect: z.boolean().optional(), // server-only, stripped before sending to clients
 });
 export type AnswerOption = z.infer<typeof AnswerOptionSchema>;
@@ -22,11 +22,11 @@ export type AnswerOption = z.infer<typeof AnswerOptionSchema>;
 export const QuestionSchema = z.object({
   id: z.string(),
   type: QuestionTypeSchema.default('multiple_choice'),
-  text: z.string().max(500),
-  imageUrl: z.string().url().optional(),
-  options: z.array(AnswerOptionSchema).min(2).max(4),
-  timeLimit: z.number().int().min(5).max(120).default(20),
-  category: z.string(),
+  text: z.string().max(3000),
+  imageUrl: z.string().optional(),
+  options: z.array(AnswerOptionSchema).min(2).max(10),
+  timeLimit: z.number().int().min(5).max(180).default(20),
+  category: z.string().default('General'),
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   source: z.string().optional(),
   points: z.number().int().default(1000),
@@ -44,7 +44,7 @@ export const LeaderboardVisibilitySchema = z.enum([
 export type LeaderboardVisibility = z.infer<typeof LeaderboardVisibilitySchema>;
 
 export const GameSettingsSchema = z.object({
-  questionCount: z.number().int().min(5).max(30).default(15),
+  questionCount: z.number().int().min(1).max(200).default(15),
   categories: z.array(z.string()).min(1),
   leaderboardVisibility: LeaderboardVisibilitySchema.default('live'),
   streakBonus: z.boolean().default(true),
@@ -94,6 +94,7 @@ export const GameCreatePayloadSchema = z.object({
   settings: GameSettingsSchema,
   roomId: z.string().optional(), // if launching from a meeting
   customQuestions: z.array(QuestionSchema).optional(),
+  hostDisplayName: z.string().optional(),
 });
 export type GameCreatePayload = z.infer<typeof GameCreatePayloadSchema>;
 

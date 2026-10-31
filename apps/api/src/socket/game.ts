@@ -212,10 +212,12 @@ export function registerGameHandlers(io: Server) {
     socket.on(GAME_EVENTS.CREATE, async (rawPayload: unknown, ack: (res: { gameId: string; pin: string } | { error: string }) => void) => {
       const parse = GameCreatePayloadSchema.safeParse(rawPayload);
       if (!parse.success) {
-        ack?.({ error: 'Invalid payload' });
+        console.error('Game create failed validation:', parse.error.issues);
+        const errMsg = parse.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+        ack?.({ error: errMsg });
         return;
       }
-      const { settings } = parse.data;
+      const { settings, hostDisplayName } = parse.data;
 
       const gameId = generateId();
       const pin = generatePin();
@@ -232,12 +234,39 @@ export function registerGameHandlers(io: Server) {
         questionStartTime: 0,
         revealTimeout: null, nextTimeout: null,
       };
+
+      if (hostDisplayName && hostDisplayName.trim()) {
+        const player: PlayerRecord = {
+          id: socket.id,
+          socketId: socket.id,
+          displayName: hostDisplayName.trim(),
+          avatarUrl: undefined,
+          totalScore: 0,
+          totalResponseMs: 0,
+          streak: 0,
+          answeredCurrentQuestion: false,
+          responseMs: 0,
+          selectedOptionId: null,
+        };
+        game.players.set(socket.id, player);
+      }
+
       games.set(gameId, game);
       pinToGameId.set(pin, gameId);
       socketToGameId.set(socket.id, gameId);
 
       await socket.join(pin);
       ack?.({ gameId, pin });
+
+      if (game.players.size > 0) {
+        const players = [...game.players.values()].map((p) => ({
+          id: p.id,
+          displayName: p.displayName,
+          avatarUrl: p.avatarUrl,
+          totalScore: p.totalScore,
+        }));
+        io.to(pin).emit(SERVER_EVENTS.LOBBY_UPDATE, { players });
+      }
     });
 
     // ── Join game ─────────────────────────────────────────────────────────────
@@ -294,7 +323,21 @@ export function registerGameHandlers(io: Server) {
     socket.on(GAME_EVENTS.START, async (payload: { gameId: string }) => {
       const game = games.get(payload?.gameId);
       if (!game || socket.id !== game.hostSocketId) return;
-      if (game.players.size === 0) return;
+      if (game.players.size === 0) {
+        const player: PlayerRecord = {
+          id: socket.id,
+          socketId: socket.id,
+          displayName: 'Host',
+          avatarUrl: undefined,
+          totalScore: 0,
+          totalResponseMs: 0,
+          streak: 0,
+          answeredCurrentQuestion: false,
+          responseMs: 0,
+          selectedOptionId: null,
+        };
+        game.players.set(socket.id, player);
+      }
 
       game.status = 'generating';
       io.to(game.pin).emit(SERVER_EVENTS.GAME_STATE, { status: 'generating' });

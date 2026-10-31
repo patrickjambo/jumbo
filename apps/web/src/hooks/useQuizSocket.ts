@@ -133,13 +133,21 @@ export function useQuizSocket() {
     settings: unknown,
     customQuestions?: unknown[],
     onCreated?: (pin: string) => void,
+    hostDisplayName?: string,
   ) {
     const socket = socketRef.current;
     if (!socket) return;
     socket.emit(
       GAME_EVENTS.CREATE,
-      { settings, customQuestions },
-      (res: { gameId: string; pin: string }) => {
+      { settings, customQuestions, hostDisplayName },
+      (res: { gameId?: string; pin?: string; error?: string }) => {
+        if (!res || !res.pin || !res.gameId || res.error) {
+          const err = res?.error || 'Failed to create game. Please check your quiz questions.';
+          console.error('Create game error:', err);
+          setError(err);
+          store.setStatus('idle');
+          return;
+        }
         store.setGameId(res.gameId);
         store.setPin(res.pin);
         store.setIsHost(true);
