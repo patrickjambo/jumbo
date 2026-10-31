@@ -11,13 +11,25 @@ import {
   Users, Gamepad2, Circle, PhoneOff, X,
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
-  Copy, Check, Share2, Info, UserPlus, Home,
+  Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { MeetingQuizPanel } from '../components/MeetingQuizPanel';
 import { useMeetingWebRTC } from '../hooks/useMeetingWebRTC';
+
+// ─── Shared AudioContext for all remote participants (prevents browser limit) ─
+let sharedAudioCtx: AudioContext | null = null;
+function getSharedAudioCtx(): AudioContext {
+  if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+    sharedAudioCtx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    void sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+}
 
 // ─── Participant Tile ─────────────────────────────────────────────────────────
 function ParticipantTile({
@@ -34,17 +46,20 @@ function ParticipantTile({
   fallbackStream?: MediaStream | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
   const [quality, setQuality] = useState<ConnectionQuality>(participant?.connectionQuality ?? ConnectionQuality.Excellent);
   const raisedHands = useMeetingStore((s) => s.raisedHands);
   const isCamOn = useMeetingStore((s) => s.isCamOn);
   const isMicOn = useMeetingStore((s) => s.isMicOn);
   const isHandRaised = raisedHands.includes(participant?.identity);
+  // Refs for Web Audio processing pipeline (remote participants only)
+  const audioNodeCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let unmounted = false;
+    let vadRaf = 0;
 
     function attach() {
       if (unmounted) return;
@@ -61,7 +76,7 @@ function ParticipantTile({
         }
       } else {
         const rp = participant as any;
-        const stream = fallbackStream || rp?.stream;
+        const stream: MediaStream | null = fallbackStream || rp?.stream || null;
         if (stream && videoRef.current) {
           if (videoRef.current.srcObject !== stream) videoRef.current.srcObject = stream;
           void videoRef.current.play().catch(() => {});
@@ -71,17 +86,66 @@ function ParticipantTile({
           setHasVideo(false);
         }
 
-        // Audio: isolate audio track to prevent bleed/interference
-        if (stream && audioRef.current) {
-          const aTracks = (stream as MediaStream).getAudioTracks?.() || [];
-          const firstAudioTrack = aTracks[0];
-          if (firstAudioTrack) {
-            const currentSrc = audioRef.current.srcObject as MediaStream | null;
-            const currentAudioTrack = currentSrc?.getAudioTracks?.()[0];
-            if (!currentAudioTrack || currentAudioTrack.id !== firstAudioTrack.id) {
-              audioRef.current.srcObject = new MediaStream([firstAudioTrack]);
+        // ── Web Audio pipeline for remote audio ──
+        // Instead of raw <audio srcObject>, we route through:
+        //   MediaStreamSource → DynamicsCompressor (limiter) → GainNode (normalize) → destination
+        // This prevents:
+        //   • Volume spikes / clipping from loud participants
+        //   • Echo from acoustic loopback (combined with getUserMedia echoCancellation)
+        //   • Per-person volume imbalance
+        if (stream) {
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            // Cleanup previous pipeline for this participant
+            audioNodeCleanupRef.current?.();
+            audioNodeCleanupRef.current = null;
+
+            try {
+              const ctx = getSharedAudioCtx();
+              // Create audio-only stream to prevent video track interfering with source node
+              const audioOnlyStream = new MediaStream(audioTracks);
+              const source = ctx.createMediaStreamSource(audioOnlyStream);
+
+              // Dynamics compressor acts as a soft limiter — prevents sudden loud spikes
+              const compressor = ctx.createDynamicsCompressor();
+              compressor.threshold.value = -18;   // start compressing at -18 dBFS
+              compressor.knee.value = 8;          // soft knee for natural sound
+              compressor.ratio.value = 6;         // 6:1 compression ratio
+              compressor.attack.value = 0.003;    // 3ms attack — fast enough to catch pops
+              compressor.release.value = 0.2;     // 200ms release — smooth gain recovery
+
+              // Gain node for final volume normalization (0.9 = 90% to leave headroom)
+              const gain = ctx.createGain();
+              gain.gain.value = 0.9;
+
+              source.connect(compressor);
+              compressor.connect(gain);
+              gain.connect(ctx.destination);
+
+              // VAD: measure mic level for the animated bar
+              const analyser = ctx.createAnalyser();
+              analyser.fftSize = 256;
+              source.connect(analyser);
+              const buf = new Uint8Array(analyser.frequencyBinCount);
+              function vadLoop() {
+                vadRaf = requestAnimationFrame(vadLoop);
+                analyser.getByteFrequencyData(buf);
+                let sum = 0;
+                for (const b of buf) sum += b;
+                const level = sum / buf.length / 255;
+                setMicLevel(level);
+                // Simple VAD: speaking if level > 0.04 (~-28dB)
+                setIsSpeaking(level > 0.04);
+              }
+              vadLoop();
+
+              audioNodeCleanupRef.current = () => {
+                cancelAnimationFrame(vadRaf);
+                try { source.disconnect(); compressor.disconnect(); gain.disconnect(); analyser.disconnect(); } catch {}
+              };
+            } catch (e) {
+              console.warn('[Audio] Failed to create Web Audio pipeline, falling back', e);
             }
-            void audioRef.current.play().catch(() => {});
           }
         }
       }
@@ -97,6 +161,9 @@ function ParticipantTile({
 
     return () => {
       unmounted = true;
+      cancelAnimationFrame(vadRaf);
+      audioNodeCleanupRef.current?.();
+      audioNodeCleanupRef.current = null;
       participant?.off?.(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
       participant?.off?.(ParticipantEvent.ConnectionQualityChanged, handleQuality);
     };
@@ -106,15 +173,20 @@ function ParticipantTile({
   const initial = displayName[0]?.toUpperCase() ?? '?';
   const speaking = isSpeaking || isActiveSpeaker;
 
+  // Noise warning: show badge if remote audio level is very high
+  const isNoisy = !isLocal && micLevel > 0.35;
+
   return (
     <div
       className={`relative bg-[#1a1f2e] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-200 ${
         speaking
           ? 'ring-[3px] ring-green-400 shadow-[0_0_20px_rgba(74,222,128,0.35)]'
+          : isNoisy
+          ? 'ring-[2px] ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
           : 'ring-1 ring-white/10'
       } ${isLarge ? 'w-full h-full' : 'w-full h-full'}`}
     >
-      {/* Video */}
+      {/* Video — muted always (audio goes through Web Audio pipeline) */}
       <video
         ref={videoRef}
         autoPlay
@@ -125,8 +197,7 @@ function ParticipantTile({
         } ${!hasVideo ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'}`}
       />
 
-      {/* Remote audio — isolated per participant */}
-      {!isLocal && <audio ref={audioRef} autoPlay playsInline className="hidden" />}
+      {/* NOTE: Remote audio is now routed through Web Audio pipeline above, NOT via <audio> element */}
 
       {/* Avatar when camera off */}
       {!hasVideo && (
@@ -136,6 +207,21 @@ function ParticipantTile({
           >
             {initial}
           </div>
+          {/* Animated mic level bar under avatar */}
+          {!isLocal && speaking && (
+            <div className="flex items-end gap-0.5 h-3">
+              {[0.4, 0.7, 1.0, 0.7, 0.4].map((scale, i) => (
+                <div
+                  key={i}
+                  className="w-1 rounded-full bg-green-400"
+                  style={{
+                    height: `${Math.max(20, Math.min(100, micLevel * scale * 400))}%`,
+                    transition: 'height 80ms ease',
+                  }}
+                />
+              ))}
+            </div>
+          )}
           {!isLarge && (
             <span className="text-xs text-white/70 font-medium max-w-[100px] truncate">
               {displayName}
@@ -157,12 +243,31 @@ function ParticipantTile({
         </motion.div>
       )}
 
-      {/* Bottom info bar: name + mic + quality */}
+      {/* Noisy participant warning badge */}
+      {isNoisy && (
+        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-amber-500/80 backdrop-blur-sm text-white text-[10px] font-bold flex items-center gap-1 shadow">
+          <Activity className="w-2.5 h-2.5" />
+          Noisy
+        </div>
+      )}
+
+      {/* Bottom info bar: name + mic level waveform + quality */}
       <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2.5 py-1.5 bg-gradient-to-t from-black/70 to-transparent z-10">
         <div className="flex items-center gap-1.5 min-w-0">
-          {/* Speaking pulse dot */}
+          {/* Live animated waveform bars when speaking */}
           {speaking && (
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+            <div className="flex items-end gap-px h-3.5 flex-shrink-0">
+              {[0.5, 1.0, 0.7, 0.9, 0.6].map((scale, i) => (
+                <div
+                  key={i}
+                  className="w-0.5 rounded-full bg-green-400"
+                  style={{
+                    height: `${Math.max(15, Math.min(100, micLevel * scale * 500))}%`,
+                    transition: 'height 80ms ease',
+                  }}
+                />
+              ))}
+            </div>
           )}
           <span className="text-white text-xs font-semibold truncate max-w-[120px] sm:max-w-[160px]">
             {displayName}{isLocal ? ' (You)' : ''}
@@ -750,55 +855,94 @@ export default function MeetingRoom() {
 
               {panel === 'participants' && (
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-violet-400" />
-                      <h2 className="font-bold text-sm text-white">Participants ({allParticipants.length})</h2>
-                      {isHost && (
-                        <button
-                          onClick={toggleLockRoom}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border transition-all ${
-                            isRoomLocked
-                              ? 'bg-red-500/20 border-red-400 text-red-300'
-                              : 'bg-white/10 border-white/10 text-white/50 hover:text-white'
-                          }`}
-                        >
-                          {isRoomLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                          <span>{isRoomLocked ? 'Locked' : 'Lock'}</span>
-                        </button>
-                      )}
+                  <div className="flex flex-col px-4 pt-3 pb-2 border-b border-white/10 gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-violet-400" />
+                        <h2 className="font-bold text-sm text-white">Participants ({allParticipants.length})</h2>
+                        {isHost && (
+                          <button
+                            onClick={toggleLockRoom}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border transition-all ${
+                              isRoomLocked
+                                ? 'bg-red-500/20 border-red-400 text-red-300'
+                                : 'bg-white/10 border-white/10 text-white/50 hover:text-white'
+                            }`}
+                          >
+                            {isRoomLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                            <span>{isRoomLocked ? 'Locked' : 'Lock'}</span>
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={() => setPanel(null)} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button onClick={() => setPanel(null)} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
+                    {/* Host bulk controls */}
+                    {isHost && store.remoteParticipants.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => store.remoteParticipants.forEach((p) => hostMuteParticipant(p.identity))}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all"
+                          title="Mute all participants"
+                        >
+                          <VolumeX className="w-3.5 h-3.5" />
+                          <span>Mute All</span>
+                        </button>
+                        <button
+                          onClick={() => store.remoteParticipants.forEach((p) => hostRemoveParticipant(p.identity))}
+                          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-[11px] font-bold transition-all"
+                          title="Remove all participants"
+                        >
+                          <UserMinus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
                     {allParticipants.map((p) => {
                       const isRaised = store.raisedHands.includes(p.identity);
                       const isLocalP = p.identity === store.localParticipant?.identity;
+                      const pMicOn = isLocalP ? store.isMicOn : (p as any).isMicOn !== false;
                       return (
-                        <div key={p.identity} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <div key={p.identity} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
+                              isLocalP ? 'bg-gradient-to-br from-violet-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
+                            }`}>
                               {p.name?.[0] ?? '?'}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-semibold truncate text-white">{p.name ?? p.identity}</span>
-                              {isLocalP && <span className="text-[10px] text-violet-400 font-medium">(You{isHost ? ' · Host' : ''})</span>}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold truncate text-white">{p.name ?? p.identity}</span>
+                                {/* Mic indicator */}
+                                {pMicOn
+                                  ? <Mic className="w-3 h-3 text-green-400 flex-shrink-0" />
+                                  : <MicOff className="w-3 h-3 text-red-400 flex-shrink-0" />}
+                                {isRaised && <Hand className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                              </div>
+                              <span className="text-[10px] text-white/40">
+                                {isLocalP ? (isHost ? 'You · Host' : 'You') : 'Participant'}
+                              </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {isRaised && (
-                              <button onClick={() => store.lowerHand(p.identity)} className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[11px] font-bold flex items-center gap-1">
-                                <Hand className="w-3 h-3" /><span className="hidden sm:inline">Lower</span>
-                              </button>
-                            )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             {isHost && !isLocalP && (
                               <>
-                                <button onClick={() => hostMuteParticipant(p.identity)} className="w-7 h-7 rounded-lg hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center" title="Mute">
-                                  <MicOff className="w-3.5 h-3.5" />
+                                {/* Mute / Unmute */}
+                                <button
+                                  onClick={() => hostMuteParticipant(p.identity)}
+                                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center transition-all"
+                                  title={pMicOn ? 'Mute this participant' : 'Already muted'}
+                                >
+                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5 text-red-400" />}
                                 </button>
-                                <button onClick={() => hostRemoveParticipant(p.identity)} className="w-7 h-7 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center" title="Remove">
+                                {/* Remove */}
+                                <button
+                                  onClick={() => hostRemoveParticipant(p.identity)}
+                                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
+                                  title="Remove from meeting"
+                                >
                                   <UserMinus className="w-3.5 h-3.5" />
                                 </button>
                               </>
