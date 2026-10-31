@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: jumbo-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm -r build
+    startCommand: pnpm --filter @jumbo/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: LIVEKIT_URL
+        value: wss://placeholder.livekit.cloud
+      - key: LIVEKIT_API_KEY
+        value: placeholder_key
+      - key: LIVEKIT_API_SECRET
+        value: placeholder_secret_at_least_32_characters_long_for_security

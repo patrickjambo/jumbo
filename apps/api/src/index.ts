@@ -19,8 +19,12 @@ await app.register(helmet, {
   contentSecurityPolicy: false,
 });
 
+const allowedOrigins = env.CORS_ORIGINS === '*'
+  ? true
+  : env.CORS_ORIGINS.split(',').map((s) => s.trim());
+
 await app.register(cors, {
-  origin: env.CORS_ORIGINS.split(','),
+  origin: allowedOrigins,
   credentials: true,
 });
 
@@ -43,7 +47,7 @@ await app.listen({ port: env.PORT, host: '0.0.0.0' });
 // ─── Socket.IO attaches to the same HTTP server ───────────────────────────────
 const io = new SocketIOServer(app.server, {
   cors: {
-    origin: env.CORS_ORIGINS.split(','),
+    origin: allowedOrigins,
     credentials: true,
   },
   transports: ['websocket', 'polling'],
