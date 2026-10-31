@@ -129,15 +129,24 @@ export function useQuizSocket() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  function createGame(settings: unknown, customQuestions?: unknown[]) {
+  function createGame(
+    settings: unknown,
+    customQuestions?: unknown[],
+    onCreated?: (pin: string) => void,
+  ) {
     const socket = socketRef.current;
     if (!socket) return;
-    socket.emit(GAME_EVENTS.CREATE, { settings, customQuestions }, (res: { gameId: string; pin: string }) => {
-      store.setGameId(res.gameId);
-      store.setPin(res.pin);
-      store.setIsHost(true);
-      store.setStatus('lobby');
-    });
+    socket.emit(
+      GAME_EVENTS.CREATE,
+      { settings, customQuestions },
+      (res: { gameId: string; pin: string }) => {
+        store.setGameId(res.gameId);
+        store.setPin(res.pin);
+        store.setIsHost(true);
+        store.setStatus('lobby');
+        onCreated?.(res.pin);
+      },
+    );
   }
 
   function joinGame(

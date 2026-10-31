@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { QUESTION_CATEGORIES, type Question, type QuestionType } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
-import { useQuizStore } from '../store';
 import { AppNavbar } from '../components/AppNavbar';
 import { extractTextFromPdfFile, parseQuestionsFromRawText } from '../lib/pdfExtractor';
 import {
@@ -144,22 +143,22 @@ export default function QuizLauncher() {
     }
     setCreating(true);
     localStorage.setItem('jumbo-display-name', trimmed);
-    createGame({
-      categories: [...selectedCats],
-      questionCount,
-      leaderboardVisibility: 'live',
-      streakBonus: true,
-      strictMode: false,
-      soundEffects: false,
-    });
-
-    const unsub = useQuizStore.subscribe((s) => {
-      if (s.pin) {
-        unsub();
-        navigate(`/quiz/lobby/${s.pin}`);
-      }
-    });
-    setTimeout(() => { setCreating(false); }, 6000);
+    createGame(
+      {
+        categories: [...selectedCats],
+        questionCount,
+        leaderboardVisibility: 'live',
+        streakBonus: true,
+        strictMode: false,
+        soundEffects: false,
+      },
+      undefined,
+      (pin) => {
+        setCreating(false);
+        navigate(`/quiz/lobby/${pin}`);
+      },
+    );
+    setTimeout(() => { setCreating(false); }, 8000);
   }, [displayName, selectedCats, questionCount, createGame, navigate]);
 
   const handleLaunchWithQuestions = useCallback((questions: Question[]) => {
@@ -183,15 +182,12 @@ export default function QuizLauncher() {
         soundEffects: false,
       },
       questions,
+      (pin) => {
+        setCreating(false);
+        navigate(`/quiz/lobby/${pin}`);
+      },
     );
-
-    const unsub = useQuizStore.subscribe((s) => {
-      if (s.pin) {
-        unsub();
-        navigate(`/quiz/lobby/${s.pin}`);
-      }
-    });
-    setTimeout(() => { setCreating(false); }, 6000);
+    setTimeout(() => { setCreating(false); }, 8000);
   }, [displayName, createGame, navigate]);
 
   const handleCreateCustom = useCallback(() => {
