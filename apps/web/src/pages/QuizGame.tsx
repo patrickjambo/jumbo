@@ -7,6 +7,7 @@ import {
   Triangle, Diamond, Circle, Square,
   ThumbsUp, Flame, Heart, Sparkles, PartyPopper, UserPlus,
   Video, Mic, Zap, ArrowRight, Timer, Home, LogOut,
+  ArrowUp, ArrowDown, ListOrdered,
 } from 'lucide-react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore, type QuizPlayer, type QuizQuestion } from '../store';
@@ -138,6 +139,28 @@ export default function QuizGame() {
       return () => clearInterval(interval);
     }
   }, [store.status, store.serverStartTime, store.clockOffset, activeQuestion?.id, activeQuestion?.timeLimit]);
+
+  // Puzzle / Order Sequence state
+  const [puzzleItems, setPuzzleItems] = useState<{ id: string; text: string }[]>([]);
+
+  useEffect(() => {
+    if (activeQuestion && activeQuestion.options) {
+      setPuzzleItems([...activeQuestion.options]);
+    }
+  }, [activeQuestion?.id]);
+
+  const movePuzzleItem = useCallback((idx: number, direction: 'up' | 'down') => {
+    if (store.selectedOptionId || (store.status !== 'active' && !isDemo)) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= puzzleItems.length) return;
+    setPuzzleItems((prev) => {
+      const next = [...prev];
+      const temp = next[idx]!;
+      next[idx] = next[targetIdx]!;
+      next[targetIdx] = temp;
+      return next;
+    });
+  }, [store.selectedOptionId, store.status, isDemo, puzzleItems.length]);
 
   // Audio stingers on reveal
   useEffect(() => {
@@ -496,66 +519,211 @@ export default function QuizGame() {
                   - Correct option glows green with percentage bar
                   - Wrong selections turn red
               */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                {activeQuestion.options.map((opt, idx) => {
-                  const meta = OPTION_META[idx % OPTION_META.length]!;
-                  const Icon = meta.icon;
-                  const isSelected = store.selectedOptionId === opt.id;
-                  const isCorrect = store.status === 'reveal' && opt.id === store.correctOptionId;
-                  const isWrong = store.status === 'reveal' && isSelected && !isCorrect;
-                  const optionStat = store.optionResults.find((r) => r.optionId === opt.id);
-                  const percentage = optionStat?.percentage ?? 0;
+              {/* ── Question Options: Multiple Choice, True/False, or Puzzle Sequence ── */}
+              {activeQuestion.type === 'puzzle' ? (
+                /* ── PUZZLE (ORDERING SEQUENCE) ── */
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-violet-950/40 border border-violet-500/30 text-violet-300 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <ListOrdered className="w-4 h-4 text-violet-400" />
+                      <span>Arrange items in correct order from 1 to 4:</span>
+                    </div>
+                    {store.selectedOptionId && (
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Locked In
+                      </span>
+                    )}
+                  </div>
 
-                  let borderClass = `${meta.cardBorder} hover:brightness-110`;
-                  if (isCorrect) borderClass = 'border-emerald-400 bg-emerald-950/40 ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.35)]';
-                  else if (isWrong) borderClass = 'border-red-400 bg-red-950/40 ring-2 ring-red-400/80';
-                  else if (isSelected) borderClass = `${meta.cardBorder} ${meta.activeRing}`;
+                  <div className="flex flex-col gap-2">
+                    {puzzleItems.map((item, idx) => {
+                      const meta = OPTION_META[idx % OPTION_META.length]!;
+                      const isLocked = !!store.selectedOptionId;
+                      const isReveal = store.status === 'reveal';
+                      const isCorrectSeq = isReveal && store.playerResult?.correct;
 
-                  const dimClass = (store.selectedOptionId && !isSelected && store.status === 'active')
-                    ? 'opacity-50'
-                    : (!isSelected && !isCorrect && store.status === 'reveal')
-                    ? 'opacity-50'
-                    : 'opacity-100';
+                      let rowBorder = 'border-[#222e47] bg-[#121929]';
+                      if (isReveal) {
+                        rowBorder = isCorrectSeq
+                          ? 'border-emerald-400 bg-emerald-950/40 ring-1 ring-emerald-400'
+                          : 'border-red-400 bg-red-950/40 ring-1 ring-red-400';
+                      }
 
-                  return (
-                    <motion.button
-                      key={opt.id}
-                      layout
-                      whileHover={!store.selectedOptionId && store.status === 'active' ? { scale: 1.015, y: -1 } : {}}
-                      whileTap={!store.selectedOptionId && store.status === 'active' ? { scale: 0.975 } : {}}
-                      onClick={() => handleAnswer(opt.id)}
-                      disabled={!!store.selectedOptionId || (store.status !== 'active' && !isDemo)}
-                      className={`relative flex items-center justify-between p-2.5 sm:p-3.5 rounded-xl border text-left transition-all duration-200 overflow-hidden ${meta.cardBg} ${borderClass} ${dimClass}`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2 z-10">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeBg}`}>
-                          <Icon className={`w-4 h-4 ${meta.fillColor}`} />
-                        </div>
-                        <span className="text-white text-xs sm:text-sm font-semibold leading-tight">{opt.text}</span>
-                      </div>
-                      <div className="flex-shrink-0 z-10">
-                        {isCorrect ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20" />
-                        ) : isWrong ? (
-                          <XCircle className="w-5 h-5 text-red-400 fill-red-400/20" />
-                        ) : isSelected ? (
-                          <div className="w-5 h-5 rounded-full border-2 border-emerald-400 flex items-center justify-center bg-emerald-500/20">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                      return (
+                        <motion.div
+                          key={item.id}
+                          layout
+                          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                          className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all ${rowBorder}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 pr-2">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
+                              #{idx + 1}
+                            </div>
+                            <span className="text-white text-xs sm:text-sm font-semibold truncate">{item.text}</span>
                           </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
-                        )}
-                      </div>
-                      {store.status === 'reveal' && store.optionResults.length > 0 && (
-                        <div className="absolute inset-0 pointer-events-none">
-                          <div className={`h-full ${isCorrect ? 'bg-emerald-500/20' : 'bg-white/5'} transition-all duration-700`} style={{ width: `${percentage}%` }} />
-                          <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">{percentage}%</span>
-                        </div>
-                      )}
+
+                          {!isLocked && store.status === 'active' && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => movePuzzleItem(idx, 'up')}
+                                className="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-200 transition-colors"
+                                title="Move up"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === puzzleItems.length - 1}
+                                onClick={() => movePuzzleItem(idx, 'down')}
+                                className="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-200 transition-colors"
+                                title="Move down"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {!store.selectedOptionId && (store.status === 'active' || isDemo) && (
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        const seq = puzzleItems.map((p) => p.id).join(',');
+                        handleAnswer(seq);
+                      }}
+                      className="w-full mt-1 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-extrabold text-sm shadow-lg shadow-indigo-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Lock In My Sequence</span>
                     </motion.button>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              ) : activeQuestion.type === 'true_false' ? (
+                /* ── TRUE / FALSE (2 LARGE CARDS) ── */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {activeQuestion.options.slice(0, 2).map((opt, idx) => {
+                    const isTrue = opt.text.toLowerCase().includes('true');
+                    const isSelected = store.selectedOptionId === opt.id;
+                    const isCorrect = store.status === 'reveal' && opt.id === store.correctOptionId;
+                    const isWrong = store.status === 'reveal' && isSelected && !isCorrect;
+                    const optionStat = store.optionResults.find((r) => r.optionId === opt.id);
+                    const percentage = optionStat?.percentage ?? 0;
+
+                    const bgGradient = isTrue
+                      ? 'from-blue-600/30 via-cyan-600/20 to-[#0b162c]'
+                      : 'from-rose-600/30 via-red-600/20 to-[#1e1018]';
+                    const borderColor = isCorrect
+                      ? 'border-emerald-400 ring-2 ring-emerald-400 bg-emerald-950/50'
+                      : isWrong
+                      ? 'border-red-400 ring-2 ring-red-400 bg-red-950/50'
+                      : isSelected
+                      ? isTrue ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-red-400 ring-2 ring-red-400'
+                      : isTrue ? 'border-blue-500/40 hover:border-cyan-400' : 'border-red-500/40 hover:border-rose-400';
+
+                    const dimClass = (store.selectedOptionId && !isSelected && store.status === 'active')
+                      ? 'opacity-50'
+                      : (!isSelected && !isCorrect && store.status === 'reveal')
+                      ? 'opacity-50'
+                      : 'opacity-100';
+
+                    return (
+                      <motion.button
+                        key={opt.id}
+                        layout
+                        whileHover={!store.selectedOptionId && store.status === 'active' ? { scale: 1.02 } : {}}
+                        whileTap={!store.selectedOptionId && store.status === 'active' ? { scale: 0.98 } : {}}
+                        onClick={() => handleAnswer(opt.id)}
+                        disabled={!!store.selectedOptionId || (store.status !== 'active' && !isDemo)}
+                        className={`relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-2xl border bg-gradient-to-br transition-all overflow-hidden ${bgGradient} ${borderColor} ${dimClass}`}
+                      >
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-white/10 ring-1 ring-white/20">
+                          {isTrue ? (
+                            <Diamond className="w-8 h-8 text-cyan-400 fill-cyan-400" />
+                          ) : (
+                            <Triangle className="w-8 h-8 text-red-400 fill-red-400" />
+                          )}
+                        </div>
+                        <span className="text-xl sm:text-2xl font-black text-white tracking-wide">{opt.text}</span>
+
+                        {store.status === 'reveal' && store.optionResults.length > 0 && (
+                          <div className="absolute bottom-2 left-4 right-4 flex items-center justify-between text-xs font-bold text-slate-300">
+                            <span>{percentage}% selected</span>
+                          </div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ── MULTIPLE CHOICE (4 KAHOOT COLORED CARDS) ── */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                  {activeQuestion.options.map((opt, idx) => {
+                    const meta = OPTION_META[idx % OPTION_META.length]!;
+                    const Icon = meta.icon;
+                    const isSelected = store.selectedOptionId === opt.id;
+                    const isCorrect = store.status === 'reveal' && opt.id === store.correctOptionId;
+                    const isWrong = store.status === 'reveal' && isSelected && !isCorrect;
+                    const optionStat = store.optionResults.find((r) => r.optionId === opt.id);
+                    const percentage = optionStat?.percentage ?? 0;
+
+                    let borderClass = `${meta.cardBorder} hover:brightness-110`;
+                    if (isCorrect) borderClass = 'border-emerald-400 bg-emerald-950/40 ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.35)]';
+                    else if (isWrong) borderClass = 'border-red-400 bg-red-950/40 ring-2 ring-red-400/80';
+                    else if (isSelected) borderClass = `${meta.cardBorder} ${meta.activeRing}`;
+
+                    const dimClass = (store.selectedOptionId && !isSelected && store.status === 'active')
+                      ? 'opacity-50'
+                      : (!isSelected && !isCorrect && store.status === 'reveal')
+                      ? 'opacity-50'
+                      : 'opacity-100';
+
+                    return (
+                      <motion.button
+                        key={opt.id}
+                        layout
+                        whileHover={!store.selectedOptionId && store.status === 'active' ? { scale: 1.015, y: -1 } : {}}
+                        whileTap={!store.selectedOptionId && store.status === 'active' ? { scale: 0.975 } : {}}
+                        onClick={() => handleAnswer(opt.id)}
+                        disabled={!!store.selectedOptionId || (store.status !== 'active' && !isDemo)}
+                        className={`relative flex items-center justify-between p-2.5 sm:p-3.5 rounded-xl border text-left transition-all duration-200 overflow-hidden ${meta.cardBg} ${borderClass} ${dimClass}`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2 z-10">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeBg}`}>
+                            <Icon className={`w-4 h-4 ${meta.fillColor}`} />
+                          </div>
+                          <span className="text-white text-xs sm:text-sm font-semibold leading-tight">{opt.text}</span>
+                        </div>
+                        <div className="flex-shrink-0 z-10">
+                          {isCorrect ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20" />
+                          ) : isWrong ? (
+                            <XCircle className="w-5 h-5 text-red-400 fill-red-400/20" />
+                          ) : isSelected ? (
+                            <div className="w-5 h-5 rounded-full border-2 border-emerald-400 flex items-center justify-center bg-emerald-500/20">
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                          )}
+                        </div>
+                        {store.status === 'reveal' && store.optionResults.length > 0 && (
+                          <div className="absolute inset-0 pointer-events-none">
+                            <div className={`h-full ${isCorrect ? 'bg-emerald-500/20' : 'bg-white/5'} transition-all duration-700`} style={{ width: `${percentage}%` }} />
+                            <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">{percentage}%</span>
+                          </div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* ── Answer-locked waiting banner ──────────────────────────────────
                   Shows ONLY when: user answered AND timer is still running (status=active).

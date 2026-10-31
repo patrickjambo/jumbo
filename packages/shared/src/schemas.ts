@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const QuestionTypeSchema = z.enum([
   'multiple_choice',
   'true_false',
+  'puzzle',
   'image_based',
   'numeric',
 ]);
@@ -24,11 +25,12 @@ export const QuestionSchema = z.object({
   text: z.string().max(500),
   imageUrl: z.string().url().optional(),
   options: z.array(AnswerOptionSchema).min(2).max(4),
-  timeLimit: z.number().int().min(10).max(30).default(20),
+  timeLimit: z.number().int().min(5).max(120).default(20),
   category: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   source: z.string().optional(),
   points: z.number().int().default(1000),
+  correctOrder: z.array(z.string()).optional(), // For puzzle questions (ordered option IDs)
 });
 export type Question = z.infer<typeof QuestionSchema>;
 

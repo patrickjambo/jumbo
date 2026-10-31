@@ -107,10 +107,12 @@ export interface QuizPlayer {
 
 export interface QuizQuestion {
   id: string;
+  type?: 'multiple_choice' | 'true_false' | 'puzzle' | 'image_based' | 'numeric';
   text: string;
   imageUrl?: string;
   options: { id: string; text: string }[];
   timeLimit: number;
+  points?: number;
 }
 
 export interface QuizState {

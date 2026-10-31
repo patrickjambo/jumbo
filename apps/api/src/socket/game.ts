@@ -61,10 +61,16 @@ function buildLeaderboard(game: GameRecord) {
   }));
 }
 
-function stripAnswers(question: Question): Omit<Question, 'options'> & { options: Omit<Question['options'][number], 'isCorrect'>[] } {
+function stripAnswers(question: Question): Omit<Question, 'options' | 'correctOrder'> & { options: Omit<Question['options'][number], 'isCorrect'>[] } {
+  const { correctOrder: _, ...rest } = question;
+  let options = question.options.map(({ isCorrect: _, ...opt }) => opt);
+  if (question.type === 'puzzle') {
+    // Scramble puzzle options so clients receive a random order to unscramble
+    options = [...options].sort(() => Math.random() - 0.5);
+  }
   return {
-    ...question,
-    options: question.options.map(({ isCorrect: _, ...opt }) => opt),
+    ...rest,
+    options,
   };
 }
 
@@ -114,13 +120,26 @@ function revealAnswer(io: Server, game: GameRecord) {
   if (!q) return;
 
   const correctOption = q.options.find((o) => o.isCorrect);
-  if (!correctOption) return;
+  const correctSequence = q.type === 'puzzle'
+    ? (q.correctOrder?.join(',') ?? q.options.map((o) => o.id).join(','))
+    : null;
+  const targetCorrectId = correctSequence ?? correctOption?.id;
+  if (!targetCorrectId) return;
 
   // Compute option result counts
   const counts = new Map<string, number>();
   for (const opt of q.options) counts.set(opt.id, 0);
   for (const p of game.players.values()) {
-    if (p.selectedOptionId) counts.set(p.selectedOptionId, (counts.get(p.selectedOptionId) ?? 0) + 1);
+    if (p.selectedOptionId) {
+      if (q.type === 'puzzle') {
+        // Count fully correct sequence
+        if (p.selectedOptionId === targetCorrectId) {
+          counts.set('puzzle_correct', (counts.get('puzzle_correct') ?? 0) + 1);
+        }
+      } else {
+        counts.set(p.selectedOptionId, (counts.get(p.selectedOptionId) ?? 0) + 1);
+      }
+    }
   }
   const total = game.players.size || 1;
   const optionResults = q.options.map((opt) => ({
@@ -131,7 +150,7 @@ function revealAnswer(io: Server, game: GameRecord) {
 
   // Emit reveal — per-player with their personal result
   for (const [, player] of game.players) {
-    const correct = player.selectedOptionId === correctOption.id;
+    const correct = player.selectedOptionId === targetCorrectId;
     const playerResult = {
       correct,
       pointsEarned: player.answeredCurrentQuestion
@@ -143,7 +162,7 @@ function revealAnswer(io: Server, game: GameRecord) {
 
     const socket = io.sockets.sockets.get(player.socketId);
     socket?.emit(SERVER_EVENTS.QUESTION_REVEAL, {
-      correctOptionId: correctOption.id,
+      correctOptionId: targetCorrectId,
       optionResults,
       playerResult,
     });
@@ -317,7 +336,13 @@ export function registerGameHandlers(io: Server) {
       if (!q || q.id !== questionId) return;
 
       const responseMs = Date.now() - game.questionStartTime;
-      const isCorrect = q.options.find((o) => o.id === optionId)?.isCorrect === true;
+      let isCorrect = false;
+      if (q.type === 'puzzle') {
+        const correctSeq = q.correctOrder?.join(',') ?? q.options.map((o) => o.id).join(',');
+        isCorrect = optionId === correctSeq;
+      } else {
+        isCorrect = q.options.find((o) => o.id === optionId)?.isCorrect === true;
+      }
 
       player.answeredCurrentQuestion = true;
       player.responseMs = responseMs;
