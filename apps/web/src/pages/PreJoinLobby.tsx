@@ -25,6 +25,9 @@ export default function PreJoinLobby() {
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
   const audioCtxRef = useRef<AudioContext | null>(null);
+  // Pre-created room code: we start creating the room immediately on mount
+  // so by the time the user clicks "Start meeting" it's already done.
+  const [preCreatedCode, setPreCreatedCode] = useState<string | null>(null);
 
   const isNew = code === 'new';
 
@@ -78,6 +81,15 @@ export default function PreJoinLobby() {
     };
   }, [startStream]);
 
+  // Pre-create the room immediately on mount (only for new meetings).
+  // By the time the user fills their name and clicks Start, the room code is ready.
+  useEffect(() => {
+    if (!isNew) return;
+    createRoom()
+      .then((room) => setPreCreatedCode(room.code))
+      .catch(() => { /* will retry inside handleJoin */ });
+  }, [isNew]);
+
   function toggleMic() {
     const track = streamRef.current?.getAudioTracks()[0];
     if (track) track.enabled = !micOn;
@@ -101,8 +113,13 @@ export default function PreJoinLobby() {
       let roomCode = code;
 
       if (isNew) {
-        const room = await createRoom();
-        roomCode = room.code;
+        // Use the pre-created code if ready; otherwise create now (fast path missed)
+        if (preCreatedCode) {
+          roomCode = preCreatedCode;
+        } else {
+          const room = await createRoom();
+          roomCode = room.code;
+        }
       }
 
       // Pre-fetch token — we'll pass it via sessionStorage so MeetingRoom can use it
@@ -154,12 +171,9 @@ export default function PreJoinLobby() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-        <h1 className="text-2xl font-bold mb-1">
-          {isNew ? 'Start a meeting' : 'Join meeting'}
+        <h1 className="text-2xl font-bold mb-4">
+          {isNew ? 'New meeting' : `Join · ${code}`}
         </h1>
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
-          Check your camera and mic before joining.
-        </p>
 
         {!isNew && code && (
           <div className="flex items-center justify-between p-3 mb-5 rounded-xl bg-brand-500/10 border border-brand-400/25">
@@ -183,11 +197,6 @@ export default function PreJoinLobby() {
           </div>
         )}
 
-        {isNew && (
-          <div className="p-3 mb-5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-glass)] text-xs text-[var(--text-secondary)]">
-            A unique meeting PIN and invite link will be generated automatically when you start.
-          </div>
-        )}
 
         {/* Camera preview */}
         <div className="relative w-full aspect-video bg-[var(--surface-2)] rounded-[var(--radius-lg)] mb-4 overflow-hidden">
@@ -299,7 +308,7 @@ export default function PreJoinLobby() {
             ) : isNew ? 'Start meeting' : 'Join meeting'}
           </button>
         </form>
-        <button id="prejoin-back-btn" className="mt-4 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/home')}>← Back</button>
+        <button id="prejoin-back-btn" className="mt-3 w-full text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors" onClick={() => navigate('/home')}>Cancel</button>
       </motion.div>
       </div>
     </div>

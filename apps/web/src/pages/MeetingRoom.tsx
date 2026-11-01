@@ -11,7 +11,7 @@ import {
   Users, Gamepad2, Circle, PhoneOff, X,
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
-  Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity,
+  Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity, Volume1,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
@@ -29,6 +29,17 @@ function getSharedAudioCtx(): AudioContext {
     void sharedAudioCtx.resume();
   }
   return sharedAudioCtx;
+}
+
+// Global speaker boost multiplier (1x = normal, 2.5x = boosted)
+// Stored outside components so it persists across re-renders
+let globalBoostGain = 1.0;
+const boostGainNodes: Set<GainNode> = new Set();
+function setGlobalBoost(multiplier: number) {
+  globalBoostGain = multiplier;
+  boostGainNodes.forEach((g) => {
+    g.gain.setTargetAtTime(multiplier, g.context.currentTime, 0.05);
+  });
 }
 
 // ─── Participant Tile ─────────────────────────────────────────────────────────
@@ -87,40 +98,39 @@ function ParticipantTile({
         }
 
         // ── Web Audio pipeline for remote audio ──
-        // Instead of raw <audio srcObject>, we route through:
-        //   MediaStreamSource → DynamicsCompressor (limiter) → GainNode (normalize) → destination
-        // This prevents:
-        //   • Volume spikes / clipping from loud participants
-        //   • Echo from acoustic loopback (combined with getUserMedia echoCancellation)
-        //   • Per-person volume imbalance
         if (stream) {
           const audioTracks = stream.getAudioTracks();
           if (audioTracks.length > 0) {
-            // Cleanup previous pipeline for this participant
             audioNodeCleanupRef.current?.();
             audioNodeCleanupRef.current = null;
 
             try {
               const ctx = getSharedAudioCtx();
-              // Create audio-only stream to prevent video track interfering with source node
               const audioOnlyStream = new MediaStream(audioTracks);
               const source = ctx.createMediaStreamSource(audioOnlyStream);
 
-              // Dynamics compressor acts as a soft limiter — prevents sudden loud spikes
+              // Soft limiter
               const compressor = ctx.createDynamicsCompressor();
-              compressor.threshold.value = -18;   // start compressing at -18 dBFS
-              compressor.knee.value = 8;          // soft knee for natural sound
-              compressor.ratio.value = 6;         // 6:1 compression ratio
-              compressor.attack.value = 0.003;    // 3ms attack — fast enough to catch pops
-              compressor.release.value = 0.2;     // 200ms release — smooth gain recovery
+              compressor.threshold.value = -18;
+              compressor.knee.value = 8;
+              compressor.ratio.value = 6;
+              compressor.attack.value = 0.003;
+              compressor.release.value = 0.2;
 
-              // Gain node for final volume normalization (0.9 = 90% to leave headroom)
+              // Volume normalizer
               const gain = ctx.createGain();
               gain.gain.value = 0.9;
 
+              // Boost node — controlled globally by the speaker boost toggle
+              const boostNode = ctx.createGain();
+              boostNode.gain.value = globalBoostGain;
+              boostGainNodes.add(boostNode);
+
+              // Chain: source → compressor → gain → boost → destination
               source.connect(compressor);
               compressor.connect(gain);
-              gain.connect(ctx.destination);
+              gain.connect(boostNode);
+              boostNode.connect(ctx.destination);
 
               // VAD: measure mic level for the animated bar
               const analyser = ctx.createAnalyser();
@@ -134,14 +144,14 @@ function ParticipantTile({
                 for (const b of buf) sum += b;
                 const level = sum / buf.length / 255;
                 setMicLevel(level);
-                // Simple VAD: speaking if level > 0.04 (~-28dB)
                 setIsSpeaking(level > 0.04);
               }
               vadLoop();
 
               audioNodeCleanupRef.current = () => {
                 cancelAnimationFrame(vadRaf);
-                try { source.disconnect(); compressor.disconnect(); gain.disconnect(); analyser.disconnect(); } catch {}
+                boostGainNodes.delete(boostNode);
+                try { source.disconnect(); compressor.disconnect(); gain.disconnect(); boostNode.disconnect(); analyser.disconnect(); } catch {}
               };
             } catch (e) {
               console.warn('[Audio] Failed to create Web Audio pipeline, falling back', e);
@@ -314,65 +324,114 @@ function ChatPanel({
   const [input, setInput] = useState('');
   const messages = useMeetingStore((s) => s.chatMessages);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-focus on open
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 80);
+  }, []);
+
   function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
-    onSendMessage(input.trim());
+    const text = input.trim();
+    if (!text) return;
+    // Optimistic local add — sender sees message immediately without waiting for server echo
+    useMeetingStore.getState().addChatMessage({
+      id: crypto.randomUUID(),
+      senderName: 'You',
+      senderId: localIdentity,
+      text,
+      ts: Date.now(),
+    });
+    onSendMessage(text);
     setInput('');
   }
 
   return (
     <div className="flex flex-col h-full bg-[#111827]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
         <h2 className="font-bold text-sm text-white flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-violet-400" />
-          In-Call Chat
+          Chat
+          {messages.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-violet-600/40 text-violet-300 text-[10px] font-bold">
+              {messages.length}
+            </span>
+          )}
         </h2>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+        <button
+          onClick={onClose}
+          className="w-9 h-9 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 overscroll-contain">
         {messages.length === 0 && (
-          <p className="text-center text-xs text-white/40 mt-8">No messages yet. Start the conversation!</p>
-        )}
-        {messages.map((m) => (
-          <div key={m.id} className={`flex flex-col ${m.senderId === localIdentity ? 'items-end' : 'items-start'}`}>
-            <span className="text-[10px] text-white/40 mb-0.5">{m.senderName}</span>
-            <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-              m.senderId === localIdentity
-                ? 'bg-violet-600 text-white rounded-br-sm'
-                : 'bg-white/10 text-white rounded-bl-sm'
-            }`}>
-              {m.text}
-            </div>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-white/30">
+            <MessageSquare className="w-10 h-10" />
+            <span className="text-sm font-medium">No messages yet</span>
           </div>
-        ))}
+        )}
+        {messages.map((m) => {
+          const isMe = m.senderId === localIdentity;
+          return (
+            <div key={m.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+              <span className="text-[11px] text-white/40 px-1">{isMe ? 'You' : m.senderName}</span>
+              <div
+                className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
+                  isMe
+                    ? 'bg-violet-600 text-white rounded-br-md'
+                    : 'bg-white/10 text-white rounded-bl-md'
+                }`}
+              >
+                {m.text}
+              </div>
+            </div>
+          );
+        })}
         <div ref={endRef} />
       </div>
-      <form onSubmit={send} className="p-3 border-t border-white/10 flex gap-2">
+
+      {/* Input bar — sticky at bottom, touch-friendly */}
+      <form
+        onSubmit={send}
+        className="flex-shrink-0 flex items-center gap-2 px-3 py-3 border-t border-white/10 bg-[#0e1420]"
+      >
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
-          className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-violet-400 transition-colors"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              send(e as any);
+            }
+          }}
+          placeholder="Message everyone…"
+          autoComplete="off"
+          className="flex-1 min-w-0 bg-white/8 border border-white/15 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-violet-500 focus:bg-white/12 transition-all"
+          style={{ fontSize: '16px' /* prevents iOS zoom */ }}
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors"
+          className="w-11 h-11 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-lg shadow-violet-600/30"
         >
-          <Send className="w-3.5 h-3.5 text-white" />
+          <Send className="w-4 h-4 text-white" />
         </button>
       </form>
     </div>
   );
 }
+
 
 // ─── Control Button ───────────────────────────────────────────────────────────
 function CtrlBtn({
@@ -436,6 +495,15 @@ export default function MeetingRoom() {
   const [quizInvite, setQuizInvite] = useState<{ pin: string; hostName: string } | null>(null);
   const [handAlert, setHandAlert] = useState<string | null>(null);
   const [noiseAlert, setNoiseAlert] = useState<string | null>(null);
+  const [speakerBoosted, setSpeakerBoosted] = useState(false);
+
+  function toggleSpeakerBoost() {
+    setSpeakerBoosted((prev) => {
+      const next = !prev;
+      setGlobalBoost(next ? 2.5 : 1.0);
+      return next;
+    });
+  }
   const [hostNotice, setHostNotice] = useState<string | null>(null);
   const [showHeadphonesHint, setShowHeadphonesHint] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
@@ -1155,6 +1223,15 @@ export default function MeetingRoom() {
               onClick={() => setPanel(panel === 'info' ? null : 'info')}
               active={panel === 'info'}
             />
+            {store.remoteParticipants.length > 0 && (
+              <CtrlBtn
+                id="room-boost-btn-m"
+                icon={speakerBoosted ? <Volume2 className="w-5 h-5 text-emerald-400" /> : <Volume1 className="w-5 h-5" />}
+                label={speakerBoosted ? 'Boost ✓' : 'Boost'}
+                onClick={toggleSpeakerBoost}
+                active={speakerBoosted}
+              />
+            )}
             <CtrlBtn
               id="room-record-btn-m"
               icon={<Circle className={`w-5 h-5 ${store.isRecording ? 'fill-red-500 text-red-500 animate-pulse' : ''}`} />}
@@ -1196,6 +1273,16 @@ export default function MeetingRoom() {
             onClick={toggleHand}
             warning={isMyHandRaised}
           />
+          {/* Speaker boost — only useful when remote audio is playing */}
+          {store.remoteParticipants.length > 0 && (
+            <CtrlBtn
+              id="room-boost-btn"
+              icon={speakerBoosted ? <Volume2 className="w-5 h-5 text-emerald-400" /> : <Volume1 className="w-5 h-5" />}
+              label={speakerBoosted ? 'Boost On' : 'Boost'}
+              onClick={toggleSpeakerBoost}
+              active={speakerBoosted}
+            />
+          )}
           <div className="w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
           <CtrlBtn
             id="room-chat-btn"
