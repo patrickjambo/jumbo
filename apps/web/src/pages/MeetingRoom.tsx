@@ -923,17 +923,166 @@ export default function MeetingRoom() {
           )}
         </div>
 
-        {/* ── SIDE PANEL (Chat / Participants / Quiz / Info) ─────────────────── */}
-        {/* On mobile: absolute overlay (doesn't push/squeeze video grid).
-            On sm+: inline flex sibling (static layout).  */}
+        {/* ── SIDE PANEL ───────────────────────────────────────────────────────
+             MOBILE: Chat opens as a fixed bottom-sheet above the 2-row control bar.
+                     Height is capped at 65 vh so the input bar is always visible.
+                     Other panels (People, Quiz, Info) overlay full-height.
+             DESKTOP (sm+): Inline sibling panel sliding in from the right.
+        */}
+
+        {/* ── MOBILE CHAT BOTTOM SHEET (< sm) ── */}
+        <AnimatePresence>
+          {panel === 'chat' && (
+            <motion.div
+              key="mobile-chat"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+              className="sm:hidden fixed left-0 right-0 z-40 flex flex-col bg-[#111827] border-t border-white/15 rounded-t-3xl shadow-2xl overflow-hidden"
+              style={{ bottom: '104px', maxHeight: '65vh', minHeight: '260px' }}
+            >
+              <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── MOBILE NON-CHAT FULL-OVERLAY (People / Quiz / Info, < sm) ── */}
+        <AnimatePresence>
+          {panel && panel !== 'chat' && (
+            <motion.div
+              key={`mobile-${panel}`}
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+              className="sm:hidden fixed inset-x-0 top-0 z-40 flex flex-col bg-[#111827] overflow-hidden shadow-2xl"
+              style={{ bottom: '104px' }}
+            >
+              {/* Participants panel (mirrors desktop) */}
+              {panel === 'participants' && (
+                <div className="flex flex-col h-full">
+                  <div className="flex flex-col px-4 pt-3 pb-2 border-b border-white/10 gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-violet-400" />
+                        <h2 className="font-bold text-sm text-white">Participants ({allParticipants.length})</h2>
+                        {isHost && (
+                          <button
+                            onClick={toggleLockRoom}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border transition-all ${
+                              isRoomLocked
+                                ? 'bg-red-500/20 border-red-400 text-red-300'
+                                : 'bg-white/10 border-white/10 text-white/50 hover:text-white'
+                            }`}
+                          >
+                            {isRoomLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                            <span>{isRoomLocked ? 'Locked' : 'Lock'}</span>
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={() => setPanel(null)} className="w-9 h-9 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+                    </div>
+                    {isHost && store.remoteParticipants.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => store.remoteParticipants.forEach((p) => hostMuteParticipant(p.identity))} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all">
+                          <VolumeX className="w-3.5 h-3.5" /><span>Mute All</span>
+                        </button>
+                        <button onClick={() => store.remoteParticipants.forEach((p) => hostRemoveParticipant(p.identity))} className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-[11px] font-bold transition-all">
+                          <UserMinus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                    {allParticipants.map((p) => {
+                      const isRaised = store.raisedHands.includes(p.identity);
+                      const isLocalP = p.identity === store.localParticipant?.identity;
+                      const pMicOn = isLocalP ? store.isMicOn : (p as any).isMicOn !== false;
+                      return (
+                        <div key={p.identity} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${isLocalP ? 'bg-gradient-to-br from-violet-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'}`}>
+                              {p.name?.[0] ?? '?'}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold truncate text-white">{p.name ?? p.identity}</span>
+                                {pMicOn ? <Mic className="w-3 h-3 text-green-400 flex-shrink-0" /> : <MicOff className="w-3 h-3 text-red-400 flex-shrink-0" />}
+                                {isRaised && <Hand className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                              </div>
+                              <span className="text-[10px] text-white/40">{isLocalP ? (isHost ? 'You · Host' : 'You') : 'Participant'}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {isHost && !isLocalP && (
+                              <>
+                                <button onClick={() => hostMuteParticipant(p.identity)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center transition-all" title="Mute">
+                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5 text-red-400" />}
+                                </button>
+                                <button onClick={() => hostRemoveParticipant(p.identity)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-all" title="Remove">
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {/* Quiz panel */}
+              {panel === 'quiz' && (
+                <MeetingQuizPanel
+                  room={roomRef.current || { localParticipant: { name: participantName, identity: myIdentity, publishData: (data: Uint8Array) => webrtcBroadcastData(data) } }}
+                  initialPin={quizInvite?.pin}
+                  onClose={() => setPanel(null)}
+                />
+              )}
+              {/* Info panel */}
+              {panel === 'info' && (
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <div className="flex items-center gap-2"><Info className="w-4 h-4 text-violet-400" /><h2 className="font-bold text-sm text-white">Meeting Details</h2></div>
+                    <button onClick={() => setPanel(null)} className="w-9 h-9 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">Meeting PIN</span>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-2xl font-black text-white tracking-widest select-all">{code}</span>
+                        <button onClick={copyPin} className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                          {copiedPin ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}<span>{copiedPin ? 'Copied!' : 'Copy PIN'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 bg-white/5 rounded-xl border border-white/10">
+                      <input type="text" readOnly value={inviteUrl} className="bg-transparent text-xs text-white/60 font-mono flex-1 outline-none truncate select-all" />
+                      <button onClick={copyInviteLink} className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-xs font-bold rounded-lg flex items-center gap-1 flex-shrink-0 transition-colors">
+                        {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}<span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+                      </button>
+                    </div>
+                    <button onClick={shareMeeting} className="w-full py-2.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/30 text-violet-300 text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                      <Share2 className="w-4 h-4" /> Share joining info
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── DESKTOP PANEL (sm+): all panels inline ── */}
         <AnimatePresence>
           {panel && (
             <motion.aside
+              key="desktop-panel"
               initial={{ x: 340, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 340, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="absolute sm:relative inset-y-0 right-0 w-[calc(100%-48px)] sm:w-80 lg:w-96 flex-shrink-0 bg-[#111827] sm:border-l border-white/10 flex flex-col z-20 overflow-hidden shadow-2xl"
+              className="hidden sm:flex flex-col w-80 lg:w-96 flex-shrink-0 bg-[#111827] border-l border-white/10 z-20 overflow-hidden"
             >
               {panel === 'chat' && (
                 <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
