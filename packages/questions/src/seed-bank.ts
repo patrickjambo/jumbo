@@ -2600,264 +2600,797 @@ const RAW_SEEDS: SeedEntry[] = [
   },
   {
     "category": "logos_brands",
-    "text": "Which company has a bitten apple as its logo?",
+    "text": "Which brand or company does this logo represent?",
     "correct": "Apple",
     "distractors": [
-      "Microsoft",
-      "Google",
-      "Samsung"
-    ]
+          "Microsoft",
+          "Google",
+          "Samsung"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/apple"
   },
   {
     "category": "logos_brands",
-    "text": "Which brand uses the slogan 'Just Do It'?",
-    "correct": "Nike",
-    "distractors": [
-      "Adidas",
-      "Puma",
-      "Reebok"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "The 'golden arches' logo belongs to which fast food chain?",
-    "correct": "McDonald's",
-    "distractors": [
-      "Burger King",
-      "KFC",
-      "Wendy's"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which streaming platform has a red 'N' lettermark?",
-    "correct": "Netflix",
-    "distractors": [
-      "Hulu",
-      "Disney+",
-      "Prime Video"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which luxury car brand features a prancing black horse on yellow?",
-    "correct": "Ferrari",
-    "distractors": [
-      "Porsche",
-      "Lamborghini",
-      "Maserati"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which coffee chain features a two-tailed mermaid (siren) logo?",
-    "correct": "Starbucks",
-    "distractors": [
-      "Costa Coffee",
-      "Dunkin'",
-      "Tim Hortons"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which tech giant uses an arrow smiling from A to Z in its logo?",
-    "correct": "Amazon",
-    "distractors": [
-      "eBay",
-      "Alibaba",
-      "Shopify"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which social platform was originally known as the bird app?",
-    "correct": "Twitter (X)",
-    "distractors": [
-      "Snapchat",
-      "TikTok",
-      "Pinterest"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which car brand features four interlocking rings?",
-    "correct": "Audi",
-    "distractors": [
-      "BMW",
-      "Mercedes-Benz",
-      "Volkswagen"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which sportswear company uses a leaping feline in its emblem?",
-    "correct": "Puma",
-    "distractors": [
-      "Slazenger",
-      "Under Armour",
-      "Asics"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which Swedish furniture brand uses a blue and yellow box logo?",
-    "correct": "IKEA",
-    "distractors": [
-      "H&M",
-      "Lego",
-      "Volvo"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which airline has a stylized kangaroo on its tail fin?",
-    "correct": "Qantas",
-    "distractors": [
-      "Air New Zealand",
-      "Emirates",
-      "Singapore Airlines"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which company owns the Android mobile operating system?",
+    "text": "Which brand or company does this logo represent?",
     "correct": "Google",
     "distractors": [
-      "Microsoft",
-      "Oracle",
-      "Meta"
-    ]
+          "Microsoft",
+          "Yahoo",
+          "Baidu"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/google"
   },
   {
     "category": "logos_brands",
-    "text": "Which brand is famous for the 'Impossible Is Nothing' slogan?",
-    "correct": "Adidas",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Amazon",
     "distractors": [
-      "Nike",
-      "Reebok",
-      "New Balance"
-    ]
+          "Alibaba",
+          "eBay",
+          "Walmart"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/amazon"
   },
   {
     "category": "logos_brands",
-    "text": "Which ride-hailing company was founded by Travis Kalanick and Garrett Camp?",
-    "correct": "Uber",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Meta",
     "distractors": [
-      "Lyft",
-      "Bolt",
-      "Grab"
-    ]
+          "Twitter",
+          "ByteDance",
+          "Snapchat"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/meta"
   },
   {
     "category": "logos_brands",
-    "text": "Which camera and film company pioneered the Instamatic and color film?",
-    "correct": "Kodak",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Netflix",
     "distractors": [
-      "Fujifilm",
-      "Canon",
-      "Nikon"
-    ]
+          "Hulu",
+          "Disney+",
+          "HBO Max"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/netflix"
   },
   {
     "category": "logos_brands",
-    "text": "Which chocolate brand is known for triangular prisms inspired by the Matterhorn?",
-    "correct": "Toblerone",
-    "distractors": [
-      "Milka",
-      "Lindt",
-      "Cadbury"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which soft drink was originally invented by pharmacist John Pemberton?",
-    "correct": "Coca-Cola",
-    "distractors": [
-      "Pepsi",
-      "Dr Pepper",
-      "Sprite"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which toy brand's name comes from Danish words meaning 'play well'?",
-    "correct": "LEGO",
-    "distractors": [
-      "Hasbro",
-      "Mattel",
-      "Playmobil"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which financial network features overlapping red and yellow circles?",
-    "correct": "Mastercard",
-    "distractors": [
-      "Visa",
-      "American Express",
-      "Discover"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which automaker uses a three-pointed star enclosed in a circle?",
-    "correct": "Mercedes-Benz",
-    "distractors": [
-      "BMW",
-      "Audi",
-      "Subaru"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which gaming console brand uses Triangle, Circle, Cross, and Square symbols?",
-    "correct": "PlayStation",
-    "distractors": [
-      "Xbox",
-      "Nintendo",
-      "Sega"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which brand of motorcycles is nicknamed 'The Motor Company' from Milwaukee?",
-    "correct": "Harley-Davidson",
-    "distractors": [
-      "Ducati",
-      "Yamaha",
-      "Triumph"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which luxury fashion house has the interlocking double-G monogram?",
-    "correct": "Gucci",
-    "distractors": [
-      "Louis Vuitton",
-      "Prada",
-      "Chanel"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which microblogging platform has a white ghost on a yellow background?",
-    "correct": "Snapchat",
-    "distractors": [
-      "Instagram",
-      "Discord",
-      "Reddit"
-    ]
-  },
-  {
-    "category": "logos_brands",
-    "text": "Which music streaming company was founded in Stockholm, Sweden in 2006?",
+    "text": "Which brand or company does this logo represent?",
     "correct": "Spotify",
     "distractors": [
-      "Deezer",
-      "Tidal",
-      "Pandora"
-    ]
+          "Deezer",
+          "Tidal",
+          "Pandora"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/spotify"
   },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "YouTube",
+    "distractors": [
+          "Vimeo",
+          "Dailymotion",
+          "Twitch"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/youtube"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Twitter / X",
+    "distractors": [
+          "Threads",
+          "Mastodon",
+          "Bluesky"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/x"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Instagram",
+    "distractors": [
+          "Pinterest",
+          "Snapchat",
+          "TikTok"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/instagram"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "TikTok",
+    "distractors": [
+          "Snapchat",
+          "Triller",
+          "Likee"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/tiktok"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Android",
+    "distractors": [
+          "Apple iOS",
+          "Windows Phone",
+          "Ubuntu Touch"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/android"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Intel",
+    "distractors": [
+          "AMD",
+          "Qualcomm",
+          "NVIDIA"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/intel"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "NVIDIA",
+    "distractors": [
+          "AMD",
+          "Intel",
+          "ARM"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/nvidia"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Uber",
+    "distractors": [
+          "Lyft",
+          "Bolt",
+          "Grab"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/uber"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Airbnb",
+    "distractors": [
+          "Booking.com",
+          "Expedia",
+          "Vrbo"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/airbnb"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Snapchat",
+    "distractors": [
+          "Instagram",
+          "TikTok",
+          "BeReal"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/snapchat"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Reddit",
+    "distractors": [
+          "Quora",
+          "Digg",
+          "Tumblr"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/reddit"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "WhatsApp",
+    "distractors": [
+          "Telegram",
+          "Signal",
+          "Viber"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/whatsapp"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "GitHub",
+    "distractors": [
+          "GitLab",
+          "Bitbucket",
+          "SourceForge"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/github"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Discord",
+    "distractors": [
+          "TeamSpeak",
+          "Slack",
+          "Skype"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/discord"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Slack",
+    "distractors": [
+          "Microsoft Teams",
+          "Zoom",
+          "Asana"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/slack"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "OpenAI",
+    "distractors": [
+          "Anthropic",
+          "DeepMind",
+          "Mistral"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/openai"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Ferrari",
+    "distractors": [
+          "Lamborghini",
+          "Porsche",
+          "Maserati"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/ferrari"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Lamborghini",
+    "distractors": [
+          "Ferrari",
+          "Bugatti",
+          "McLaren"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/lamborghini"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Porsche",
+    "distractors": [
+          "BMW",
+          "Audi",
+          "Mercedes-Benz"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/porsche"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "BMW",
+    "distractors": [
+          "Mercedes-Benz",
+          "Audi",
+          "Lexus"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/bmw"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Mercedes-Benz",
+    "distractors": [
+          "BMW",
+          "Audi",
+          "Rolls-Royce"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/mercedes"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Audi",
+    "distractors": [
+          "Volkswagen",
+          "BMW",
+          "Volvo"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/audi"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Tesla",
+    "distractors": [
+          "Rivian",
+          "Lucid Motors",
+          "Polestar"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/tesla"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Toyota",
+    "distractors": [
+          "Honda",
+          "Nissan",
+          "Mazda"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/toyota"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Volkswagen",
+    "distractors": [
+          "Skoda",
+          "Opel",
+          "Seat"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/volkswagen"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Ford",
+    "distractors": [
+          "Chevrolet",
+          "Dodge",
+          "GMC"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/ford"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Honda",
+    "distractors": [
+          "Toyota",
+          "Suzuki",
+          "Subaru"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/honda"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Hyundai",
+    "distractors": [
+          "Kia",
+          "Genesis",
+          "Mitsubishi"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/hyundai"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Nissan",
+    "distractors": [
+          "Infiniti",
+          "Toyota",
+          "Mazda"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/nissan"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Rolls-Royce",
+    "distractors": [
+          "Bentley",
+          "Maybach",
+          "Aston Martin"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/rollsroyce"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Aston Martin",
+    "distractors": [
+          "Jaguar",
+          "Lotus",
+          "Maserati"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/astonmartin"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Bugatti",
+    "distractors": [
+          "Koenigsegg",
+          "Pagani",
+          "Ferrari"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/bugatti"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Jeep",
+    "distractors": [
+          "Land Rover",
+          "RAM",
+          "Subaru"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/jeep"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Volvo",
+    "distractors": [
+          "Saab",
+          "Polestar",
+          "Audi"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/volvo"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Nike",
+    "distractors": [
+          "Adidas",
+          "Puma",
+          "Reebok"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/nike"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Adidas",
+    "distractors": [
+          "Nike",
+          "Puma",
+          "Under Armour"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/adidas"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Puma",
+    "distractors": [
+          "Adidas",
+          "Reebok",
+          "Fila"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/puma"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Under Armour",
+    "distractors": [
+          "Nike",
+          "Gymshark",
+          "Lululemon"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/underarmour"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Reebok",
+    "distractors": [
+          "New Balance",
+          "Asics",
+          "Brooks"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/reebok"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Fila",
+    "distractors": [
+          "Ellesse",
+          "Kappa",
+          "Champion"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/fila"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "The North Face",
+    "distractors": [
+          "Patagonia",
+          "Columbia",
+          "Arc'teryx"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/thenorthface"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "McDonald's",
+    "distractors": [
+          "Burger King",
+          "Wendy's",
+          "KFC"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/mcdonalds"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Starbucks",
+    "distractors": [
+          "Costa Coffee",
+          "Dunkin'",
+          "Tim Hortons"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/starbucks"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Burger King",
+    "distractors": [
+          "McDonald's",
+          "Wendy's",
+          "Five Guys"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/burgerking"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "KFC",
+    "distractors": [
+          "Popeyes",
+          "Church's Chicken",
+          "Jollibee"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/kfc"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Red Bull",
+    "distractors": [
+          "Monster Energy",
+          "Rockstar",
+          "Bang Energy"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/redbull"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Coca-Cola",
+    "distractors": [
+          "Pepsi",
+          "Dr Pepper",
+          "RC Cola"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/cocacola"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Taco Bell",
+    "distractors": [
+          "Chipotle",
+          "Del Taco",
+          "Qdoba"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/tacobell"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "PlayStation",
+    "distractors": [
+          "Xbox",
+          "Nintendo",
+          "Sega"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/playstation"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Nintendo",
+    "distractors": [
+          "PlayStation",
+          "Atari",
+          "Xbox"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/nintendo"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Warner Bros.",
+    "distractors": [
+          "Universal Pictures",
+          "Paramount",
+          "Sony Pictures"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/warnerbros"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Sega",
+    "distractors": [
+          "Capcom",
+          "Konami",
+          "Bandai Namco"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/sega"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Twitch",
+    "distractors": [
+          "Kick",
+          "YouTube Live",
+          "Mixer"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/twitch"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Steam",
+    "distractors": [
+          "Epic Games Store",
+          "GOG",
+          "Origin"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/steam"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Epic Games",
+    "distractors": [
+          "Valve",
+          "Blizzard",
+          "Ubisoft"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/epicgames"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Atari",
+    "distractors": [
+          "Commodore",
+          "ColecoVision",
+          "Amiga"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/atari"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Visa",
+    "distractors": [
+          "Mastercard",
+          "American Express",
+          "Discover"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/visa"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Mastercard",
+    "distractors": [
+          "Visa",
+          "Maestro",
+          "Cirrus"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/mastercard"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "PayPal",
+    "distractors": [
+          "Venmo",
+          "Stripe",
+          "Square"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/paypal"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "IKEA",
+    "distractors": [
+          "Wayfair",
+          "JYSK",
+          "Ashley Furniture"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/ikea"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Walmart",
+    "distractors": [
+          "Target",
+          "Costco",
+          "Kroger"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/walmart"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Target",
+    "distractors": [
+          "Walmart",
+          "Kmart",
+          "Macy's"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/target"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "FedEx",
+    "distractors": [
+          "UPS",
+          "DHL",
+          "USPS"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/fedex"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "eBay",
+    "distractors": [
+          "Etsy",
+          "Amazon",
+          "Mercari"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/ebay"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Stripe",
+    "distractors": [
+          "Adyen",
+          "Square",
+          "Authorize.Net"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/stripe"
+  },
+  {
+    "category": "logos_brands",
+    "text": "Which brand or company does this logo represent?",
+    "correct": "Shopify",
+    "distractors": [
+          "WooCommerce",
+          "Magento",
+          "BigCommerce"
+    ],
+    "imageUrl": "https://cdn.simpleicons.org/shopify"
+  },
+
   {
     "category": "animals",
     "text": "What is the fastest land animal on Earth?",

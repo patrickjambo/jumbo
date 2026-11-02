@@ -38,6 +38,26 @@ export function preloadFlagImage(url: string): Promise<void> {
         fallbackImg.src = svgUrl;
         return;
       }
+      // If simpleicons CDN fails, attempt jsdelivr fallback pre-cache
+      if (url.includes('cdn.simpleicons.org/')) {
+        const slug = url.split('cdn.simpleicons.org/')[1]?.split('?')[0]?.split('/')[0];
+        if (slug) {
+          const fallbackUrl = `https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/${slug}.svg`;
+          const fallbackImg = new Image();
+          fallbackImg.onload = () => {
+            preloadedCache.add(fallbackUrl);
+            preloadedCache.add(url);
+            inflightPromises.delete(url);
+            resolve();
+          };
+          fallbackImg.onerror = () => {
+            inflightPromises.delete(url);
+            resolve();
+          };
+          fallbackImg.src = fallbackUrl;
+          return;
+        }
+      }
       inflightPromises.delete(url);
       resolve();
     };

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
 import { AppNavbar } from '../components/AppNavbar';
-import { WORLD_COUNTRIES } from '@jumbo/shared';
+import { WORLD_COUNTRIES, WORLD_BRAND_LOGOS } from '@jumbo/shared';
 import { preloadFlagImages } from '../lib/flagPreloader';
 
 export default function QuizLobby() {
@@ -16,10 +16,11 @@ export default function QuizLobby() {
   const [copied, setCopied] = useState(false);
   const [starting, setStarting] = useState(false);
 
-  // Prewarm flags into cache while players wait in the lobby
+  // Prewarm flags and logos into cache while players wait in the lobby
   useEffect(() => {
     const previewFlags = WORLD_COUNTRIES.slice(0, 40).map((c) => c.flagUrl);
-    void preloadFlagImages(previewFlags);
+    const previewLogos = WORLD_BRAND_LOGOS.slice(0, 40).map((l) => l.logoUrl);
+    void preloadFlagImages([...previewFlags, ...previewLogos]);
   }, []);
 
   // If page was refreshed or accessed directly with valid 6-digit PIN, join room

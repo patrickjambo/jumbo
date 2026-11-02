@@ -3,7 +3,15 @@
  * Fetches from public APIs with local fallback via seed bank.
  */
 
-import { QuestionSchema, type Question, type QuestionCategory, WORLD_COUNTRIES, type Continent } from '@jumbo/shared';
+import {
+  QuestionSchema,
+  type Question,
+  type QuestionCategory,
+  WORLD_COUNTRIES,
+  type Continent,
+  WORLD_BRAND_LOGOS,
+  type BrandCategory,
+} from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -162,6 +170,42 @@ export function generateFlagQuestions(count: number, continent?: Continent): Que
   return questions;
 }
 
+export function generateLogoQuestions(count: number, category?: BrandCategory | 'all'): Question[] {
+  let pool = WORLD_BRAND_LOGOS;
+  if (category && category !== 'all') {
+    const filtered = pool.filter((l) => l.category === category);
+    if (filtered.length >= 4) pool = filtered;
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
+  const questions: Question[] = [];
+
+  for (const target of selected) {
+    // Distractors: prefer from same brand industry category if available for realistic challenge
+    const sameCat = pool.filter((l) => l.id !== target.id && l.category === target.category);
+    let distractors: string[];
+    if (sameCat.length >= 3) {
+      distractors = shuffle(sameCat).slice(0, 3).map((l) => l.name);
+    } else {
+      distractors = target.distractors;
+    }
+
+    questions.push(QuestionSchema.parse({
+      id: randomId(),
+      category: 'logos_brands',
+      text: 'Which brand or company does this logo represent?',
+      imageUrl: target.logoUrl,
+      options: makeOptions(target.name, distractors),
+      difficulty: 'medium',
+      source: 'brand_logos',
+      timeLimit: 15,
+      points: 1000,
+    }));
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -240,6 +284,7 @@ export async function generateQuestions(
     categories.map(async (cat): Promise<Question[]> => {
       if (cat === 'countries_capitals') return generateCapitalsQuestions(perCat);
       if (cat === 'flags') return generateFlagQuestions(perCat);
+      if (cat === 'logos_brands') return generateLogoQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -250,7 +295,7 @@ export async function generateQuestions(
     .filter((r): r is PromiseFulfilledResult<Question[]> => r.status === 'fulfilled')
     .flatMap((r) => r.value);
 
-  // Key by text + imageUrl so multiple flag questions ("Which country does this flag belong to?") are NOT collapsed!
+  // Key by text + imageUrl so multiple flag/logo questions are NOT collapsed!
   const dedupeKey = (q: Question) => q.imageUrl ? `${q.text}::${q.imageUrl}` : q.text;
   const unique = [...new Map(all.map((q) => [dedupeKey(q), q])).values()];
 
@@ -264,6 +309,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(f))) {
           unique.push(f);
           existingKeys.add(dedupeKey(f));
+        }
+      }
+    } else if (categories.includes('logos_brands') && categories.length === 1) {
+      // If only brand logos requested, backfill with more logos from the 70+ bank
+      const extraLogos = generateLogoQuestions(totalCount);
+      for (const l of extraLogos) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(l))) {
+          unique.push(l);
+          existingKeys.add(dedupeKey(l));
         }
       }
     } else {

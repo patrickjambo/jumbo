@@ -20,6 +20,10 @@ import {
   type Continent,
   CONTINENTS,
   getCountriesByContinent,
+  WORLD_BRAND_LOGOS,
+  type BrandCategory,
+  BRAND_CATEGORIES,
+  getLogosByCategory,
 } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
@@ -33,6 +37,7 @@ import {
   type SavedQuizDeck,
 } from '../lib/quizLibrary';
 import { buildFlagQuizQuestions } from '../lib/flagQuestions';
+import { buildLogoQuizQuestions } from '../lib/logoQuestions';
 import { preloadFlagImages } from '../lib/flagPreloader';
 
 // Category icon map — 100% Lucide SVG vector icons, NO emojis
@@ -54,7 +59,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 const CATEGORY_LABELS: Record<string, string> = {
   flags: 'National Flags (209 Countries)',
   countries_capitals: 'World Capitals',
-  logos_brands: 'Logos & Brands',
+  logos_brands: 'Logos & Brands (70+ Brands)',
   animals: 'Fauna & Animals',
   history: 'World History',
   geography: 'Global Geography',
@@ -90,8 +95,8 @@ export default function QuizLauncher() {
   const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
-  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'builder' | 'library' | null>(null);
-  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'general_knowledge', 'geography']));
+  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'builder' | 'library' | null>(null);
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'logos_brands', 'general_knowledge']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
   const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
@@ -105,10 +110,16 @@ export default function QuizLauncher() {
   const [flagQuestionCount, setFlagQuestionCount] = useState<number>(15);
   const [flagTimeLimit, setFlagTimeLimit] = useState<number>(15);
 
-  // Prewarm initial flag images on mount
+  // Logos & Brands state
+  const [logoCategory, setLogoCategory] = useState<BrandCategory | 'all'>('all');
+  const [logoQuestionCount, setLogoQuestionCount] = useState<number>(15);
+  const [logoTimeLimit, setLogoTimeLimit] = useState<number>(15);
+
+  // Prewarm initial flag and logo images on mount
   useEffect(() => {
     const previewFlags = WORLD_COUNTRIES.slice(0, 30).map((c) => c.flagUrl);
-    void preloadFlagImages(previewFlags);
+    const previewLogos = WORLD_BRAND_LOGOS.slice(0, 30).map((l) => l.logoUrl);
+    void preloadFlagImages([...previewFlags, ...previewLogos]);
   }, []);
 
   useEffect(() => {
@@ -289,6 +300,17 @@ export default function QuizLauncher() {
     const questions = buildFlagQuizQuestions(count, continent, flagTimeLimit);
     handleLaunchWithQuestions(questions);
   }, [displayName, flagQuestionCount, flagContinent, flagTimeLimit, handleLaunchWithQuestions]);
+
+  const handleLaunchLogoQuiz = useCallback((count = logoQuestionCount, category = logoCategory) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setJoinError('Please enter your nickname first');
+      nameInputRef.current?.focus();
+      return;
+    }
+    const questions = buildLogoQuizQuestions(count, category, logoTimeLimit);
+    handleLaunchWithQuestions(questions);
+  }, [displayName, logoQuestionCount, logoCategory, logoTimeLimit, handleLaunchWithQuestions]);
 
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
@@ -1010,6 +1032,70 @@ export default function QuizLauncher() {
                 </div>
               </div>
 
+              {/* FEATURED: World Logos & Brands Challenge */}
+              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#201035] via-[#141b2c] to-[#0c1f30] border border-violet-500/40 shadow-2xl shadow-violet-950/40">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-violet-400" />
+                        <span>Direct Category · 70+ Iconic Brands</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-400">Tech · Auto · Sports · Food · Entertainment</span>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                      <span>Logos &amp; Brands Challenge</span>
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                      Identify the world&apos;s most iconic companies and global brands from their official vector logo pictures. Instant 0ms preloaded images across Tech, Automotive, Sports, Food &amp; Entertainment.
+                    </p>
+
+                    {/* Quick brand logo thumbnail reel */}
+                    <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar py-1">
+                      {WORLD_BRAND_LOGOS.slice(0, 14).map((brand) => (
+                        <div
+                          key={brand.id}
+                          className="w-7 h-7 rounded-lg overflow-hidden border border-white/20 shadow-sm flex-shrink-0 bg-white p-1 hover:scale-125 transition-transform flex items-center justify-center"
+                          title={brand.name}
+                        >
+                          <img
+                            src={brand.logoUrl}
+                            alt={brand.name}
+                            className="w-full h-full object-contain"
+                            loading="eager"
+                          />
+                        </div>
+                      ))}
+                      <span className="text-[10px] font-bold text-violet-400 pl-1 whitespace-nowrap">+58 more</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchLogoQuiz(15, 'all')}
+                      disabled={creating}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                      <span>Play 15 Logos (Instant)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMode('logos')}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-violet-500/40 text-violet-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-violet-400" />
+                      <span>Choose Industry</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Host Mode Cards */}
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pt-2">
                 MORE QUIZ MODES
@@ -1227,6 +1313,168 @@ export default function QuizLauncher() {
             </motion.div>
           )}
 
+          {/* ─── VIEW: WORLD LOGOS & BRANDS DASHBOARD ────────────────────────────── */}
+          {mode === 'logos' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMode(null)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Game Modes</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-[10px] font-bold text-violet-300">
+                  <Sparkles className="w-3 h-3 text-violet-400" />
+                  <span>70+ Brand Logos · Instant Preload</span>
+                </div>
+              </div>
+
+              {/* Industry Filter */}
+              <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Select Industry / Category
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLogoCategory('all')}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      logoCategory === 'all'
+                        ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                        : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                      <span>All Industries</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">72</span>
+                  </button>
+                  {BRAND_CATEGORIES.map((cat) => {
+                    const count = getLogosByCategory(cat).length;
+                    const active = logoCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setLogoCategory(cat)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                            : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 truncate pr-1">
+                          <Tag className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+                          <span className="truncate">{cat}</span>
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Live Logo Preview Reel */}
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Sample brand logos in this industry:</span>
+                    <span className="text-violet-400">Preloaded &amp; Ready</span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {getLogosByCategory(logoCategory === 'all' ? undefined : logoCategory)
+                      .slice(0, 12)
+                      .map((l) => (
+                        <div
+                          key={l.id}
+                          className="flex flex-col items-center gap-1 p-2 rounded-xl bg-black/30 border border-white/10"
+                        >
+                          <div className="w-full aspect-square rounded-lg bg-white p-2 flex items-center justify-center border border-white/30 shadow-sm">
+                            <img
+                              src={l.logoUrl}
+                              alt={l.name}
+                              className="w-full h-full object-contain"
+                              loading="eager"
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-300 font-semibold truncate max-w-full text-center">
+                            {l.name}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Settings: Count & Time Limit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Question Count */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Number of Brand Logos:</span>
+                    <span className="text-violet-400 font-mono font-bold text-sm">{logoQuestionCount}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[5, 10, 15, 20, 25, 30].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setLogoQuestionCount(num)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          logoQuestionCount === num
+                            ? 'bg-violet-500/30 border-violet-500/60 text-violet-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time Limit */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Time Per Logo:</span>
+                    <span className="text-violet-400 font-mono font-bold text-sm">{logoTimeLimit}s</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { s: 10, label: '10s Blitz' },
+                      { s: 15, label: '15s Standard' },
+                      { s: 20, label: '20s Relaxed' },
+                    ].map((t) => (
+                      <button
+                        key={t.s}
+                        type="button"
+                        onClick={() => setLogoTimeLimit(t.s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          logoTimeLimit === t.s
+                            ? 'bg-violet-500/30 border-violet-500/60 text-violet-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Launch Button */}
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => handleLaunchLogoQuiz(logoQuestionCount, logoCategory)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-violet-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
+                <span>Launch Logos &amp; Brands Quiz ({logoQuestionCount} Questions)</span>
+              </button>
+            </motion.div>
+          )}
+
           {/* ─── VIEW 3: CATEGORIES PICKER ────────────────────────────────────── */}
           {mode === 'categories' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -1248,6 +1496,7 @@ export default function QuizLauncher() {
                   const Icon = CATEGORY_ICONS[cat] ?? Sparkles;
                   const active = selectedCats.has(cat);
                   const isFlags = cat === 'flags';
+                  const isLogos = cat === 'logos_brands';
                   return (
                     <button
                       key={cat}
@@ -1257,17 +1506,24 @@ export default function QuizLauncher() {
                         active
                           ? isFlags
                             ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
-                            : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
+                            : isLogos
+                              ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                              : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
                           : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate min-w-0">
-                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-500'}`} />
+                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isLogos ? 'text-violet-400' : 'text-cyan-400') : 'text-slate-500'}`} />
                         <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
                       </div>
                       {isFlags && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
                           209
+                        </span>
+                      )}
+                      {isLogos && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300 font-bold flex-shrink-0">
+                          72
                         </span>
                       )}
                     </button>
