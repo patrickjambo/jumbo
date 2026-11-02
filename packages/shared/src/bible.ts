@@ -1186,9 +1186,19 @@ export const WORLD_BIBLE_QUESTIONS: BibleQuestionItem[] = [
   }
 ];
 
-export function getBibleQuestionsByCategory(category?: BibleCategory | 'all'): BibleQuestionItem[] {
+export function getBibleQuestionsByCategory(
+  category?: BibleCategory | BibleCategory[] | Set<BibleCategory> | 'all',
+): BibleQuestionItem[] {
   if (!category || category === 'all') {
     return WORLD_BIBLE_QUESTIONS;
   }
+  if (Array.isArray(category)) {
+    const set = new Set(category);
+    return WORLD_BIBLE_QUESTIONS.filter((q) => set.has(q.category));
+  }
+  if (category instanceof Set) {
+    return WORLD_BIBLE_QUESTIONS.filter((q) => category.has(q.category));
+  }
   return WORLD_BIBLE_QUESTIONS.filter((q) => q.category === category);
 }
+

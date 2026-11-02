@@ -18,13 +18,21 @@ function shuffle<T>(arr: T[]): T[] {
 
 export function buildBibleQuizQuestions(
   count: number,
-  category?: BibleCategory | 'all',
+  category?: BibleCategory | BibleCategory[] | Set<BibleCategory> | 'all',
   timeLimit = 15,
 ): Question[] {
   let pool = WORLD_BIBLE_QUESTIONS;
   if (category && category !== 'all') {
-    const filtered = pool.filter((q) => q.category === category);
-    if (filtered.length >= 4) pool = filtered;
+    const targetSet = Array.isArray(category)
+      ? new Set(category)
+      : category instanceof Set
+        ? category
+        : new Set([category]);
+
+    if (targetSet.size > 0) {
+      const filtered = pool.filter((q) => targetSet.has(q.category));
+      if (filtered.length >= 2) pool = filtered;
+    }
   }
 
   const shuffledPool = shuffle(pool);

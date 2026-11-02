@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -132,10 +132,48 @@ export default function QuizLauncher() {
   const [animalQuestionCount, setAnimalQuestionCount] = useState<number>(15);
   const [animalTimeLimit, setAnimalTimeLimit] = useState<number>(15);
 
-  // Holy Bible state
-  const [bibleCategory, setBibleCategory] = useState<BibleCategory | 'all'>('all');
+  // Holy Bible state (multi-select themes)
+  const [selectedBibleCategories, setSelectedBibleCategories] = useState<Set<BibleCategory>>(
+    () => new Set(BIBLE_CATEGORIES),
+  );
   const [bibleQuestionCount, setBibleQuestionCount] = useState<number>(15);
   const [bibleTimeLimit, setBibleTimeLimit] = useState<number>(15);
+
+  const currentBibleQuestions = useMemo(() => {
+    return WORLD_BIBLE_QUESTIONS.filter((q) => selectedBibleCategories.has(q.category));
+  }, [selectedBibleCategories]);
+
+  const isAllBibleSelected = selectedBibleCategories.size === BIBLE_CATEGORIES.length;
+
+  const bibleThemeLabel = useMemo(() => {
+    if (selectedBibleCategories.size === BIBLE_CATEGORIES.length) {
+      return 'All Scripture (82)';
+    }
+    if (selectedBibleCategories.size === 1) {
+      const single = Array.from(selectedBibleCategories)[0];
+      return `${single} (${currentBibleQuestions.length})`;
+    }
+    const shortNames = Array.from(selectedBibleCategories)
+      .map((c) => (c === 'Gospels & Jesus' ? 'Gospels' : c === 'Verses & Wisdom' ? 'Verses' : c === 'Old Testament' ? 'Old Test.' : 'Acts'))
+      .join(' + ');
+    return `${shortNames} (${currentBibleQuestions.length})`;
+  }, [selectedBibleCategories, currentBibleQuestions.length]);
+
+  function toggleBibleCategory(cat: BibleCategory) {
+    setSelectedBibleCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        if (next.size > 1) next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  }
+
+  function selectAllBibleCategories() {
+    setSelectedBibleCategories(new Set(BIBLE_CATEGORIES));
+  }
 
   // Prewarm initial flag, logo, animal, and bible images on mount
   useEffect(() => {
@@ -347,16 +385,16 @@ export default function QuizLauncher() {
     handleLaunchWithQuestions(questions);
   }, [displayName, animalQuestionCount, animalCategory, animalTimeLimit, handleLaunchWithQuestions]);
 
-  const handleLaunchBibleQuiz = useCallback((count = bibleQuestionCount, category = bibleCategory) => {
+  const handleLaunchBibleQuiz = useCallback((count = bibleQuestionCount, categories = selectedBibleCategories) => {
     const trimmed = displayName.trim();
     if (!trimmed) {
       setJoinError('Please enter your nickname first');
       nameInputRef.current?.focus();
       return;
     }
-    const questions = buildBibleQuizQuestions(count, category, bibleTimeLimit);
+    const questions = buildBibleQuizQuestions(count, categories, bibleTimeLimit);
     handleLaunchWithQuestions(questions);
-  }, [displayName, bibleQuestionCount, bibleCategory, bibleTimeLimit, handleLaunchWithQuestions]);
+  }, [displayName, bibleQuestionCount, selectedBibleCategories, bibleTimeLimit, handleLaunchWithQuestions]);
 
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
@@ -1575,41 +1613,64 @@ export default function QuizLauncher() {
 
               {/* Testament & Theme Filter */}
               <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                  Select Biblical Theme / Testament
-                </label>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                    Select Biblical Themes &amp; Testaments (Mix Multiple)
+                  </label>
+                  <span className="text-[11px] font-semibold text-amber-400">
+                    {selectedBibleCategories.size} of 4 themes mixed ({currentBibleQuestions.length} questions available)
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setBibleCategory('all')}
+                    onClick={selectAllBibleCategories}
                     className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                      bibleCategory === 'all'
+                      isAllBibleSelected
                         ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
                         : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <span className="flex items-center gap-1.5">
-                      <Cross className="w-3.5 h-3.5 text-amber-400" />
-                      <span>All Scripture &amp; Jesus</span>
+                    <span className="flex items-center gap-2 truncate pr-1">
+                      <span
+                        className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] flex-shrink-0 transition-all ${
+                          isAllBibleSelected
+                            ? 'bg-amber-500 border-amber-400 text-slate-950 font-bold'
+                            : 'border-white/20 bg-white/5'
+                        }`}
+                      >
+                        {isAllBibleSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      </span>
+                      <span className="truncate">All Scripture (Mix All)</span>
                     </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">82</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">82</span>
                   </button>
+
                   {BIBLE_CATEGORIES.map((cat) => {
                     const count = getBibleQuestionsByCategory(cat).length;
-                    const active = bibleCategory === cat;
+                    const active = selectedBibleCategories.has(cat);
                     return (
                       <button
                         key={cat}
                         type="button"
-                        onClick={() => setBibleCategory(cat)}
+                        onClick={() => toggleBibleCategory(cat)}
                         className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                           active
                             ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
                             : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
                         }`}
                       >
-                        <span className="flex items-center gap-1.5 truncate pr-1">
-                          <BookOpen className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                        <span className="flex items-center gap-2 truncate pr-1">
+                          <span
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] flex-shrink-0 transition-all ${
+                              active
+                                ? 'bg-amber-500 border-amber-400 text-slate-950 font-bold'
+                                : 'border-white/20 bg-white/5'
+                            }`}
+                          >
+                            {active && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </span>
                           <span className="truncate">{cat}</span>
                         </span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">{count}</span>
@@ -1621,11 +1682,11 @@ export default function QuizLauncher() {
                 {/* Sample Bible Question / Art Preview Reel */}
                 <div className="pt-2 border-t border-white/5">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
-                    <span>Sample Scripture Questions:</span>
-                    <span className="text-amber-400 font-semibold">100% Biblical Reference Included</span>
+                    <span>Sample Scripture in Selected Mix:</span>
+                    <span className="text-amber-400 font-semibold">{currentBibleQuestions.length} Questions in Pool</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {getBibleQuestionsByCategory(bibleCategory === 'all' ? undefined : bibleCategory)
+                    {currentBibleQuestions
                       .slice(0, 4)
                       .map((q) => (
                         <div
@@ -1667,7 +1728,9 @@ export default function QuizLauncher() {
                 <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
                   <div className="flex justify-between text-xs font-bold text-slate-300">
                     <span>Number of Scripture Questions:</span>
-                    <span className="text-amber-400 font-mono font-bold text-sm">{bibleQuestionCount}</span>
+                    <span className="text-amber-400 font-mono font-bold text-sm">
+                      {Math.min(bibleQuestionCount, currentBibleQuestions.length)}
+                    </span>
                   </div>
                   <div className="flex gap-1.5">
                     {[5, 10, 15, 20, 25, 30].map((num) => (
@@ -1720,11 +1783,13 @@ export default function QuizLauncher() {
               <button
                 type="button"
                 disabled={creating}
-                onClick={() => handleLaunchBibleQuiz(bibleQuestionCount, bibleCategory)}
+                onClick={() => handleLaunchBibleQuiz(bibleQuestionCount, selectedBibleCategories)}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-white font-extrabold text-sm shadow-xl shadow-amber-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                <span>Launch Holy Bible &amp; Jesus Quiz ({bibleQuestionCount} Questions)</span>
+                <span>
+                  Launch Mixed Scripture Quiz ({Math.min(bibleQuestionCount, currentBibleQuestions.length)} Questions)
+                </span>
               </button>
             </motion.div>
           )}
@@ -1824,7 +1889,7 @@ export default function QuizLauncher() {
                           <div className="min-w-0">
                             <div className="font-bold text-white text-xs truncate">Holy Bible &amp; Jesus</div>
                             <div className="text-[10px] text-amber-400 truncate">
-                              Theme: {bibleCategory === 'all' ? 'All Scripture (82)' : bibleCategory}
+                              Themes: {bibleThemeLabel}
                             </div>
                           </div>
                         </div>
