@@ -17,6 +17,8 @@ import {
   type BibleCategory,
   WORLD_HISTORY_QUESTIONS,
   type HistoryEra,
+  WORLD_GEOGRAPHY_QUESTIONS,
+  type GeographyTheme,
 } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
@@ -326,6 +328,45 @@ export function generateHistoryQuestions(
   return questions;
 }
 
+export function generateGeographyQuestions(
+  count: number,
+  theme?: GeographyTheme | GeographyTheme[] | Set<GeographyTheme> | 'all',
+): Question[] {
+  let pool = WORLD_GEOGRAPHY_QUESTIONS;
+  if (theme && theme !== 'all') {
+    const targetSet = Array.isArray(theme)
+      ? new Set(theme)
+      : theme instanceof Set
+        ? theme
+        : new Set([theme]);
+
+    if (targetSet.size > 0) {
+      const filtered = pool.filter((g) => targetSet.has(g.category));
+      if (filtered.length >= 2) pool = filtered;
+    }
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const distractors = item.options.filter((o) => o !== item.correctAnswer);
+    questions.push(QuestionSchema.parse({
+      id: randomId(),
+      category: 'geography',
+      text: item.text,
+      imageUrl: item.imageUrl,
+      options: makeOptions(item.correctAnswer, distractors),
+      difficulty: item.difficulty,
+      source: item.location ? `Global Geography (${item.location})` : 'Global Geography',
+      timeLimit: 15,
+      points: 1000,
+    }));
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -381,7 +422,7 @@ function getSeedQuestions(category: string, count: number): Question[] {
 }
 
 // ── Master generator ──────────────────────────────────────────────────────────
-const OTDB_CATEGORIES = new Set(['general_knowledge', 'science', 'geography']);
+const OTDB_CATEGORIES = new Set(['general_knowledge', 'science']);
 
 export async function generateQuestions(
   categoriesOrOptions: QuestionCategory[] | { categories: QuestionCategory[]; count?: number; totalCount?: number },
@@ -408,6 +449,7 @@ export async function generateQuestions(
       if (cat === 'animals') return generateAnimalQuestions(perCat);
       if (cat === 'holy_bible') return generateBibleQuestions(perCat);
       if (cat === 'history') return generateHistoryQuestions(perCat);
+      if (cat === 'geography') return generateGeographyQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -472,6 +514,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(h))) {
           unique.push(h);
           existingKeys.add(dedupeKey(h));
+        }
+      }
+    } else if (categories.includes('geography') && categories.length === 1) {
+      // If only geography requested, backfill from the 84+ World Geography bank
+      const extraGeo = generateGeographyQuestions(totalCount);
+      for (const g of extraGeo) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(g))) {
+          unique.push(g);
+          existingKeys.add(dedupeKey(g));
         }
       }
     } else {
