@@ -990,201 +990,9 @@ export default function QuizLauncher() {
                 )}
               </div>
 
-              {/* FEATURED: National Flags of the World */}
-              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0e2722] via-[#141b2c] to-[#1e1338] border border-emerald-500/40 shadow-2xl shadow-emerald-950/40">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
-                        <Flag className="w-3 h-3 text-emerald-400" />
-                        <span>Direct Category · 209 Original Flags</span>
-                      </span>
-                      <span className="text-[10px] font-bold text-cyan-400">All Sovereign Nations</span>
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                      <span>National Flags Challenge</span>
-                    </h3>
-                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
-                      Identify each country from its official national flag picture in real-time. Covers all 195+ sovereign countries worldwide with instant 0ms preloaded flag images.
-                    </p>
-
-                    {/* Quick flag thumbnail reel */}
-                    <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar py-1">
-                      {['ke', 'fr', 'jp', 'br', 'rw', 'de', 'ca', 'za', 'au', 'ch', 'ng', 'in', 'us', 'eg', 'ar'].map((code) => (
-                        <div
-                          key={code}
-                          className="w-7 h-4.5 aspect-[3/2] rounded-sm overflow-hidden border border-white/25 shadow-sm flex-shrink-0 bg-black/40 hover:scale-125 transition-transform"
-                          title={code.toUpperCase()}
-                        >
-                          <img
-                            src={`https://flagcdn.com/w320/${code}.png`}
-                            alt={code}
-                            className="w-full h-full object-cover"
-                            loading="eager"
-                          />
-                        </div>
-                      ))}
-                      <span className="text-[10px] font-bold text-emerald-400 pl-1 whitespace-nowrap">+194 more</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchFlagQuiz(15, 'all')}
-                      disabled={creating}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
-                    >
-                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
-                      <span>Play 15 Flags (Instant)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setMode('flags')}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-emerald-500/40 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Choose Continents</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* FEATURED: World Logos & Brands Challenge */}
-              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#201035] via-[#141b2c] to-[#0c1f30] border border-violet-500/40 shadow-2xl shadow-violet-950/40">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-violet-400" />
-                        <span>Direct Category · 70+ Iconic Brands</span>
-                      </span>
-                      <span className="text-[10px] font-bold text-amber-400">Tech · Auto · Sports · Food · Entertainment</span>
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                      <span>Logos &amp; Brands Challenge</span>
-                    </h3>
-                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
-                      Identify the world&apos;s most iconic companies and global brands from their official vector logo pictures. Instant 0ms preloaded images across Tech, Automotive, Sports, Food &amp; Entertainment.
-                    </p>
-
-                    {/* Quick brand logo thumbnail reel */}
-                    <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar py-1">
-                      {WORLD_BRAND_LOGOS.slice(0, 14).map((brand) => (
-                        <div
-                          key={brand.id}
-                          className="w-7 h-7 rounded-lg overflow-hidden border border-white/20 shadow-sm flex-shrink-0 bg-white p-1 hover:scale-125 transition-transform flex items-center justify-center"
-                          title={brand.name}
-                        >
-                          <img
-                            src={brand.logoUrl}
-                            alt={brand.name}
-                            className="w-full h-full object-contain"
-                            loading="eager"
-                          />
-                        </div>
-                      ))}
-                      <span className="text-[10px] font-bold text-violet-400 pl-1 whitespace-nowrap">+58 more</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchLogoQuiz(15, 'all')}
-                      disabled={creating}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
-                    >
-                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
-                      <span>Play 15 Logos (Instant)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setMode('logos')}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-violet-500/40 text-violet-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-violet-400" />
-                      <span>Choose Industry</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* FEATURED: Fauna & Wildlife Challenge */}
-              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0c2a1e] via-[#141b2c] to-[#251f10] border border-amber-500/40 shadow-2xl shadow-amber-950/40">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
-                        <PawPrint className="w-3 h-3 text-amber-400" />
-                        <span>Direct Category · 78 Wildlife Photos</span>
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-400">Safari · Oceans · Birds · Reptiles · Polar</span>
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                      <span>Fauna &amp; Wildlife Challenge</span>
-                    </h3>
-                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
-                      Identify the world&apos;s most magnificent creatures from their authentic wildlife photos. Instant 0ms preloaded images across Safari Mammals, Marine Life, Birds, Reptiles &amp; Polar biomes.
-                    </p>
-
-                    {/* Quick animal photo thumbnail reel */}
-                    <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar py-1">
-                      {WORLD_ANIMALS.slice(0, 14).map((animal) => (
-                        <div
-                          key={animal.id}
-                          className="w-7 h-7 rounded-lg overflow-hidden border border-white/20 shadow-sm flex-shrink-0 bg-slate-900 hover:scale-125 transition-transform flex items-center justify-center"
-                          title={animal.name}
-                        >
-                          <img
-                            src={animal.imageUrl}
-                            alt={animal.name}
-                            className="w-full h-full object-cover"
-                            loading="eager"
-                          />
-                        </div>
-                      ))}
-                      <span className="text-[10px] font-bold text-amber-400 pl-1 whitespace-nowrap">+64 more</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchAnimalQuiz(15, 'all')}
-                      disabled={creating}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
-                    >
-                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
-                      <span>Play 15 Animals (Instant)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setMode('animals')}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Choose Biome</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* Host Mode Cards */}
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pt-2">
-                MORE QUIZ MODES
+                HOST A GAME
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1243,11 +1051,11 @@ export default function QuizLauncher() {
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setMode(null)}
+                  onClick={() => setMode('categories')}
                   className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to Game Modes</span>
+                  <span>Back to Categories</span>
                 </button>
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
                   <Flag className="w-3 h-3 text-emerald-400" />
@@ -1405,11 +1213,11 @@ export default function QuizLauncher() {
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setMode(null)}
+                  onClick={() => setMode('categories')}
                   className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to Game Modes</span>
+                  <span>Back to Categories</span>
                 </button>
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-[10px] font-bold text-violet-300">
                   <Sparkles className="w-3 h-3 text-violet-400" />
@@ -1567,11 +1375,11 @@ export default function QuizLauncher() {
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setMode(null)}
+                  onClick={() => setMode('categories')}
                   className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to Game Modes</span>
+                  <span>Back to Categories</span>
                 </button>
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300">
                   <PawPrint className="w-3 h-3 text-amber-400" />
@@ -1786,6 +1594,78 @@ export default function QuizLauncher() {
                   );
                 })}
               </div>
+
+              {/* Visual Category Sub-Filter Shortcuts (Continents, Industry, Biome) */}
+              {(selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals')) && (
+                <div className="p-3.5 rounded-2xl bg-[#0d1322] border border-white/10 space-y-2.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5 text-cyan-400">
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span>Visual Challenges Filter</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize region, industry, or biome</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {selectedCats.has('flags') && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('flags')}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Flag className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-xs truncate">National Flags</div>
+                            <div className="text-[10px] text-emerald-400 truncate">
+                              Region: {flagContinent === 'all' ? 'Worldwide (209)' : flagContinent}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </button>
+                    )}
+
+                    {selectedCats.has('logos_brands') && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('logos')}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-200 text-xs font-semibold transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Tag className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-xs truncate">Logos &amp; Brands</div>
+                            <div className="text-[10px] text-violet-400 truncate">
+                              Industry: {logoCategory === 'all' ? 'All (72)' : logoCategory}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-violet-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </button>
+                    )}
+
+                    {selectedCats.has('animals') && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('animals')}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PawPrint className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-xs truncate">Fauna &amp; Wildlife</div>
+                            <div className="text-[10px] text-amber-400 truncate">
+                              Biome: {animalCategory === 'all' ? 'All (78)' : animalCategory}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Question Count Slider */}
               <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
