@@ -15,6 +15,8 @@ import {
   type AnimalCategory,
   WORLD_BIBLE_QUESTIONS,
   type BibleCategory,
+  WORLD_HISTORY_QUESTIONS,
+  type HistoryEra,
 } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
@@ -285,6 +287,45 @@ export function generateBibleQuestions(
   return questions;
 }
 
+export function generateHistoryQuestions(
+  count: number,
+  era?: HistoryEra | HistoryEra[] | Set<HistoryEra> | 'all',
+): Question[] {
+  let pool = WORLD_HISTORY_QUESTIONS;
+  if (era && era !== 'all') {
+    const targetSet = Array.isArray(era)
+      ? new Set(era)
+      : era instanceof Set
+        ? era
+        : new Set([era]);
+
+    if (targetSet.size > 0) {
+      const filtered = pool.filter((h) => targetSet.has(h.category));
+      if (filtered.length >= 2) pool = filtered;
+    }
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const distractors = item.options.filter((o) => o !== item.correctAnswer);
+    questions.push(QuestionSchema.parse({
+      id: randomId(),
+      category: 'history',
+      text: item.text,
+      imageUrl: item.imageUrl,
+      options: makeOptions(item.correctAnswer, distractors),
+      difficulty: item.difficulty,
+      source: item.year ? `World History (${item.year})` : 'World History',
+      timeLimit: 15,
+      points: 1000,
+    }));
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -340,7 +381,7 @@ function getSeedQuestions(category: string, count: number): Question[] {
 }
 
 // ── Master generator ──────────────────────────────────────────────────────────
-const OTDB_CATEGORIES = new Set(['general_knowledge', 'science', 'history', 'geography']);
+const OTDB_CATEGORIES = new Set(['general_knowledge', 'science', 'geography']);
 
 export async function generateQuestions(
   categoriesOrOptions: QuestionCategory[] | { categories: QuestionCategory[]; count?: number; totalCount?: number },
@@ -366,6 +407,7 @@ export async function generateQuestions(
       if (cat === 'logos_brands') return generateLogoQuestions(perCat);
       if (cat === 'animals') return generateAnimalQuestions(perCat);
       if (cat === 'holy_bible') return generateBibleQuestions(perCat);
+      if (cat === 'history') return generateHistoryQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -420,6 +462,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(b))) {
           unique.push(b);
           existingKeys.add(dedupeKey(b));
+        }
+      }
+    } else if (categories.includes('history') && categories.length === 1) {
+      // If only history requested, backfill from the 84+ World History bank
+      const extraHist = generateHistoryQuestions(totalCount);
+      for (const h of extraHist) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(h))) {
+          unique.push(h);
+          existingKeys.add(dedupeKey(h));
         }
       }
     } else {
