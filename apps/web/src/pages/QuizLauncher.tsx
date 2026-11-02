@@ -24,6 +24,10 @@ import {
   type BrandCategory,
   BRAND_CATEGORIES,
   getLogosByCategory,
+  WORLD_ANIMALS,
+  type AnimalCategory,
+  ANIMAL_CATEGORIES,
+  getAnimalsByCategory,
 } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
@@ -38,6 +42,7 @@ import {
 } from '../lib/quizLibrary';
 import { buildFlagQuizQuestions } from '../lib/flagQuestions';
 import { buildLogoQuizQuestions } from '../lib/logoQuestions';
+import { buildAnimalQuizQuestions } from '../lib/animalQuestions';
 import { preloadFlagImages } from '../lib/flagPreloader';
 
 // Category icon map — 100% Lucide SVG vector icons, NO emojis
@@ -60,7 +65,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   flags: 'National Flags (209 Countries)',
   countries_capitals: 'World Capitals',
   logos_brands: 'Logos & Brands (70+ Brands)',
-  animals: 'Fauna & Animals',
+  animals: 'Fauna & Animals (75+ Wildlife)',
   history: 'World History',
   geography: 'Global Geography',
   science: 'Science & Physics',
@@ -95,8 +100,8 @@ export default function QuizLauncher() {
   const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
-  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'builder' | 'library' | null>(null);
-  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'logos_brands', 'general_knowledge']));
+  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'animals' | 'builder' | 'library' | null>(null);
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'logos_brands', 'animals', 'general_knowledge']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
   const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
@@ -115,11 +120,17 @@ export default function QuizLauncher() {
   const [logoQuestionCount, setLogoQuestionCount] = useState<number>(15);
   const [logoTimeLimit, setLogoTimeLimit] = useState<number>(15);
 
-  // Prewarm initial flag and logo images on mount
+  // Fauna & Animals state
+  const [animalCategory, setAnimalCategory] = useState<AnimalCategory | 'all'>('all');
+  const [animalQuestionCount, setAnimalQuestionCount] = useState<number>(15);
+  const [animalTimeLimit, setAnimalTimeLimit] = useState<number>(15);
+
+  // Prewarm initial flag, logo, and animal images on mount
   useEffect(() => {
-    const previewFlags = WORLD_COUNTRIES.slice(0, 30).map((c) => c.flagUrl);
-    const previewLogos = WORLD_BRAND_LOGOS.slice(0, 30).map((l) => l.logoUrl);
-    void preloadFlagImages([...previewFlags, ...previewLogos]);
+    const previewFlags = WORLD_COUNTRIES.slice(0, 25).map((c) => c.flagUrl);
+    const previewLogos = WORLD_BRAND_LOGOS.slice(0, 25).map((l) => l.logoUrl);
+    const previewAnimals = WORLD_ANIMALS.slice(0, 25).map((a) => a.imageUrl);
+    void preloadFlagImages([...previewFlags, ...previewLogos, ...previewAnimals]);
   }, []);
 
   useEffect(() => {
@@ -311,6 +322,17 @@ export default function QuizLauncher() {
     const questions = buildLogoQuizQuestions(count, category, logoTimeLimit);
     handleLaunchWithQuestions(questions);
   }, [displayName, logoQuestionCount, logoCategory, logoTimeLimit, handleLaunchWithQuestions]);
+
+  const handleLaunchAnimalQuiz = useCallback((count = animalQuestionCount, category = animalCategory) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setJoinError('Please enter your nickname first');
+      nameInputRef.current?.focus();
+      return;
+    }
+    const questions = buildAnimalQuizQuestions(count, category, animalTimeLimit);
+    handleLaunchWithQuestions(questions);
+  }, [displayName, animalQuestionCount, animalCategory, animalTimeLimit, handleLaunchWithQuestions]);
 
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
@@ -1096,6 +1118,70 @@ export default function QuizLauncher() {
                 </div>
               </div>
 
+              {/* FEATURED: Fauna & Wildlife Challenge */}
+              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0c2a1e] via-[#141b2c] to-[#251f10] border border-amber-500/40 shadow-2xl shadow-amber-950/40">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
+                        <PawPrint className="w-3 h-3 text-amber-400" />
+                        <span>Direct Category · 78 Wildlife Photos</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-400">Safari · Oceans · Birds · Reptiles · Polar</span>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                      <span>Fauna &amp; Wildlife Challenge</span>
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                      Identify the world&apos;s most magnificent creatures from their authentic wildlife photos. Instant 0ms preloaded images across Safari Mammals, Marine Life, Birds, Reptiles &amp; Polar biomes.
+                    </p>
+
+                    {/* Quick animal photo thumbnail reel */}
+                    <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar py-1">
+                      {WORLD_ANIMALS.slice(0, 14).map((animal) => (
+                        <div
+                          key={animal.id}
+                          className="w-7 h-7 rounded-lg overflow-hidden border border-white/20 shadow-sm flex-shrink-0 bg-slate-900 hover:scale-125 transition-transform flex items-center justify-center"
+                          title={animal.name}
+                        >
+                          <img
+                            src={animal.imageUrl}
+                            alt={animal.name}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        </div>
+                      ))}
+                      <span className="text-[10px] font-bold text-amber-400 pl-1 whitespace-nowrap">+64 more</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchAnimalQuiz(15, 'all')}
+                      disabled={creating}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                      <span>Play 15 Animals (Instant)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMode('animals')}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Choose Biome</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Host Mode Cards */}
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pt-2">
                 MORE QUIZ MODES
@@ -1475,6 +1561,168 @@ export default function QuizLauncher() {
             </motion.div>
           )}
 
+          {/* ─── VIEW: FAUNA & ANIMALS DASHBOARD ────────────────────────────── */}
+          {mode === 'animals' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMode(null)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Game Modes</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300">
+                  <PawPrint className="w-3 h-3 text-amber-400" />
+                  <span>78 World Animals · Instant Preload</span>
+                </div>
+              </div>
+
+              {/* Taxonomic Group / Biome Filter */}
+              <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Select Taxonomic Group / Biome
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAnimalCategory('all')}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      animalCategory === 'all'
+                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                        : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <PawPrint className="w-3.5 h-3.5 text-amber-400" />
+                      <span>All Wildlife</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">78</span>
+                  </button>
+                  {ANIMAL_CATEGORIES.map((cat) => {
+                    const count = getAnimalsByCategory(cat).length;
+                    const active = animalCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setAnimalCategory(cat)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                            : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 truncate pr-1">
+                          <PawPrint className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                          <span className="truncate">{cat}</span>
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Live Animal Photo Preview Reel */}
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Sample wildlife in this category:</span>
+                    <span className="text-amber-400">Preloaded &amp; Ready</span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {getAnimalsByCategory(animalCategory === 'all' ? undefined : animalCategory)
+                      .slice(0, 12)
+                      .map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-black/30 border border-white/10"
+                        >
+                          <div className="w-full aspect-[4/3] rounded-lg bg-slate-900 overflow-hidden border border-white/20 shadow-sm">
+                            <img
+                              src={a.imageUrl}
+                              alt={a.name}
+                              className="w-full h-full object-cover"
+                              loading="eager"
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-300 font-semibold truncate max-w-full text-center">
+                            {a.name}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Settings: Count & Time Limit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Question Count */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Number of Animals:</span>
+                    <span className="text-amber-400 font-mono font-bold text-sm">{animalQuestionCount}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[5, 10, 15, 20, 25, 30].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setAnimalQuestionCount(num)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          animalQuestionCount === num
+                            ? 'bg-amber-500/30 border-amber-500/60 text-amber-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time Limit */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Time Per Animal:</span>
+                    <span className="text-amber-400 font-mono font-bold text-sm">{animalTimeLimit}s</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { s: 10, label: '10s Blitz' },
+                      { s: 15, label: '15s Standard' },
+                      { s: 20, label: '20s Relaxed' },
+                    ].map((t) => (
+                      <button
+                        key={t.s}
+                        type="button"
+                        onClick={() => setAnimalTimeLimit(t.s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          animalTimeLimit === t.s
+                            ? 'bg-amber-500/30 border-amber-500/60 text-amber-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Launch Button */}
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => handleLaunchAnimalQuiz(animalQuestionCount, animalCategory)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-amber-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
+                <span>Launch Fauna &amp; Animals Quiz ({animalQuestionCount} Questions)</span>
+              </button>
+            </motion.div>
+          )}
+
           {/* ─── VIEW 3: CATEGORIES PICKER ────────────────────────────────────── */}
           {mode === 'categories' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -1497,6 +1745,7 @@ export default function QuizLauncher() {
                   const active = selectedCats.has(cat);
                   const isFlags = cat === 'flags';
                   const isLogos = cat === 'logos_brands';
+                  const isAnimals = cat === 'animals';
                   return (
                     <button
                       key={cat}
@@ -1508,12 +1757,14 @@ export default function QuizLauncher() {
                             ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
                             : isLogos
                               ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
-                              : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
+                              : isAnimals
+                                ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                                : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
                           : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate min-w-0">
-                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isLogos ? 'text-violet-400' : 'text-cyan-400') : 'text-slate-500'}`} />
+                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isLogos ? 'text-violet-400' : isAnimals ? 'text-amber-400' : 'text-cyan-400') : 'text-slate-500'}`} />
                         <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
                       </div>
                       {isFlags && (
@@ -1524,6 +1775,11 @@ export default function QuizLauncher() {
                       {isLogos && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300 font-bold flex-shrink-0">
                           72
+                        </span>
+                      )}
+                      {isAnimals && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 font-bold flex-shrink-0">
+                          78
                         </span>
                       )}
                     </button>

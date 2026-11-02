@@ -11,6 +11,8 @@ import {
   type Continent,
   WORLD_BRAND_LOGOS,
   type BrandCategory,
+  WORLD_ANIMALS,
+  type AnimalCategory,
 } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
@@ -206,6 +208,42 @@ export function generateLogoQuestions(count: number, category?: BrandCategory | 
   return questions;
 }
 
+export function generateAnimalQuestions(count: number, category?: AnimalCategory | 'all'): Question[] {
+  let pool = WORLD_ANIMALS;
+  if (category && category !== 'all') {
+    const filtered = pool.filter((a) => a.category === category);
+    if (filtered.length >= 4) pool = filtered;
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
+  const questions: Question[] = [];
+
+  for (const target of selected) {
+    // Distractors: prefer from same animal category for smart, realistic challenge
+    const sameCat = pool.filter((a) => a.id !== target.id && a.category === target.category);
+    let distractors: string[];
+    if (sameCat.length >= 3) {
+      distractors = shuffle(sameCat).slice(0, 3).map((a) => a.name);
+    } else {
+      distractors = target.distractors;
+    }
+
+    questions.push(QuestionSchema.parse({
+      id: randomId(),
+      category: 'animals',
+      text: 'Which animal is shown in this picture?',
+      imageUrl: target.imageUrl,
+      options: makeOptions(target.name, distractors),
+      difficulty: 'medium',
+      source: 'world_fauna',
+      timeLimit: 15,
+      points: 1000,
+    }));
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -285,6 +323,7 @@ export async function generateQuestions(
       if (cat === 'countries_capitals') return generateCapitalsQuestions(perCat);
       if (cat === 'flags') return generateFlagQuestions(perCat);
       if (cat === 'logos_brands') return generateLogoQuestions(perCat);
+      if (cat === 'animals') return generateAnimalQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -295,7 +334,7 @@ export async function generateQuestions(
     .filter((r): r is PromiseFulfilledResult<Question[]> => r.status === 'fulfilled')
     .flatMap((r) => r.value);
 
-  // Key by text + imageUrl so multiple flag/logo questions are NOT collapsed!
+  // Key by text + imageUrl so multiple flag/logo/animal questions are NOT collapsed!
   const dedupeKey = (q: Question) => q.imageUrl ? `${q.text}::${q.imageUrl}` : q.text;
   const unique = [...new Map(all.map((q) => [dedupeKey(q), q])).values()];
 
@@ -319,6 +358,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(l))) {
           unique.push(l);
           existingKeys.add(dedupeKey(l));
+        }
+      }
+    } else if (categories.includes('animals') && categories.length === 1) {
+      // If only animals requested, backfill with more animals from the 75+ bank
+      const extraAnimals = generateAnimalQuestions(totalCount);
+      for (const a of extraAnimals) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(a))) {
+          unique.push(a);
+          existingKeys.add(dedupeKey(a));
         }
       }
     } else {

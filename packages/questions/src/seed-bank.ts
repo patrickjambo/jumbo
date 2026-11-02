@@ -3393,264 +3393,863 @@ const RAW_SEEDS: SeedEntry[] = [
 
   {
     "category": "animals",
-    "text": "What is the fastest land animal on Earth?",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Lion",
+    "distractors": [
+          "Tiger",
+          "Leopard",
+          "Cheetah"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/020_The_lion_king_Snyggve_in_the_Serengeti_National_Park_Photo_by_Giles_Laurent.jpg/330px-020_The_lion_king_Snyggve_in_the_Serengeti_National_Park_Photo_by_Giles_Laurent.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
     "correct": "Cheetah",
     "distractors": [
-      "Lion",
-      "Pronghorn",
-      "Gazelle"
-    ]
+          "Leopard",
+          "Jaguar",
+          "Serval"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Male_cheetah_facing_left_in_South_Africa.jpg/330px-Male_cheetah_facing_left_in_South_Africa.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "What is the largest living mammal?",
-    "correct": "Blue Whale",
+    "text": "Which animal is shown in this picture?",
+    "correct": "African Elephant",
     "distractors": [
-      "African Elephant",
-      "Giraffe",
-      "Orca"
-    ]
+          "Asian Elephant",
+          "Hippopotamus",
+          "Rhinoceros"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/African_Elephant_%28Loxodonta_africana%29_male_%2817289351322%29.jpg/330px-African_Elephant_%28Loxodonta_africana%29_male_%2817289351322%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "Which bird is capable of flying backwards?",
-    "correct": "Hummingbird",
-    "distractors": [
-      "Kingfisher",
-      "Swallow",
-      "Falcon"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "How many hearts does an octopus have?",
-    "correct": "3",
-    "distractors": [
-      "1",
-      "2",
-      "4"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "How many legs does a spider have?",
-    "correct": "8",
-    "distractors": [
-      "6",
-      "10",
-      "12"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What is a group of lions called?",
-    "correct": "Pride",
-    "distractors": [
-      "Pack",
-      "Flock",
-      "Herd"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "Which animal is known as the 'Ship of the Desert'?",
-    "correct": "Camel",
-    "distractors": [
-      "Dromedary",
-      "Llama",
-      "Horse"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What type of animal is a Komodo dragon?",
-    "correct": "Lizard",
-    "distractors": [
-      "Snake",
-      "Crocodile",
-      "Amphibian"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "Which animal spends roughly 80% of its day eating bamboo?",
-    "correct": "Giant Panda",
-    "distractors": [
-      "Red Panda",
-      "Koala",
-      "Sloth"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What is the only mammal capable of sustained flight?",
-    "correct": "Bat",
-    "distractors": [
-      "Flying Squirrel",
-      "Sugar Glider",
-      "Colugo"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What color is the skin of a polar bear underneath its white fur?",
-    "correct": "Black",
-    "distractors": [
-      "Pink",
-      "White",
-      "Grey"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "Which marine animal has the thickest fur of any mammal?",
-    "correct": "Sea Otter",
-    "distractors": [
-      "Polar Bear",
-      "Seal",
-      "Walrus"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What is a group of flamingos called?",
-    "correct": "Flamboyance",
-    "distractors": [
-      "Colony",
-      "Congregation",
-      "Symphony"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "Which flightless bird is native to New Zealand and lays huge eggs?",
-    "correct": "Kiwi",
-    "distractors": [
-      "Emu",
-      "Ostrich",
-      "Cassowary"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "How many compartments are in a cow's stomach?",
-    "correct": "4",
-    "distractors": [
-      "2",
-      "3",
-      "5"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "Which animal has fingerprints virtually indistinguishable from human prints?",
-    "correct": "Koala",
-    "distractors": [
-      "Chimpanzee",
-      "Raccoon",
-      "Gorilla"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What is the primary diet of the blue whale?",
-    "correct": "Krill",
-    "distractors": [
-      "Squid",
-      "Salmon",
-      "Plankton"
-    ]
-  },
-  {
-    "category": "animals",
-    "text": "What is the tallest living terrestrial animal?",
+    "text": "Which animal is shown in this picture?",
     "correct": "Giraffe",
     "distractors": [
-      "Elephant",
-      "Ostrich",
-      "Moose"
-    ]
+          "Okapi",
+          "Zebra",
+          "Antelope"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Giraffe_Mikumi_National_Park.jpg/330px-Giraffe_Mikumi_National_Park.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "Which snake is the longest venomous snake in the world?",
-    "correct": "King Cobra",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Plains Zebra",
     "distractors": [
-      "Black Mamba",
-      "Rattlesnake",
-      "Taipan"
-    ]
+          "Wild Ass",
+          "Okapi",
+          "Wildebeest"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Equus_quagga_burchellii_-_Etosha%2C_2014.jpg/330px-Equus_quagga_burchellii_-_Etosha%2C_2014.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "What creature has the most powerful bite force relative to its size?",
-    "correct": "Saltwater Crocodile",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Bengal Tiger",
     "distractors": [
-      "Great White Shark",
-      "Hyena",
-      "Jaguar"
-    ]
+          "Lion",
+          "Jaguar",
+          "Leopard"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Bengal_tiger_in_Sanjay_Dubri_Tiger_Reserve_December_2024_by_Tisha_Mukherjee_11.jpg/330px-Bengal_tiger_in_Sanjay_Dubri_Tiger_Reserve_December_2024_by_Tisha_Mukherjee_11.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "Which mammal is known for sleeping while holding hands so they don't drift apart?",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Leopard",
+    "distractors": [
+          "Jaguar",
+          "Cheetah",
+          "Snow Leopard"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/African_leopard_male_%28cropped%29.jpg/330px-African_leopard_male_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Hippopotamus",
+    "distractors": [
+          "Rhinoceros",
+          "Water Buffalo",
+          "Tapir"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Portrait_Hippopotamus_in_the_water.jpg/330px-Portrait_Hippopotamus_in_the_water.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "White Rhinoceros",
+    "distractors": [
+          "Hippopotamus",
+          "African Elephant",
+          "Water Buffalo"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/109_Male_White_rhinoceros_walking_in_the_Kalahari_Desert_of_Namibia_Photo_by_Giles_Laurent.jpg/330px-109_Male_White_rhinoceros_walking_in_the_Kalahari_Desert_of_Namibia_Photo_by_Giles_Laurent.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Western Gorilla",
+    "distractors": [
+          "Chimpanzee",
+          "Orangutan",
+          "Baboon"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Male_gorilla_in_SF_zoo.jpg/330px-Male_gorilla_in_SF_zoo.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Chimpanzee",
+    "distractors": [
+          "Bonobo",
+          "Gorilla",
+          "Orangutan"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/015_Chimpanzee_at_Kibale_forest_National_Park_Photo_by_Giles_Laurent.jpg/330px-015_Chimpanzee_at_Kibale_forest_National_Park_Photo_by_Giles_Laurent.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Red Kangaroo",
+    "distractors": [
+          "Wallaby",
+          "Wombat",
+          "Koala"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Red_kangaroo_-_melbourne_zoo.jpg/330px-Red_kangaroo_-_melbourne_zoo.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Koala",
+    "distractors": [
+          "Wombat",
+          "Sloth",
+          "Quokka"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/330px-Koala_climbing_tree.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Grizzly Bear",
+    "distractors": [
+          "Black Bear",
+          "Polar Bear",
+          "Brown Bear"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/GrizzlyBearJeanBeaufort.jpg/330px-GrizzlyBearJeanBeaufort.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Gray Wolf",
+    "distractors": [
+          "Coyote",
+          "Dingo",
+          "Jackal"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Eurasian_wolf_2.jpg/330px-Eurasian_wolf_2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Meerkat",
+    "distractors": [
+          "Prairie Dog",
+          "Mongoose",
+          "Suricate"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Meerkat_%28Suricata_suricatta%29_Tswalu.jpg/330px-Meerkat_%28Suricata_suricatta%29_Tswalu.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Giant Panda",
+    "distractors": [
+          "Red Panda",
+          "Sun Bear",
+          "Sloth Bear"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Grosser_Panda.JPG/330px-Grosser_Panda.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Red Panda",
+    "distractors": [
+          "Raccoon",
+          "Giant Panda",
+          "Coati"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Red_Panda%2C_Gentle_Tree-Dweller_of_the_Himalayas.jpg/330px-Red_Panda%2C_Gentle_Tree-Dweller_of_the_Himalayas.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Brown-throated Sloth",
+    "distractors": [
+          "Koala",
+          "Anteater",
+          "Tamandua"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Bradypus.jpg/330px-Bradypus.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Jaguar",
+    "distractors": [
+          "Leopard",
+          "Cheetah",
+          "Cougar"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Standing_jaguar.jpg/330px-Standing_jaguar.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Spotted Hyena",
+    "distractors": [
+          "Wild Dog",
+          "Jackal",
+          "Aardwolf"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Spotted_hyena_%28Crocuta_crocuta%29.jpg/330px-Spotted_hyena_%28Crocuta_crocuta%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Red Fox",
+    "distractors": [
+          "Arctic Fox",
+          "Coyote",
+          "Fennec Fox"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Portrait_of_a_red_fox_in_Rautas_fj%C3%A4llurskog_%28cropped%29.jpg/330px-Portrait_of_a_red_fox_in_Rautas_fj%C3%A4llurskog_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Bornean Orangutan",
+    "distractors": [
+          "Chimpanzee",
+          "Gorilla",
+          "Gibbon"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Tanjung_Puting30477.jpg/330px-Tanjung_Puting30477.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Fennec Fox",
+    "distractors": [
+          "Bat-eared Fox",
+          "Kit Fox",
+          "Red Fox"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/Fennec_Fox_Vulpes_zerda.jpg/330px-Fennec_Fox_Vulpes_zerda.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Common Warthog",
+    "distractors": [
+          "Wild Boar",
+          "Peccary",
+          "Babirusa"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Southern_warthog_%28Phacochoerus_africanus_sundevallii%29_male.jpg/330px-Southern_warthog_%28Phacochoerus_africanus_sundevallii%29_male.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Blue Whale",
+    "distractors": [
+          "Humpback Whale",
+          "Fin Whale",
+          "Bowhead Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Anim1754_-_Flickr_-_NOAA_Photo_Library.jpg/330px-Anim1754_-_Flickr_-_NOAA_Photo_Library.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Humpback Whale",
+    "distractors": [
+          "Blue Whale",
+          "Fin Whale",
+          "Gray Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Humpback_whale_breaching_off_Cabo_San_Lucas.jpg/330px-Humpback_whale_breaching_off_Cabo_San_Lucas.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Great White Shark",
+    "distractors": [
+          "Tiger Shark",
+          "Bull Shark",
+          "Mako Shark"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/White_shark.jpg/330px-White_shark.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Bottlenose Dolphin",
+    "distractors": [
+          "Porpoise",
+          "Orca",
+          "Beluga Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Tursiops_truncatus_01-cropped.jpg/330px-Tursiops_truncatus_01-cropped.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Orca (Killer Whale)",
+    "distractors": [
+          "False Killer Whale",
+          "Pilot Whale",
+          "Dolphin"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Killerwhales_jumping.jpg/330px-Killerwhales_jumping.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Green Sea Turtle",
+    "distractors": [
+          "Loggerhead Turtle",
+          "Hawksbill Turtle",
+          "Leatherback Turtle"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Green_sea_turtle_%28Chelonia_mydas%29_Moorea.jpg/330px-Green_sea_turtle_%28Chelonia_mydas%29_Moorea.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
     "correct": "Sea Otter",
     "distractors": [
-      "Beaver",
-      "Dolphin",
-      "Manatee"
-    ]
+          "River Otter",
+          "Harbor Seal",
+          "Beaver"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Sea_Otter_%28Enhydra_lutris%29_%2825169790524%29_crop.jpg/330px-Sea_Otter_%28Enhydra_lutris%29_%2825169790524%29_crop.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "What do bees collect from flowers to make honey?",
-    "correct": "Nectar",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Clownfish",
     "distractors": [
-      "Pollen",
-      "Sap",
-      "Resin"
-    ]
+          "Damselfish",
+          "Blue Tang",
+          "Angelfish"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Amphiprion_ocellaris_%28Clown_anemonefish%29_by_Nick_Hobgood.jpg/330px-Amphiprion_ocellaris_%28Clown_anemonefish%29_by_Nick_Hobgood.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "Which bird has eyes that are larger than its brain?",
-    "correct": "Ostrich",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Giant Oceanic Manta Ray",
     "distractors": [
-      "Owl",
-      "Eagle",
-      "Penguin"
-    ]
+          "Stingray",
+          "Eagle Ray",
+          "Skate"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Manta_birostris-Thailand4.jpg/330px-Manta_birostris-Thailand4.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "What is the largest living species of tortoise?",
-    "correct": "Gal\u00e1pagos Tortoise",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Giant Pacific Octopus",
     "distractors": [
-      "Aldabra Giant Tortoise",
-      "Sulcata",
-      "Leopard Tortoise"
-    ]
+          "Squid",
+          "Cuttlefish",
+          "Nautilus"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Enteroctopus_dolfeini.jpg/330px-Enteroctopus_dolfeini.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "Which animal produces cube-shaped feces?",
-    "correct": "Wombat",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Emperor Penguin",
     "distractors": [
-      "Koala",
-      "Tasmanian Devil",
-      "Badger"
-    ]
+          "King Penguin",
+          "Adelie Penguin",
+          "Puffin"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Aptenodytes_forsteri_-Snow_Hill_Island%2C_Antarctica_-adults_and_juvenile-8.jpg/330px-Aptenodytes_forsteri_-Snow_Hill_Island%2C_Antarctica_-adults_and_juvenile-8.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
   {
     "category": "animals",
-    "text": "How do sea otters keep their fur waterproof?",
-    "correct": "Natural grooming oils",
+    "text": "Which animal is shown in this picture?",
+    "correct": "West Indian Manatee",
     "distractors": [
-      "Blubber layer",
-      "Scales",
-      "Salt secretion"
-    ]
+          "Dugong",
+          "Sea Cow",
+          "Walrus"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Manatee_with_calf.PD_-_colour_corrected.jpg/330px-Manatee_with_calf.PD_-_colour_corrected.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
   },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Hammerhead Shark",
+    "distractors": [
+          "Great White Shark",
+          "Thresher Shark",
+          "Tiger Shark"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Scalloped_Hammerhead_Shark_Sphyrna_Lewini_%28226845659%29.jpeg/330px-Scalloped_Hammerhead_Shark_Sphyrna_Lewini_%28226845659%29.jpeg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Bald Eagle",
+    "distractors": [
+          "Golden Eagle",
+          "Osprey",
+          "Red-tailed Hawk"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Bald_eagle_about_to_fly_in_Alaska_%282016%29.jpg/330px-Bald_eagle_about_to_fly_in_Alaska_%282016%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Peregrine Falcon",
+    "distractors": [
+          "Kestrel",
+          "Merlin",
+          "Gyrfalcon"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Falco_peregrinus_m_Humber_Bay_Park_Toronto.jpg/330px-Falco_peregrinus_m_Humber_Bay_Park_Toronto.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Snowy Owl",
+    "distractors": [
+          "Barn Owl",
+          "Great Horned Owl",
+          "Tawny Owl"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/SnowyOwlAmericanBlackDuck.jpg/330px-SnowyOwlAmericanBlackDuck.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Greater Flamingo",
+    "distractors": [
+          "Scarlet Ibis",
+          "Spoonbill",
+          "Heron"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/010_Greater_flamingos_male_and_female_in_the_Camargue_during_mating_season_Photo_by_Giles_Laurent.jpg/330px-010_Greater_flamingos_male_and_female_in_the_Camargue_during_mating_season_Photo_by_Giles_Laurent.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Keel-billed Toucan",
+    "distractors": [
+          "Hornbill",
+          "Parrot",
+          "Macaw"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Keel-billed_toucan_%28Ramphastos_sulfuratus_sulfuratus%29_on_foxtail_palm_%28Wodyetia_bifurcata%29_Cayo.jpg/330px-Keel-billed_toucan_%28Ramphastos_sulfuratus_sulfuratus%29_on_foxtail_palm_%28Wodyetia_bifurcata%29_Cayo.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Scarlet Macaw",
+    "distractors": [
+          "Toucan",
+          "Amazon Parrot",
+          "Cockatoo"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scarlet_macaw_%28Ara_macao_cyanopterus%29_Copan.jpg/330px-Scarlet_macaw_%28Ara_macao_cyanopterus%29_Copan.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Indian Peafowl (Peacock)",
+    "distractors": [
+          "Pheasant",
+          "Turkey",
+          "Bird of Paradise"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Peacock_on_tree_%2852077240794%29.jpg/330px-Peacock_on_tree_%2852077240794%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Ruby-throated Hummingbird",
+    "distractors": [
+          "Sunbird",
+          "Kingfisher",
+          "Honeyeater"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Archilochus_colubris_-flying_-male-8.jpg/330px-Archilochus_colubris_-flying_-male-8.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Common Ostrich",
+    "distractors": [
+          "Emu",
+          "Rhea",
+          "Cassowary"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Struthio_camelus_-_Etosha_2014_%283%29.jpg/330px-Struthio_camelus_-_Etosha_2014_%283%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Atlantic Puffin",
+    "distractors": [
+          "Guillemot",
+          "Auk",
+          "Razorbill"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Puffin_%28Fratercula_arctica%29.jpg/330px-Puffin_%28Fratercula_arctica%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Common Kingfisher",
+    "distractors": [
+          "Kookaburra",
+          "Bee-eater",
+          "Woodpecker"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Alcedo_atthis_-England-8_%28cropped%29.jpg/330px-Alcedo_atthis_-England-8_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Barn Owl",
+    "distractors": [
+          "Snowy Owl",
+          "Screech Owl",
+          "Eagle Owl"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/American_Barn_Owl_%28Tyto_furcata_guatemalae%29%2C_Orange_Walk.jpg/330px-American_Barn_Owl_%28Tyto_furcata_guatemalae%29%2C_Orange_Walk.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Golden Eagle",
+    "distractors": [
+          "Bald Eagle",
+          "Harpy Eagle",
+          "Buzzard"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/015_Wild_Golden_Eagle_in_flight_at_Pfyn-Finges_%28Switzerland%29_Photo_by_Giles_Laurent.jpg/330px-015_Wild_Golden_Eagle_in_flight_at_Pfyn-Finges_%28Switzerland%29_Photo_by_Giles_Laurent.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Great Horned Owl",
+    "distractors": [
+          "Barred Owl",
+          "Screech Owl",
+          "Barn Owl"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Bubo_virginianus_06.jpg/330px-Bubo_virginianus_06.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Komodo Dragon",
+    "distractors": [
+          "Monitor Lizard",
+          "Green Iguana",
+          "Gila Monster"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/202306_Varanus_komodoensis.jpg/330px-202306_Varanus_komodoensis.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Veiled Chameleon",
+    "distractors": [
+          "Gecko",
+          "Iguana",
+          "Anole"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Yemen_Chameleon.jpg/330px-Yemen_Chameleon.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Green Iguana",
+    "distractors": [
+          "Komodo Dragon",
+          "Monitor Lizard",
+          "Chameleon"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Iguana_iguana_%28male_resting%29.jpg/330px-Iguana_iguana_%28male_resting%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Saltwater Crocodile",
+    "distractors": [
+          "American Alligator",
+          "Gharial",
+          "Caiman"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/SaltwaterCrocodile%28%27Maximo%27%29.jpg/330px-SaltwaterCrocodile%28%27Maximo%27%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Red-Eyed Tree Frog",
+    "distractors": [
+          "Poison Dart Frog",
+          "Bullfrog",
+          "Toad"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Red-eyed_Tree_Frog_%28Agalychnis_callidryas%29_1.png/330px-Red-eyed_Tree_Frog_%28Agalychnis_callidryas%29_1.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "King Cobra",
+    "distractors": [
+          "Black Mamba",
+          "Rattlesnake",
+          "Python"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/12_-_The_Mystical_King_Cobra_and_Coffee_Forests.jpg/330px-12_-_The_Mystical_King_Cobra_and_Coffee_Forests.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Axolotl",
+    "distractors": [
+          "Mudpuppy",
+          "Newt",
+          "Salamander"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Axolotl_ganz.jpg/330px-Axolotl_ganz.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Central Bearded Dragon",
+    "distractors": [
+          "Gecko",
+          "Monitor Lizard",
+          "Iguana"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Bartagame_%28fcm%29.jpg/330px-Bartagame_%28fcm%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Golden Poison Frog",
+    "distractors": [
+          "Tree Frog",
+          "Bullfrog",
+          "Cane Toad"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Schrecklicherpfeilgiftfrosch-01.jpg/330px-Schrecklicherpfeilgiftfrosch-01.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "American Alligator",
+    "distractors": [
+          "Saltwater Crocodile",
+          "Caiman",
+          "Gharial"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/American_Alligator.jpg/330px-American_Alligator.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Polar Bear",
+    "distractors": [
+          "Grizzly Bear",
+          "Brown Bear",
+          "Beluga Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Polar_Bear_-_Alaska_%28cropped%29.jpg/330px-Polar_Bear_-_Alaska_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Arctic Fox",
+    "distractors": [
+          "Red Fox",
+          "Fennec Fox",
+          "Arctic Wolf"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Vulpes_lagopus_in_Iceland_%28cropped_3%29.jpg/330px-Vulpes_lagopus_in_Iceland_%28cropped_3%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Snow Leopard",
+    "distractors": [
+          "Clouded Leopard",
+          "Cougar",
+          "Lynx"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Irbis4.JPG/330px-Irbis4.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Reindeer (Caribou)",
+    "distractors": [
+          "Elk",
+          "Moose",
+          "Red Deer"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Reinbukken_p%C3%A5_frisk_gr%C3%B8nt_beite._-_panoramio.jpg/330px-Reinbukken_p%C3%A5_frisk_gr%C3%B8nt_beite._-_panoramio.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Walrus",
+    "distractors": [
+          "Elephant Seal",
+          "Sea Lion",
+          "Manatee"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Walrus_in_the_Russian_Arctic_National_Park%2C_Novaya_Zemlya_2015-2.jpg/330px-Walrus_in_the_Russian_Arctic_National_Park%2C_Novaya_Zemlya_2015-2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Beluga Whale",
+    "distractors": [
+          "Narwhal",
+          "Bowhead Whale",
+          "Pilot Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Oceanogr%C3%A0fic_29102004.jpg/330px-Oceanogr%C3%A0fic_29102004.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Narwhal",
+    "distractors": [
+          "Beluga Whale",
+          "Orca",
+          "Bowhead Whale"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/%D0%9D%D0%B0%D1%80%D0%B2%D0%B0%D0%BB_%D0%B2_%D1%80%D0%BE%D1%81%D1%81%D0%B8%D0%B9%D1%81%D0%BA%D0%BE%D0%B9_%D0%90%D1%80%D0%BA%D1%82%D0%B8%D0%BA%D0%B5.jpg/330px-%D0%9D%D0%B0%D1%80%D0%B2%D0%B0%D0%BB_%D0%B2_%D1%80%D0%BE%D1%81%D1%81%D0%B8%D0%B9%D1%81%D0%BA%D0%BE%D0%B9_%D0%90%D1%80%D0%BA%D1%82%D0%B8%D0%BA%D0%B5.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Muskox",
+    "distractors": [
+          "Bison",
+          "Yak",
+          "Water Buffalo"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Muskox_%28Ovibos_moschatus%29_male_Dovrefjell_4.jpg/330px-Muskox_%28Ovibos_moschatus%29_male_Dovrefjell_4.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Monarch Butterfly",
+    "distractors": [
+          "Viceroy Butterfly",
+          "Swallowtail",
+          "Moth"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Monarch_Butterfly_Danaus_plexippus_Male_2664px.jpg/330px-Monarch_Butterfly_Danaus_plexippus_Male_2664px.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "European Mantis",
+    "distractors": [
+          "Stick Insect",
+          "Grasshopper",
+          "Katydid"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/European_praying_mantis_%28Mantis_religiosa%29_green_female_Dobruja.jpg/330px-European_praying_mantis_%28Mantis_religiosa%29_green_female_Dobruja.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Western Honey Bee",
+    "distractors": [
+          "Bumblebee",
+          "Hornet",
+          "Wasp"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Apis_mellifera_Western_honey_bee.jpg/330px-Apis_mellifera_Western_honey_bee.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Seven-Spot Ladybird",
+    "distractors": [
+          "Colorado Potato Beetle",
+          "Firefly",
+          "June Bug"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/7-Spotted-Ladybug-Coccinella-septempunctata-sq1.jpg/330px-7-Spotted-Ladybug-Coccinella-septempunctata-sq1.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Dragonfly",
+    "distractors": [
+          "Damselfly",
+          "Mayfly",
+          "Lacewing"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Red_grasshawk_%28Neurothemis_fluctuans%29_male_Phuket_2.jpg/330px-Red_grasshawk_%28Neurothemis_fluctuans%29_male_Phuket_2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Giant Anteater",
+    "distractors": [
+          "Tamandua",
+          "Pangolin",
+          "Aardvark"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Myresluger2.jpg/330px-Myresluger2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "European Hedgehog",
+    "distractors": [
+          "Porcupine",
+          "Echidna",
+          "Tenrec"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Erinaceus_europaeus_LC0119.jpg/330px-Erinaceus_europaeus_LC0119.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "animals",
+    "text": "Which animal is shown in this picture?",
+    "correct": "Galapagos Giant Tortoise",
+    "distractors": [
+          "Aldabra Tortoise",
+          "Box Turtle",
+          "Snapping Turtle"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Galapagos_giant_tortoise_Geochelone_elephantopus.jpg/330px-Galapagos_giant_tortoise_Geochelone_elephantopus.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+
   {
     "category": "history",
     "text": "In which year did the Titanic sink?",
