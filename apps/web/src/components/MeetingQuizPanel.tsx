@@ -12,6 +12,7 @@ import {
 import type { Room } from 'livekit-client';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
+import { FlagQuestionImage } from './FlagQuestionImage';
 
 // ─── Kahoot-style shape + colour meta — Lucide icons only, NO emojis ─────────
 const OPTION_META = [
@@ -420,9 +421,11 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
             {/* Question card */}
             <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
               {store.currentQuestion.imageUrl && (
-                <div className="w-full h-28 mb-2 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
-                  <img src={store.currentQuestion.imageUrl} alt="Question" className="max-h-full max-w-full object-contain" />
-                </div>
+                <FlagQuestionImage
+                  imageUrl={store.currentQuestion.imageUrl}
+                  alt={store.currentQuestion.text}
+                  size="compact"
+                />
               )}
               <h3 className="text-sm font-semibold leading-snug text-white">{store.currentQuestion.text}</h3>
             </div>

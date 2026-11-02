@@ -353,6 +353,14 @@ export function registerGameHandlers(io: Server) {
             game.settings.questionCount,
           );
         }
+
+        // Prewarm all clients with question images (flags, media) so they render instantly with 0ms delay
+        const preloadImageUrls = game.questions
+          .map((q) => q.imageUrl)
+          .filter((url): url is string => Boolean(url));
+        if (preloadImageUrls.length > 0) {
+          io.to(game.pin).emit(SERVER_EVENTS.PREWARM, { imageUrls: preloadImageUrls });
+        }
       } catch (e) {
         console.error('Question generation failed:', e);
         socket.emit('error', { message: 'Failed to generate questions' });

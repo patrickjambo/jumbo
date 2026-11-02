@@ -36,6 +36,9 @@ export const SERVER_EVENTS = {
   // Game state
   GAME_FINISHED: 'game:finished',
   GAME_STATE: 'game:state',
+
+  // Prewarm / asset preloading
+  PREWARM: 'game:prewarm',
 } as const;
 
 export type GameEventName = (typeof GAME_EVENTS)[keyof typeof GAME_EVENTS];

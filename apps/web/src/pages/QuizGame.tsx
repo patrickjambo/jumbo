@@ -13,6 +13,7 @@ import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore, type QuizPlayer, type QuizQuestion } from '../store';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { quizAudio } from '../utils/audioEffects';
+import { FlagQuestionImage } from '../components/FlagQuestionImage';
 
 // ─── Kahoot-style shape & color definitions ────────────────────────────────────
 const OPTION_META = [
@@ -568,9 +569,11 @@ export default function QuizGame() {
                 </div>
 
                 {activeQuestion.imageUrl && (
-                  <div className="w-full max-h-36 mb-3 rounded-lg overflow-hidden bg-black/40 flex items-center justify-center">
-                    <img src={activeQuestion.imageUrl} alt="" className="max-h-36 object-contain" />
-                  </div>
+                  <FlagQuestionImage
+                    imageUrl={activeQuestion.imageUrl}
+                    alt={activeQuestion.text}
+                    size="large"
+                  />
                 )}
 
                 <h1 className="text-white text-sm sm:text-base md:text-lg font-bold leading-snug">{activeQuestion.text}</h1>

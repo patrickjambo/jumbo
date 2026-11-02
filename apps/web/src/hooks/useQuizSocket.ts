@@ -8,6 +8,7 @@ import type {
   LeaderboardUpdatePayload,
 } from '@jumbo/shared';
 import { useQuizStore } from '../store';
+import { preloadFlagImage, preloadFlagImages } from '../lib/flagPreloader';
 
 const API_URL = (import.meta.env['VITE_API_URL'] as string | undefined) ?? '';
 
@@ -63,6 +64,9 @@ export function useQuizSocket() {
     });
 
     socket.on(SERVER_EVENTS.QUESTION_SHOW, (payload: QuestionShowPayload) => {
+      if (payload.question.imageUrl) {
+        void preloadFlagImage(payload.question.imageUrl);
+      }
       store.showQuestion(
         {
           id: payload.question.id,
@@ -75,6 +79,12 @@ export function useQuizSocket() {
         payload.totalQuestions,
         payload.serverStartTime,
       );
+    });
+
+    socket.on(SERVER_EVENTS.PREWARM, (payload: { imageUrls: string[] }) => {
+      if (Array.isArray(payload?.imageUrls)) {
+        void preloadFlagImages(payload.imageUrls);
+      }
     });
 
     socket.on(SERVER_EVENTS.ANSWERS_PROGRESS, (payload: AnswersProgressPayload) => {
@@ -125,6 +135,7 @@ export function useQuizSocket() {
       socket.off('error');
       socket.off(SERVER_EVENTS.LOBBY_UPDATE);
       socket.off(SERVER_EVENTS.QUESTION_SHOW);
+      socket.off(SERVER_EVENTS.PREWARM);
       socket.off(SERVER_EVENTS.ANSWERS_PROGRESS);
       socket.off(SERVER_EVENTS.QUESTION_REVEAL);
       socket.off(SERVER_EVENTS.LEADERBOARD_UPDATE);

@@ -11,7 +11,16 @@ import {
   FileText, Upload, Library, Download, ArrowUp, ArrowDown,
   ListOrdered, Scale, Edit3, FolderOpen,
 } from 'lucide-react';
-import { QUESTION_CATEGORIES, type Question, type QuestionType, type AnswerOption } from '@jumbo/shared';
+import {
+  QUESTION_CATEGORIES,
+  type Question,
+  type QuestionType,
+  type AnswerOption,
+  WORLD_COUNTRIES,
+  type Continent,
+  CONTINENTS,
+  getCountriesByContinent,
+} from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
 import { extractTextFromPdfFile, parseQuestionsFromRawText } from '../lib/pdfExtractor';
@@ -23,6 +32,8 @@ import {
   parseImportedQuizJson,
   type SavedQuizDeck,
 } from '../lib/quizLibrary';
+import { buildFlagQuizQuestions } from '../lib/flagQuestions';
+import { preloadFlagImages } from '../lib/flagPreloader';
 
 // Category icon map — 100% Lucide SVG vector icons, NO emojis
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -41,7 +52,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  flags: 'Flags & Banners',
+  flags: 'National Flags (209 Countries)',
   countries_capitals: 'World Capitals',
   logos_brands: 'Logos & Brands',
   animals: 'Fauna & Animals',
@@ -66,6 +77,7 @@ interface CustomDraftQuestion {
   id: string;
   type: QuestionType;
   text: string;
+  imageUrl?: string;
   options: { id: string; text: string; isCorrect: boolean }[];
   timeLimit: number;
   points: number;
@@ -78,8 +90,8 @@ export default function QuizLauncher() {
   const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
-  const [mode, setMode] = useState<'auto' | 'categories' | 'builder' | 'library' | null>(null);
-  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['general_knowledge', 'science', 'geography']));
+  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'builder' | 'library' | null>(null);
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'general_knowledge', 'geography']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
   const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
@@ -87,6 +99,17 @@ export default function QuizLauncher() {
   const [creating, setCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // National flags state
+  const [flagContinent, setFlagContinent] = useState<Continent | 'all'>('all');
+  const [flagQuestionCount, setFlagQuestionCount] = useState<number>(15);
+  const [flagTimeLimit, setFlagTimeLimit] = useState<number>(15);
+
+  // Prewarm initial flag images on mount
+  useEffect(() => {
+    const previewFlags = WORLD_COUNTRIES.slice(0, 30).map((c) => c.flagUrl);
+    void preloadFlagImages(previewFlags);
+  }, []);
 
   useEffect(() => {
     if (urlPin) setJoinPin(urlPin);
@@ -222,6 +245,7 @@ export default function QuizLauncher() {
         id: qId,
         type: qType,
         text: rawText.slice(0, 3000),
+        imageUrl: q.imageUrl,
         options: opts,
         timeLimit: Math.max(5, Math.min(180, q.timeLimit || 20)),
         category: (q.category || 'Custom Quiz').slice(0, 100),
@@ -231,11 +255,14 @@ export default function QuizLauncher() {
       };
     });
 
+    // Preload question images ahead of time
+    void preloadFlagImages(sanitizedQuestions.map((q) => q.imageUrl));
+
     const safeCount = Math.max(1, Math.min(200, sanitizedQuestions.length));
 
     createGame(
       {
-        categories: ['general_knowledge'],
+        categories: ['flags', 'general_knowledge'],
         questionCount: safeCount,
         leaderboardVisibility: 'live',
         streakBonus: true,
@@ -252,11 +279,23 @@ export default function QuizLauncher() {
     setTimeout(() => { setCreating(false); }, 10000);
   }, [displayName, createGame, navigate]);
 
+  const handleLaunchFlagQuiz = useCallback((count = flagQuestionCount, continent = flagContinent) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setJoinError('Please enter your nickname first');
+      nameInputRef.current?.focus();
+      return;
+    }
+    const questions = buildFlagQuizQuestions(count, continent, flagTimeLimit);
+    handleLaunchWithQuestions(questions);
+  }, [displayName, flagQuestionCount, flagContinent, flagTimeLimit, handleLaunchWithQuestions]);
+
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
     const formattedQuestions: Question[] = customQuestions.map((q) => ({
       id: q.id,
       text: q.text,
+      imageUrl: q.imageUrl,
       category: 'Custom Quiz',
       type: q.type,
       difficulty: 'medium',
@@ -447,6 +486,7 @@ export default function QuizLauncher() {
     const formattedQuestions: Question[] = customQuestions.map((q) => ({
       id: q.id,
       text: q.text,
+      imageUrl: q.imageUrl,
       category: 'Custom Deck',
       type: q.type,
       difficulty: 'medium',
@@ -906,9 +946,73 @@ export default function QuizLauncher() {
                 )}
               </div>
 
+              {/* FEATURED: National Flags of the World */}
+              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0e2722] via-[#141b2c] to-[#1e1338] border border-emerald-500/40 shadow-2xl shadow-emerald-950/40">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[10px] tracking-wider uppercase flex items-center gap-1">
+                        <Flag className="w-3 h-3 text-emerald-400" />
+                        <span>Direct Category · 209 Original Flags</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-cyan-400">All Sovereign Nations</span>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                      <span>National Flags Challenge</span>
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                      Identify each country from its official national flag picture in real-time. Covers all 195+ sovereign countries worldwide with instant 0ms preloaded flag images.
+                    </p>
+
+                    {/* Quick flag thumbnail reel */}
+                    <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar py-1">
+                      {['ke', 'fr', 'jp', 'br', 'rw', 'de', 'ca', 'za', 'au', 'ch', 'ng', 'in', 'us', 'eg', 'ar'].map((code) => (
+                        <div
+                          key={code}
+                          className="w-7 h-4.5 aspect-[3/2] rounded-sm overflow-hidden border border-white/25 shadow-sm flex-shrink-0 bg-black/40 hover:scale-125 transition-transform"
+                          title={code.toUpperCase()}
+                        >
+                          <img
+                            src={`https://flagcdn.com/w320/${code}.png`}
+                            alt={code}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        </div>
+                      ))}
+                      <span className="text-[10px] font-bold text-emerald-400 pl-1 whitespace-nowrap">+194 more</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchFlagQuiz(15, 'all')}
+                      disabled={creating}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                      <span>Play 15 Flags (Instant)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMode('flags')}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-emerald-500/40 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Choose Continents</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Host Mode Cards */}
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pt-2">
-                OR HOST A NEW GAME
+                MORE QUIZ MODES
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -961,6 +1065,168 @@ export default function QuizLauncher() {
             </div>
           )}
 
+          {/* ─── VIEW: NATIONAL FLAGS DASHBOARD ────────────────────────────────── */}
+          {mode === 'flags' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMode(null)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Game Modes</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
+                  <Flag className="w-3 h-3 text-emerald-400" />
+                  <span>209 World Flags · Instant Preload</span>
+                </div>
+              </div>
+
+              {/* Continent Filter */}
+              <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Select Geographic Region
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFlagContinent('all')}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      flagContinent === 'all'
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
+                        : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Worldwide</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">209</span>
+                  </button>
+                  {CONTINENTS.map((cont) => {
+                    const count = getCountriesByContinent(cont).length;
+                    const active = flagContinent === cont;
+                    return (
+                      <button
+                        key={cont}
+                        type="button"
+                        onClick={() => setFlagContinent(cont)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
+                            : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Flag className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{cont}</span>
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Live Flag Preview Carousel */}
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Sample flags in this region:</span>
+                    <span className="text-emerald-400">Preloaded &amp; Ready</span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {getCountriesByContinent(flagContinent === 'all' ? undefined : flagContinent)
+                      .slice(0, 12)
+                      .map((c) => (
+                        <div
+                          key={c.code}
+                          className="flex flex-col items-center gap-1 p-1.5 rounded-lg bg-black/30 border border-white/10"
+                        >
+                          <div className="w-full aspect-[3/2] rounded overflow-hidden border border-white/20 bg-slate-950 shadow-sm">
+                            <img
+                              src={c.flagUrl}
+                              alt={c.name}
+                              className="w-full h-full object-cover"
+                              loading="eager"
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-300 font-medium truncate max-w-full text-center">
+                            {c.name}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Settings: Count & Time Limit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Question Count */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Number of Flags:</span>
+                    <span className="text-emerald-400 font-mono font-bold text-sm">{flagQuestionCount}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[5, 10, 15, 20, 25, 30].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setFlagQuestionCount(num)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          flagQuestionCount === num
+                            ? 'bg-emerald-500/30 border-emerald-500/60 text-emerald-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time Limit */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Time Per Flag:</span>
+                    <span className="text-emerald-400 font-mono font-bold text-sm">{flagTimeLimit}s</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { s: 10, label: '10s Blitz' },
+                      { s: 15, label: '15s Standard' },
+                      { s: 20, label: '20s Relaxed' },
+                    ].map((t) => (
+                      <button
+                        key={t.s}
+                        type="button"
+                        onClick={() => setFlagTimeLimit(t.s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          flagTimeLimit === t.s
+                            ? 'bg-emerald-500/30 border-emerald-500/60 text-emerald-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Launch Button */}
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => handleLaunchFlagQuiz(flagQuestionCount, flagContinent)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
+                <span>Launch National Flags Quiz ({flagQuestionCount} Questions)</span>
+              </button>
+            </motion.div>
+          )}
+
           {/* ─── VIEW 3: CATEGORIES PICKER ────────────────────────────────────── */}
           {mode === 'categories' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -981,19 +1247,29 @@ export default function QuizLauncher() {
                 {QUESTION_CATEGORIES.map((cat) => {
                   const Icon = CATEGORY_ICONS[cat] ?? Sparkles;
                   const active = selectedCats.has(cat);
+                  const isFlags = cat === 'flags';
                   return (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => toggleCat(cat)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      className={`flex items-center justify-between gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                         active
-                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
+                          ? isFlags
+                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
+                            : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
                           : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      <Icon className={`w-3.5 h-3.5 ${active ? 'text-cyan-400' : 'text-slate-500'}`} />
-                      <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
+                      <div className="flex items-center gap-2 truncate min-w-0">
+                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-500'}`} />
+                        <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
+                      </div>
+                      {isFlags && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
+                          209
+                        </span>
+                      )}
                     </button>
                   );
                 })}

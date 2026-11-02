@@ -3,7 +3,7 @@
  * Fetches from public APIs with local fallback via seed bank.
  */
 
-import { QuestionSchema, type Question, type QuestionCategory } from '@jumbo/shared';
+import { QuestionSchema, type Question, type QuestionCategory, WORLD_COUNTRIES, type Continent } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -96,86 +96,69 @@ async function fetchFromOTDB(category: string, count: number): Promise<Question[
   }
 }
 
-// ── 2. REST Countries — Capitals & Flags ──────────────────────────────────────
-interface CountryData {
-  name: { common: string };
-  capital?: string[];
-  flags: { png: string };
-}
+// ── 2. World Countries — Capitals & National Flags ────────────────────────────
+// Powered by the embedded 209-country database covering all UN states & territories.
+// Fast, 0-latency, 100% offline-resilient, with original flags and contextual distractors.
 
-let countriesCache: CountryData[] | null = null;
-
-async function fetchCountries(): Promise<CountryData[]> {
-  if (countriesCache) return countriesCache;
-  try {
-    const res = await fetch(
-      'https://restcountries.com/v3.1/all?fields=name,capital,flags',
-      { signal: AbortSignal.timeout(6000) },
-    );
-    if (!res.ok) throw new Error();
-    const data = await res.json() as CountryData[];
-    countriesCache = data.filter((c) => c.capital && c.capital.length > 0);
-    return countriesCache;
-  } catch {
-    return [];
+export function generateCapitalsQuestions(count: number, continent?: Continent): Question[] {
+  let pool = WORLD_COUNTRIES.filter((c) => !!c.capital);
+  if (continent) {
+    const filtered = pool.filter((c) => c.continent === continent);
+    if (filtered.length >= 4) pool = filtered;
   }
-}
-
-async function generateCapitalsQuestions(count: number): Promise<Question[]> {
-  const key = `capitals-${count}`;
-  const cached = fromCache(key);
-  if (cached) return cached;
-
-  const countries = await fetchCountries();
-  if (countries.length < 4) return getSeedQuestions('countries_capitals', count);
-
-  const pool = shuffle(countries).slice(0, Math.max(count * 3, 30));
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
   const questions: Question[] = [];
 
-  for (let i = 0; i < Math.min(count, pool.length); i++) {
-    const target = pool[i]!;
-    if (!target.capital?.[0]) continue;
-    const distractors = shuffle(pool.filter((_, j) => j !== i && !!pool[j]?.capital?.[0]))
-      .slice(0, 3).map((c) => c.capital![0]!);
+  for (const target of selected) {
+    const sameCont = pool.filter((c) => c.code !== target.code && c.continent === target.continent);
+    const candidatePool = sameCont.length >= 3 ? sameCont : pool.filter((c) => c.code !== target.code);
+    const distractors = shuffle(candidatePool).slice(0, 3).map((c) => c.capital);
 
     questions.push(QuestionSchema.parse({
-      id: randomId(), category: 'countries_capitals',
-      text: `What is the capital of ${target.name.common}?`,
-      options: makeOptions(target.capital[0], distractors),
-      difficulty: 'medium', source: 'restcountries', timeLimit: 20, points: 1000,
+      id: randomId(),
+      category: 'countries_capitals',
+      text: `What is the capital of ${target.name}?`,
+      options: makeOptions(target.capital, distractors),
+      difficulty: 'medium',
+      source: 'world_capitals',
+      timeLimit: 20,
+      points: 1000,
     }));
   }
 
-  setCache(key, questions);
   return questions;
 }
 
-async function generateFlagQuestions(count: number): Promise<Question[]> {
-  const key = `flags-${count}`;
-  const cached = fromCache(key);
-  if (cached) return cached;
-
-  const countries = await fetchCountries();
-  if (countries.length < 4) return getSeedQuestions('flags', count);
-
-  const pool = shuffle(countries).slice(0, Math.max(count * 3, 30));
+export function generateFlagQuestions(count: number, continent?: Continent): Question[] {
+  let pool = WORLD_COUNTRIES;
+  if (continent) {
+    const filtered = pool.filter((c) => c.continent === continent);
+    if (filtered.length >= 4) pool = filtered;
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
   const questions: Question[] = [];
 
-  for (let i = 0; i < Math.min(count, pool.length); i++) {
-    const target = pool[i]!;
-    const distractors = shuffle(pool.filter((_, j) => j !== i))
-      .slice(0, 3).map((c) => c.name.common);
+  for (const target of selected) {
+    // Distractors: prefer from same continent if possible for smart, educational gameplay
+    const sameCont = pool.filter((c) => c.code !== target.code && c.continent === target.continent);
+    const candidatePool = sameCont.length >= 3 ? sameCont : pool.filter((c) => c.code !== target.code);
+    const distractors = shuffle(candidatePool).slice(0, 3).map((c) => c.name);
 
     questions.push(QuestionSchema.parse({
-      id: randomId(), category: 'flags',
+      id: randomId(),
+      category: 'flags',
       text: 'Which country does this flag belong to?',
-      imageUrl: target.flags.png,
-      options: makeOptions(target.name.common, distractors),
-      difficulty: 'medium', source: 'flagcdn', timeLimit: 15, points: 1000,
+      imageUrl: target.flagUrl,
+      options: makeOptions(target.name, distractors),
+      difficulty: 'medium',
+      source: 'national_flags',
+      timeLimit: 15,
+      points: 1000,
     }));
   }
 
-  setCache(key, questions);
   return questions;
 }
 
@@ -267,14 +250,28 @@ export async function generateQuestions(
     .filter((r): r is PromiseFulfilledResult<Question[]> => r.status === 'fulfilled')
     .flatMap((r) => r.value);
 
-  const unique = [...new Map(all.map((q) => [q.text, q])).values()];
+  // Key by text + imageUrl so multiple flag questions ("Which country does this flag belong to?") are NOT collapsed!
+  const dedupeKey = (q: Question) => q.imageUrl ? `${q.text}::${q.imageUrl}` : q.text;
+  const unique = [...new Map(all.map((q) => [dedupeKey(q), q])).values()];
 
   if (unique.length < totalCount) {
-    const existingTexts = new Set(unique.map((q) => q.text));
-    const backfill = SEED_BANK.filter((q) => !existingTexts.has(q.text));
-    for (const q of shuffle(backfill)) {
-      if (unique.length >= totalCount) break;
-      unique.push(q);
+    const existingKeys = new Set(unique.map((q) => dedupeKey(q)));
+    if (categories.includes('flags') && categories.length === 1) {
+      // If only flags requested, backfill with more flags from the 209-country bank
+      const extraFlags = generateFlagQuestions(totalCount);
+      for (const f of extraFlags) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(f))) {
+          unique.push(f);
+          existingKeys.add(dedupeKey(f));
+        }
+      }
+    } else {
+      const backfill = SEED_BANK.filter((q) => !existingKeys.has(dedupeKey(q)));
+      for (const q of shuffle(backfill)) {
+        if (unique.length >= totalCount) break;
+        unique.push(q);
+      }
     }
   }
 
