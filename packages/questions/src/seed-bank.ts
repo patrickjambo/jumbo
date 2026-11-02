@@ -6329,6 +6329,836 @@ const RAW_SEEDS: SeedEntry[] = [
       "Jupiter",
       "Neptune"
     ]
+  },
+{
+    "category": "holy_bible",
+    "text": "In which town was Jesus Christ born, fulfilling the prophecy of Micah 5:2?",
+    "correct": "Bethlehem",
+    "distractors": [
+      "Nazareth",
+      "Jerusalem",
+      "Capernaum"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Adoration_of_the_sheperds_-_Matthias_Stomer.jpg/330px-Adoration_of_the_sheperds_-_Matthias_Stomer.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "In what town did Jesus grow up and spend His youth with Mary and Joseph?",
+    "correct": "Nazareth",
+    "distractors": [
+      "Bethlehem",
+      "Jericho",
+      "Bethany"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who baptized Jesus in the Jordan River, declaring 'Behold! The Lamb of God'?",
+    "correct": "John the Baptist",
+    "distractors": [
+      "Simon Peter",
+      "The Prophet Elijah",
+      "James the Apostle"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What was the very first miracle performed by Jesus recorded in the Gospel of John?",
+    "correct": "Turning water into wine at the wedding in Cana",
+    "distractors": [
+      "Healing the blind man at the pool of Siloam",
+      "Walking on the waters of the Sea of Galilee",
+      "Feeding the 5,000 with loaves and fish"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How many days and nights did Jesus fast in the wilderness while resisting the devil's temptations?",
+    "correct": "40 days and 40 nights",
+    "distractors": [
+      "7 days and 7 nights",
+      "12 days and 12 nights",
+      "50 days and 50 nights"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "On which body of water did Jesus walk during the night and invite Peter to step out of the boat?",
+    "correct": "Sea of Galilee",
+    "distractors": [
+      "Dead Sea",
+      "River Jordan",
+      "Mediterranean Sea"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Rembrandt_Christ_in_the_Storm_on_the_Lake_of_Galilee.jpg/330px-Rembrandt_Christ_in_the_Storm_on_the_Lake_of_Galilee.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "With what food did Jesus miraculously feed a multitude of 5,000 men besides women and children?",
+    "correct": "5 loaves of bread and 2 fish",
+    "distractors": [
+      "7 loaves of bread and 3 fish",
+      "12 loaves of barley and 4 fish",
+      "3 loaves of bread and 5 fish"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What friend of Jesus was raised from the dead in Bethany after being in the tomb for four days?",
+    "correct": "Lazarus",
+    "distractors": [
+      "Nicodemus",
+      "Jairus",
+      "Zacchaeus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In the Sermon on the Mount, what series of blessings did Jesus teach, beginning with 'Blessed are the poor in spirit'?",
+    "correct": "The Beatitudes",
+    "distractors": [
+      "The Decalogue",
+      "The Canticles",
+      "The Levitical Blessings"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Bloch-SermonOnTheMount.jpg/330px-Bloch-SermonOnTheMount.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "When the disciples asked Jesus 'Lord, teach us to pray', what prayer did He give them?",
+    "correct": "The Lord's Prayer (Our Father)",
+    "distractors": [
+      "The Shema",
+      "The Magnificat",
+      "The Prayer of Jabez"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In the Parable of the Good Samaritan, who showed true mercy to the beaten traveler on the road to Jericho?",
+    "correct": "A Samaritan",
+    "distractors": [
+      "A Priest",
+      "A Levite",
+      "A Roman Soldier"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In the Parable of the Prodigal Son, what did the father do when he saw his returning son from afar?",
+    "correct": "He was filled with compassion, ran to him, and embraced him",
+    "distractors": [
+      "He sent his servants to turn him away at the gate",
+      "He commanded him to pay back every lost penny first",
+      "He ordered him to live outside the household as a stranger"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Rembrandt_Harmensz_van_Rijn_-_Return_of_the_Prodigal_Son_-_Google_Art_Project.jpg/330px-Rembrandt_Harmensz_van_Rijn_-_Return_of_the_Prodigal_Son_-_Google_Art_Project.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "What type of tree did the short tax collector Zacchaeus climb in Jericho in order to see Jesus?",
+    "correct": "Sycamore-fig tree",
+    "distractors": [
+      "Olive tree",
+      "Cedar of Lebanon",
+      "Pomegranate tree"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How many apostles did Jesus select as His inner foundational circle of followers?",
+    "correct": "12",
+    "distractors": [
+      "7",
+      "10",
+      "70"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which disciple betrayed Jesus in the Garden of Gethsemane with a kiss for thirty silver coins?",
+    "correct": "Judas Iscariot",
+    "distractors": [
+      "Thomas",
+      "Simon the Zealot",
+      "Bartholomew"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which apostle denied knowing Jesus three times before the rooster crowed, weeping bitterly afterward?",
+    "correct": "Peter",
+    "distractors": [
+      "John",
+      "Andrew",
+      "Philip"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In which garden on the Mount of Olives did Jesus pray with agonized sweat before His arrest?",
+    "correct": "Garden of Gethsemane",
+    "distractors": [
+      "Garden of Eden",
+      "Garden of Bethany",
+      "Garden of Siloam"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What meal did Jesus share with His disciples where He instituted the bread and cup of the New Covenant?",
+    "correct": "The Last Supper",
+    "distractors": [
+      "The Feast of Tabernacles",
+      "The Wedding Feast of Cana",
+      "The Breakfast on the Shore"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/The_Last_Supper_-_Leonardo_Da_Vinci_-_High_Resolution_32x16.jpg/330px-The_Last_Supper_-_Leonardo_Da_Vinci_-_High_Resolution_32x16.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "What was the name of the Roman governor who washed his hands and handed Jesus over to be crucified?",
+    "correct": "Pontius Pilate",
+    "distractors": [
+      "Herod Antipas",
+      "Felix",
+      "Festus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What is the Hebrew/Aramaic name of the place outside Jerusalem where Jesus was crucified, meaning 'The Place of the Skull'?",
+    "correct": "Golgotha",
+    "distractors": [
+      "Gethsemane",
+      "Bethesda",
+      "Moriah"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "On which day after His crucifixion did Jesus rise triumphantly from the dead?",
+    "correct": "The third day",
+    "distractors": [
+      "The seventh day",
+      "The fortieth day",
+      "The second day"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Rafael_-_ressureicaocristo01.jpg/330px-Rafael_-_ressureicaocristo01.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who was the first person to encounter the risen Jesus outside the empty garden tomb on Easter morning?",
+    "correct": "Mary Magdalene",
+    "distractors": [
+      "Simon Peter",
+      "John the Apostle",
+      "Nicodemus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which disciple insisted that he would not believe unless he saw and touched the nail marks in Jesus's hands?",
+    "correct": "Thomas",
+    "distractors": [
+      "Matthew",
+      "Thaddaeus",
+      "Nathanael"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to John 14:6, how did Jesus famously describe His identity?",
+    "correct": "'I am the way, the truth, and the life; no one comes to the Father except through Me'",
+    "distractors": [
+      "'I am the conqueror of empires and kingdoms'",
+      "'I am the high judge of earthly wealth'",
+      "'I am the lawgiver like Moses of old'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to John 10:11, how does Jesus describe Himself as the protector of believers?",
+    "correct": "'I am the good shepherd. The good shepherd gives His life for the sheep.'",
+    "distractors": [
+      "'I am the builder who makes towering cities'",
+      "'I am the master of merchants and trade'",
+      "'I am the general over legions of chariots'"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Rom%2C_Domitilla-Katakomben%2C_Der_gute_Hirte.jpg/330px-Rom%2C_Domitilla-Katakomben%2C_Der_gute_Hirte.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "What miracle did Jesus perform when a violent squall threatened to drown His disciples on the lake?",
+    "correct": "He rebuked the wind and sea, saying 'Peace, be still!' and there was a great calm",
+    "distractors": [
+      "He told them to throw their cargo into the deep",
+      "He swam to shore dragging the boat behind Him",
+      "He called down rain to dilute the waves"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How many days after His resurrection did Jesus ascend into Heaven in the sight of His disciples?",
+    "correct": "40 days",
+    "distractors": [
+      "3 days",
+      "7 days",
+      "50 days"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In the Parable of the Lost Sheep, what does the shepherd do when one of his hundred sheep wanders away?",
+    "correct": "He leaves the ninety-nine in the open country to search for the lost one until he finds it",
+    "distractors": [
+      "He writes off the loss and buys another sheep",
+      "He scolds the flock and closes the pen",
+      "He waits until nightfall to see if it returns alone"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What words of forgiveness did Jesus speak from the cross regarding His executioners in Luke 23:34?",
+    "correct": "'Father, forgive them, for they do not know what they do.'",
+    "distractors": [
+      "'May judgment fall swiftly upon this land.'",
+      "'Remember my disciples in Galilee.'",
+      "'Behold, my kingdom has departed from you.'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What Roman centurion who stood at the foot of the cross exclaimed at Jesus's death: 'Truly this was the Son of God!'?",
+    "correct": "The Roman centurion guarding the crucifixion",
+    "distractors": [
+      "Pontius Pilate the governor",
+      "Nicodemus the Pharisee",
+      "Joseph of Arimathea"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In Genesis chapter 1, on how many days did God complete the creation of the heavens, earth, and all life before resting on the seventh day?",
+    "correct": "6 days",
+    "distractors": [
+      "7 days",
+      "10 days",
+      "40 days"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg/330px-Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who was the first man created by God in the Garden of Eden?",
+    "correct": "Adam",
+    "distractors": [
+      "Noah",
+      "Abraham",
+      "Enoch"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What sign in the clouds did God give to Noah as an everlasting covenant promise never to destroy all life by flood again?",
+    "correct": "The Rainbow",
+    "distractors": [
+      "A pillar of cloud",
+      "A shooting star",
+      "A golden halo"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who is known as the 'Father of Faith', to whom God promised that his descendants would be as numerous as the stars of heaven?",
+    "correct": "Abraham",
+    "distractors": [
+      "Moses",
+      "David",
+      "Solomon"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What son was miraculously born to Abraham and Sarah in their old age according to God's promise?",
+    "correct": "Isaac",
+    "distractors": [
+      "Ishmael",
+      "Jacob",
+      "Esau"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which son of Jacob was given an ornate coat of many colors and was later sold by his brothers into Egypt?",
+    "correct": "Joseph",
+    "distractors": [
+      "Judah",
+      "Benjamin",
+      "Reuben"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Through what miraculous sight in the desert of Horeb did God first call Moses to deliver His people?",
+    "correct": "A bush that burned with fire yet was not consumed",
+    "distractors": [
+      "A whirlwind carrying a chariot of fire",
+      "A pillar of light rising from a mountain spring",
+      "A golden tablet falling from the clouds"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How many plagues did God send upon Egypt before Pharaoh finally allowed the Israelites to leave?",
+    "correct": "10 plagues",
+    "distractors": [
+      "7 plagues",
+      "12 plagues",
+      "40 plagues"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What body of water did Moses stretch out his hand over, which God divided so the Israelites crossed on dry ground?",
+    "correct": "The Red Sea",
+    "distractors": [
+      "The Jordan River",
+      "The Dead Sea",
+      "The Nile River"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "On which holy mountain did God give Moses the Ten Commandments inscribed on two tablets of stone?",
+    "correct": "Mount Sinai",
+    "distractors": [
+      "Mount Nebo",
+      "Mount Carmel",
+      "Mount Ararat"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/0001_FL9694984.jpg/330px-0001_FL9694984.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "What miraculous bread from heaven did God rain down daily to nourish the Israelites during their 40 years in the desert?",
+    "correct": "Manna",
+    "distractors": [
+      "Unleavened cakes",
+      "Coriander bread",
+      "Showbread"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "The massive fortified walls of which city fell flat after Joshua and the Israelites marched around them for seven days?",
+    "correct": "Jericho",
+    "distractors": [
+      "Ai",
+      "Hebron",
+      "Gibeon"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What young shepherd boy defeated the nine-foot Philistine champion Goliath using only a sling and five smooth stones?",
+    "correct": "David",
+    "distractors": [
+      "Jonathan",
+      "Saul",
+      "Gideon"
+    ],
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/David_with_the_Head_of_Goliath-Caravaggio_%281610%29.jpg/330px-David_with_the_Head_of_Goliath-Caravaggio_%281610%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail"
+  },
+  {
+    "category": "holy_bible",
+    "text": "What musical instrument did young David play skillfully to bring peace to King Saul when troubled by a distressing spirit?",
+    "correct": "The Harp (Lyre)",
+    "distractors": [
+      "The Trumpet",
+      "The Flute",
+      "The Cymbals"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which son of King David asked God for wisdom and understanding to govern His people, and built the First Temple in Jerusalem?",
+    "correct": "King Solomon",
+    "distractors": [
+      "Absalom",
+      "Adonijah",
+      "Rehoboam"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which prophet confronted 450 false prophets of Baal on Mount Carmel, where God answered with consuming fire from heaven?",
+    "correct": "Elijah",
+    "distractors": [
+      "Elisha",
+      "Isaiah",
+      "Jeremiah"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which prophet was swallowed by a great fish after trying to flee from God's instruction to preach in Nineveh?",
+    "correct": "Jonah",
+    "distractors": [
+      "Amos",
+      "Micah",
+      "Habakkuk"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which Hebrew prophet was cast into a den of hungry lions for praying to God, but was unharmed because God shut the lions' mouths?",
+    "correct": "Daniel",
+    "distractors": [
+      "Ezekiel",
+      "Jeremiah",
+      "Nehemiah"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What were the Babylonian names of Daniel's three companions who were thrown into the blazing furnace and walked out unburned?",
+    "correct": "Shadrach, Meshach, and Abednego",
+    "distractors": [
+      "Shem, Ham, and Japheth",
+      "Peter, James, and John",
+      "Caleb, Joshua, and Phinehas"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which brave Jewish queen risked her life to plead before the Persian King Xerxes to save her people from Haman's plot?",
+    "correct": "Queen Esther",
+    "distractors": [
+      "Ruth",
+      "Deborah",
+      "Hannah"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which devoted Moabite daughter-in-law declared to Naomi: 'Your people shall be my people, and your God, my God'?",
+    "correct": "Ruth",
+    "distractors": [
+      "Orpah",
+      "Rahab",
+      "Michal"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who was the mighty judge of Israel whose supernatural physical strength was bound to his Nazarite vow and uncut hair?",
+    "correct": "Samson",
+    "distractors": [
+      "Gideon",
+      "Jephthah",
+      "Barak"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which judge of Israel laid out a fleece of wool on the threshing floor to confirm God's sign that he would save Israel?",
+    "correct": "Gideon",
+    "distractors": [
+      "Samson",
+      "Othniel",
+      "Ehud"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who was taken up to heaven in a whirlwind accompanied by a chariot and horses of fire?",
+    "correct": "Elijah",
+    "distractors": [
+      "Elisha",
+      "Moses",
+      "Samuel"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What faithful man lost his livestock, family, and health, yet blessed God saying 'The Lord gave, and the Lord has taken away; blessed be the name of the Lord'?",
+    "correct": "Job",
+    "distractors": [
+      "Jeremiah",
+      "Habakkuk",
+      "Hosea"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "On what feast day in Jerusalem was the Holy Spirit poured out with the sound of a rushing mighty wind and divided tongues of fire?",
+    "correct": "The Day of Pentecost",
+    "distractors": [
+      "The Feast of Passover",
+      "The Feast of Trumpets",
+      "The Day of Atonement"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What Roman citizen and persecutor of the church saw a blinding light and heard the voice of Jesus on the road to Damascus?",
+    "correct": "Saul of Tarsus (Paul)",
+    "distractors": [
+      "Barnabas",
+      "Silas",
+      "Cornelius"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Who was the first Christian deacon and martyr, who prayed 'Lord Jesus, receive my spirit' as he was being stoned?",
+    "correct": "Stephen",
+    "distractors": [
+      "Philip",
+      "Prochorus",
+      "Nicanor"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What devout Roman centurion in Caesarea became the first Gentile convert to receive the Holy Spirit after Peter preached in his home?",
+    "correct": "Cornelius",
+    "distractors": [
+      "Julius",
+      "Claudius Lysias",
+      "Sergius Paulus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In what major Syrian city were the disciples of Jesus first called 'Christians'?",
+    "correct": "Antioch",
+    "distractors": [
+      "Jerusalem",
+      "Rome",
+      "Ephesus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What young co-worker of the Apostle Paul was commended for the genuine faith he inherited from his grandmother Lois and mother Eunice?",
+    "correct": "Timothy",
+    "distractors": [
+      "Titus",
+      "Philemon",
+      "Epaphroditus"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How many total books are in the New Testament of the Christian Bible?",
+    "correct": "27 books",
+    "distractors": [
+      "39 books",
+      "66 books",
+      "12 books"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which apostle was in exile on the island of Patmos when he received and wrote down the Book of Revelation?",
+    "correct": "John the Apostle",
+    "distractors": [
+      "Peter",
+      "Paul",
+      "Jude"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to 1 Corinthians 13:13, what three virtues abide, and which of them is explicitly named the greatest?",
+    "correct": "Faith, hope, and love; but the greatest of these is love",
+    "distractors": [
+      "Patience, peace, and truth; the greatest is truth",
+      "Righteousness, fasting, and almsgiving; the greatest is fasting",
+      "Wisdom, courage, and zeal; the greatest is zeal"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to Galatians 5:22-23, what is the very first characteristic named in the Fruit of the Spirit?",
+    "correct": "Love",
+    "distractors": [
+      "Joy",
+      "Peace",
+      "Self-control"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In Ephesians 6:11-17, what spiritual armor are believers urged to put on to withstand the schemes of darkness?",
+    "correct": "The Whole Armor of God (Belt of Truth, Breastplate of Righteousness, Shield of Faith, Sword of the Spirit)",
+    "distractors": [
+      "The Robe of David and Crown of Solomon",
+      "The Chariots of Elijah and Fire of Mount Carmel",
+      "The Staff of Moses and Ark of the Covenant"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Which physician traveled with the Apostle Paul on missionary journeys and authored both a Gospel and the Book of Acts?",
+    "correct": "Luke",
+    "distractors": [
+      "Mark",
+      "Matthew",
+      "Apollos"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What miraculous event shook the Philippian jail at midnight while Paul and Silas were singing praises to God in chains?",
+    "correct": "A great earthquake opened all doors and unfastened everyone's chains",
+    "distractors": [
+      "A lightning bolt struck down the guards",
+      "An angel carried them away in secret to Athens",
+      "A sudden flood washed through the cells"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In 2 Timothy 4:7, what victorious words did the Apostle Paul write as he neared the completion of his earthly life?",
+    "correct": "'I have fought the good fight, I have finished the race, I have kept the faith.'",
+    "distractors": [
+      "'I have gathered great renown across Rome and Greece.'",
+      "'My work on earth is done without any trial or tribulation.'",
+      "'I look to the kingdoms of the world with pride.'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "On the Island of Malta, what creature fastened onto Paul's hand from the firewood, yet caused him no harm by God's protection?",
+    "correct": "A poisonous viper",
+    "distractors": [
+      "A desert scorpion",
+      "A rabid dog",
+      "A venomous spider"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Complete the beloved declaration of God's love in John 3:16: 'For God so loved the world that He gave His only begotten Son, that whoever believes in Him should not perish but have...'",
+    "correct": "Everlasting life",
+    "distractors": [
+      "Worldly wealth",
+      "Temporal power",
+      "Earthly honor"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "How does the famous Psalm of comfort and assurance, Psalm 23, open?",
+    "correct": "'The Lord is my shepherd; I shall not want.'",
+    "distractors": [
+      "'The earth is the Lord's, and all its fullness.'",
+      "'I will lift up my eyes to the hills.'",
+      "'God is our refuge and strength, a very present help in trouble.'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Complete Proverbs 3:5-6: 'Trust in the Lord with all your heart, and lean not on your own understanding; in all your ways acknowledge Him, and He shall...'",
+    "correct": "Direct your paths",
+    "distractors": [
+      "Multiply your gold",
+      "Remove every challenge",
+      "Grant you worldly fame"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "In Matthew 28:19, in whose Name did Jesus command His followers to baptize all nations?",
+    "correct": "In the name of the Father and of the Son and of the Holy Spirit",
+    "distractors": [
+      "In the name of Moses, Elijah, and the Prophets",
+      "In the name of the holy city of Jerusalem",
+      "In the name of the Twelve Apostles"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Complete the declaration of spiritual strength in Philippians 4:13: 'I can do all things through Christ who...'",
+    "correct": "Strengthens me",
+    "distractors": [
+      "Replaces me",
+      "Exalts my status",
+      "Enriches my treasury"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What comforting invitation did Jesus offer in Matthew 11:28: 'Come to Me, all you who labor and are heavy laden, and I will give you...'",
+    "correct": "Rest",
+    "distractors": [
+      "Wealth",
+      "Vengeance",
+      "Political victory"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What are the first 10 words of the entire Holy Bible in Genesis 1:1?",
+    "correct": "'In the beginning God created the heavens and the earth.'",
+    "distractors": [
+      "'The earth was formless and void, and darkness was over the deep.'",
+      "'Let there be light, and there was light upon the earth.'",
+      "'Praise the Lord, all nations; laud Him, all you peoples.'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to Romans 8:38-39, what power in heaven, earth, death, or life can separate believers from the love of God in Christ Jesus?",
+    "correct": "Nothing can separate us",
+    "distractors": [
+      "Only our deepest trials",
+      "The ruler of this world",
+      "Hardship and poverty"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What does Micah 6:8 say that the Lord requires of you: 'to act justly, to love mercy, and to...'",
+    "correct": "Walk humbly with your God",
+    "distractors": [
+      "Conquer many kingdoms",
+      "Build temples of cedar and gold",
+      "Perform great public signs"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "Complete Jeremiah 29:11: 'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you...'",
+    "correct": "A future and a hope",
+    "distractors": [
+      "Immediate ease and wealth",
+      "Power over your adversaries",
+      "Exemption from every challenge"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "What assurance did God give Joshua as he prepared to lead the people into the Promised Land in Joshua 1:9?",
+    "correct": "'Be strong and of good courage; do not be afraid... for the Lord your God is with you wherever you go.'",
+    "distractors": [
+      "'Lean on your mighty warriors and trust in their spears.'",
+      "'Wait on the mountain until all dangers have passed.'",
+      "'Build high stone walls before you cross over.'"
+    ]
+  },
+  {
+    "category": "holy_bible",
+    "text": "According to Matthew 6:33, what did Jesus say we should seek first above all food, clothing, and worry?",
+    "correct": "Seek first the kingdom of God and His righteousness",
+    "distractors": [
+      "Seek first earthly security and stored grain",
+      "Seek first the favor of governors and rulers",
+      "Seek first knowledge of worldly affairs"
+    ]
   }
 ];
 

@@ -5,7 +5,7 @@ import {
   Gamepad2, Zap, SlidersHorizontal, ChevronRight, AlertCircle,
   FileSpreadsheet, Plus, Trash2, CheckCircle2, Sparkles, Loader2,
   Flag, Globe, Tag, PawPrint, BookOpen, MapPin, FlaskConical,
-  Calculator, Binary, Landmark, Lightbulb, Check, X,
+  Calculator, Binary, Landmark, Lightbulb, Check, X, Cross,
   User, KeyRound, Play, ArrowLeft, ArrowRight,
   Triangle, Diamond, Circle, Square,
   FileText, Upload, Library, Download, ArrowUp, ArrowDown,
@@ -28,6 +28,10 @@ import {
   type AnimalCategory,
   ANIMAL_CATEGORIES,
   getAnimalsByCategory,
+  WORLD_BIBLE_QUESTIONS,
+  type BibleCategory,
+  BIBLE_CATEGORIES,
+  getBibleQuestionsByCategory,
 } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
@@ -43,6 +47,7 @@ import {
 import { buildFlagQuizQuestions } from '../lib/flagQuestions';
 import { buildLogoQuizQuestions } from '../lib/logoQuestions';
 import { buildAnimalQuizQuestions } from '../lib/animalQuestions';
+import { buildBibleQuizQuestions } from '../lib/bibleQuestions';
 import { preloadFlagImages } from '../lib/flagPreloader';
 
 // Category icon map — 100% Lucide SVG vector icons, NO emojis
@@ -51,6 +56,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   countries_capitals: Globe,
   logos_brands: Tag,
   animals: PawPrint,
+  holy_bible: Cross,
   history: BookOpen,
   geography: MapPin,
   science: FlaskConical,
@@ -66,6 +72,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   countries_capitals: 'World Capitals',
   logos_brands: 'Logos & Brands (70+ Brands)',
   animals: 'Fauna & Animals (75+ Wildlife)',
+  holy_bible: 'Holy Bible & Jesus (82 Questions)',
   history: 'World History',
   geography: 'Global Geography',
   science: 'Science & Physics',
@@ -100,8 +107,8 @@ export default function QuizLauncher() {
   const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
-  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'animals' | 'builder' | 'library' | null>(null);
-  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'logos_brands', 'animals', 'general_knowledge']));
+  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'animals' | 'bible' | 'builder' | 'library' | null>(null);
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'holy_bible', 'logos_brands', 'animals', 'general_knowledge']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
   const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
@@ -125,12 +132,18 @@ export default function QuizLauncher() {
   const [animalQuestionCount, setAnimalQuestionCount] = useState<number>(15);
   const [animalTimeLimit, setAnimalTimeLimit] = useState<number>(15);
 
-  // Prewarm initial flag, logo, and animal images on mount
+  // Holy Bible state
+  const [bibleCategory, setBibleCategory] = useState<BibleCategory | 'all'>('all');
+  const [bibleQuestionCount, setBibleQuestionCount] = useState<number>(15);
+  const [bibleTimeLimit, setBibleTimeLimit] = useState<number>(15);
+
+  // Prewarm initial flag, logo, animal, and bible images on mount
   useEffect(() => {
     const previewFlags = WORLD_COUNTRIES.slice(0, 25).map((c) => c.flagUrl);
     const previewLogos = WORLD_BRAND_LOGOS.slice(0, 25).map((l) => l.logoUrl);
     const previewAnimals = WORLD_ANIMALS.slice(0, 25).map((a) => a.imageUrl);
-    void preloadFlagImages([...previewFlags, ...previewLogos, ...previewAnimals]);
+    const previewBible = WORLD_BIBLE_QUESTIONS.map((b) => b.imageUrl).filter((url): url is string => Boolean(url));
+    void preloadFlagImages([...previewFlags, ...previewLogos, ...previewAnimals, ...previewBible]);
   }, []);
 
   useEffect(() => {
@@ -333,6 +346,17 @@ export default function QuizLauncher() {
     const questions = buildAnimalQuizQuestions(count, category, animalTimeLimit);
     handleLaunchWithQuestions(questions);
   }, [displayName, animalQuestionCount, animalCategory, animalTimeLimit, handleLaunchWithQuestions]);
+
+  const handleLaunchBibleQuiz = useCallback((count = bibleQuestionCount, category = bibleCategory) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setJoinError('Please enter your nickname first');
+      nameInputRef.current?.focus();
+      return;
+    }
+    const questions = buildBibleQuizQuestions(count, category, bibleTimeLimit);
+    handleLaunchWithQuestions(questions);
+  }, [displayName, bibleQuestionCount, bibleCategory, bibleTimeLimit, handleLaunchWithQuestions]);
 
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
@@ -1531,6 +1555,180 @@ export default function QuizLauncher() {
             </motion.div>
           )}
 
+          {/* ─── VIEW: HOLY BIBLE & JESUS SCRIPTURE DASHBOARD ──────────────── */}
+          {mode === 'bible' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMode('categories')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Categories</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300">
+                  <Cross className="w-3 h-3 text-amber-400" />
+                  <span>82 Holy Bible Questions · Faith &amp; Scripture</span>
+                </div>
+              </div>
+
+              {/* Testament & Theme Filter */}
+              <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Select Biblical Theme / Testament
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBibleCategory('all')}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      bibleCategory === 'all'
+                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                        : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Cross className="w-3.5 h-3.5 text-amber-400" />
+                      <span>All Scripture &amp; Jesus</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono">82</span>
+                  </button>
+                  {BIBLE_CATEGORIES.map((cat) => {
+                    const count = getBibleQuestionsByCategory(cat).length;
+                    const active = bibleCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setBibleCategory(cat)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                            : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 truncate pr-1">
+                          <BookOpen className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                          <span className="truncate">{cat}</span>
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sample Bible Question / Art Preview Reel */}
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Sample Scripture Questions:</span>
+                    <span className="text-amber-400 font-semibold">100% Biblical Reference Included</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {getBibleQuestionsByCategory(bibleCategory === 'all' ? undefined : bibleCategory)
+                      .slice(0, 4)
+                      .map((q) => (
+                        <div
+                          key={q.id}
+                          className="flex items-start gap-2.5 p-2.5 rounded-xl bg-black/30 border border-white/10"
+                        >
+                          {q.imageUrl ? (
+                            <div className="w-14 h-14 rounded-lg bg-slate-900 overflow-hidden border border-white/20 flex-shrink-0">
+                              <img
+                                src={q.imageUrl}
+                                alt={q.text}
+                                className="w-full h-full object-cover"
+                                loading="eager"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                              <Cross className="w-6 h-6 text-amber-400" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-white font-medium line-clamp-2 leading-snug">{q.text}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-emerald-400 truncate">Ans: {q.correctAnswer}</span>
+                              {q.verseRef && (
+                                <span className="text-[10px] text-amber-400/80 font-mono truncate">{q.verseRef}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Settings: Count & Time Limit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Question Count */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Number of Scripture Questions:</span>
+                    <span className="text-amber-400 font-mono font-bold text-sm">{bibleQuestionCount}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[5, 10, 15, 20, 25, 30].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setBibleQuestionCount(num)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          bibleQuestionCount === num
+                            ? 'bg-amber-500/30 border-amber-500/60 text-amber-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time Limit */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Time Per Question:</span>
+                    <span className="text-amber-400 font-mono font-bold text-sm">{bibleTimeLimit}s</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { s: 10, label: '10s Blitz' },
+                      { s: 15, label: '15s Standard' },
+                      { s: 20, label: '20s Relaxed' },
+                    ].map((t) => (
+                      <button
+                        key={t.s}
+                        type="button"
+                        onClick={() => setBibleTimeLimit(t.s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          bibleTimeLimit === t.s
+                            ? 'bg-amber-500/30 border-amber-500/60 text-amber-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Launch Button */}
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => handleLaunchBibleQuiz(bibleQuestionCount, bibleCategory)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-white font-extrabold text-sm shadow-xl shadow-amber-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
+                <span>Launch Holy Bible &amp; Jesus Quiz ({bibleQuestionCount} Questions)</span>
+              </button>
+            </motion.div>
+          )}
+
           {/* ─── VIEW 3: CATEGORIES PICKER ────────────────────────────────────── */}
           {mode === 'categories' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -1552,6 +1750,7 @@ export default function QuizLauncher() {
                   const Icon = CATEGORY_ICONS[cat] ?? Sparkles;
                   const active = selectedCats.has(cat);
                   const isFlags = cat === 'flags';
+                  const isBible = cat === 'holy_bible';
                   const isLogos = cat === 'logos_brands';
                   const isAnimals = cat === 'animals';
                   return (
@@ -1563,21 +1762,28 @@ export default function QuizLauncher() {
                         active
                           ? isFlags
                             ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
-                            : isLogos
-                              ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
-                              : isAnimals
-                                ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
-                                : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
+                            : isBible
+                              ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                              : isLogos
+                                ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                                : isAnimals
+                                  ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
+                                  : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
                           : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate min-w-0">
-                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isLogos ? 'text-violet-400' : isAnimals ? 'text-amber-400' : 'text-cyan-400') : 'text-slate-500'}`} />
+                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isBible ? 'text-amber-400' : isLogos ? 'text-violet-400' : isAnimals ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-500'}`} />
                         <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
                       </div>
                       {isFlags && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
                           209
+                        </span>
+                      )}
+                      {isBible && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 font-bold flex-shrink-0">
+                          82
                         </span>
                       )}
                       {isLogos && (
@@ -1586,7 +1792,7 @@ export default function QuizLauncher() {
                         </span>
                       )}
                       {isAnimals && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 font-bold flex-shrink-0">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
                           78
                         </span>
                       )}
@@ -1595,18 +1801,37 @@ export default function QuizLauncher() {
                 })}
               </div>
 
-              {/* Visual Category Sub-Filter Shortcuts (Continents, Industry, Biome) */}
-              {(selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals')) && (
+              {/* Special Category Sub-Filter Shortcuts (Scripture, Continents, Industry, Biome) */}
+              {(selectedCats.has('holy_bible') || selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals')) && (
                 <div className="p-3.5 rounded-2xl bg-[#0d1322] border border-white/10 space-y-2.5">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1.5 text-cyan-400">
                       <SlidersHorizontal className="w-3.5 h-3.5" />
-                      <span>Visual Challenges Filter</span>
+                      <span>Special Challenges Filter</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize region, industry, or biome</span>
+                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize scripture, region, industry, or biome</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                    {selectedCats.has('holy_bible') && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('bible')}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Cross className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-xs truncate">Holy Bible &amp; Jesus</div>
+                            <div className="text-[10px] text-amber-400 truncate">
+                              Theme: {bibleCategory === 'all' ? 'All Scripture (82)' : bibleCategory}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </button>
+                    )}
+
                     {selectedCats.has('flags') && (
                       <button
                         type="button"
@@ -1649,18 +1874,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('animals')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <PawPrint className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <PawPrint className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <div className="font-bold text-white text-xs truncate">Fauna &amp; Wildlife</div>
-                            <div className="text-[10px] text-amber-400 truncate">
+                            <div className="text-[10px] text-emerald-400 truncate">
                               Biome: {animalCategory === 'all' ? 'All (78)' : animalCategory}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
                   </div>

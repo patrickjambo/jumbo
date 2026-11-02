@@ -189,6 +189,7 @@ export const QUESTION_CATEGORIES = [
   'countries_capitals',
   'logos_brands',
   'animals',
+  'holy_bible',
   'history',
   'geography',
   'science',

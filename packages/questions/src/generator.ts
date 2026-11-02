@@ -13,6 +13,8 @@ import {
   type BrandCategory,
   WORLD_ANIMALS,
   type AnimalCategory,
+  WORLD_BIBLE_QUESTIONS,
+  type BibleCategory,
 } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
@@ -244,6 +246,34 @@ export function generateAnimalQuestions(count: number, category?: AnimalCategory
   return questions;
 }
 
+export function generateBibleQuestions(count: number, category?: BibleCategory | 'all'): Question[] {
+  let pool = WORLD_BIBLE_QUESTIONS;
+  if (category && category !== 'all') {
+    const filtered = pool.filter((b) => b.category === category);
+    if (filtered.length >= 4) pool = filtered;
+  }
+  const shuffledPool = shuffle(pool);
+  const selected = shuffledPool.slice(0, Math.min(count, pool.length));
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const distractors = item.options.filter((o) => o !== item.correctAnswer);
+    questions.push(QuestionSchema.parse({
+      id: randomId(),
+      category: 'holy_bible',
+      text: item.text,
+      imageUrl: item.imageUrl,
+      options: makeOptions(item.correctAnswer, distractors),
+      difficulty: item.difficulty,
+      source: item.verseRef ? `Holy Bible (${item.verseRef})` : 'Holy Bible',
+      timeLimit: 15,
+      points: 1000,
+    }));
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -324,6 +354,7 @@ export async function generateQuestions(
       if (cat === 'flags') return generateFlagQuestions(perCat);
       if (cat === 'logos_brands') return generateLogoQuestions(perCat);
       if (cat === 'animals') return generateAnimalQuestions(perCat);
+      if (cat === 'holy_bible') return generateBibleQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -368,6 +399,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(a))) {
           unique.push(a);
           existingKeys.add(dedupeKey(a));
+        }
+      }
+    } else if (categories.includes('holy_bible') && categories.length === 1) {
+      // If only holy bible requested, backfill from the 80+ Bible question bank
+      const extraBible = generateBibleQuestions(totalCount);
+      for (const b of extraBible) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(b))) {
+          unique.push(b);
+          existingKeys.add(dedupeKey(b));
         }
       }
     } else {
