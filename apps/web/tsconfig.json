@@ -11,7 +11,9 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@jumbo/shared": ["../../packages/shared/src/index.ts"],
+      "@jumbo/questions": ["../../packages/questions/src/index.ts"]
     },
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -19,6 +21,7 @@
   },
   "include": ["src/**/*", "vite.config.ts"],
   "references": [
-    { "path": "../../packages/shared" }
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/questions" }
   ]
 }

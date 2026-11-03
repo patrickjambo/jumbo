@@ -37,6 +37,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@jumbo/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@jumbo/questions': path.resolve(__dirname, '../../packages/questions/src'),
     },
   },
   build: {
