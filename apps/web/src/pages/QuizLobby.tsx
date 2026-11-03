@@ -96,11 +96,11 @@ export default function QuizLobby() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <p className="text-sm text-[var(--text-secondary)] font-medium uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-widest mb-3">
               Game PIN
             </p>
             <div className="flex items-center justify-center gap-3 mb-3">
-              <h1 className="text-6xl font-bold tracking-widest text-gradient select-all">
+              <h1 className="text-5xl font-extrabold tracking-[0.25em] text-gradient select-all font-mono">
                 {pin}
               </h1>
               <button
@@ -110,25 +110,25 @@ export default function QuizLobby() {
                 aria-label="Copy PIN"
                 title="Copy Game PIN"
               >
-                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                {copied ? <Check className="w-5 h-5 text-brand-300" /> : <Copy className="w-5 h-5" />}
               </button>
             </div>
             <p className="text-xs text-[var(--text-tertiary)] break-all font-mono">
-              Share link: {joinUrl}
+              {joinUrl}
             </p>
           </motion.div>
 
           {/* Player bubbles */}
           <div className="glass-card p-6 mb-4">
             <div className="flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 text-[var(--text-secondary)]" />
-              <span className="text-sm font-semibold text-[var(--text-secondary)]">
+              <Users className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+              <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
                 {store.players.length} player{store.players.length !== 1 ? 's' : ''} in lobby
               </span>
             </div>
 
             {store.status === 'generating' && (
-              <div className="flex items-center gap-3 text-sm text-brand-400 mb-4">
+              <div className="flex items-center gap-3 text-sm text-brand-300 mb-4">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Preparing questions…
               </div>
@@ -180,13 +180,13 @@ export default function QuizLobby() {
               )}
             </button>
           ) : (
-            <div className="glass-card-sm p-4 text-center space-y-1.5 border border-brand-500/20">
-              <div className="flex items-center justify-center gap-2 text-sm font-semibold text-brand-300">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Waiting for host to start the game…
+            <div className="glass-card-sm p-4 text-center space-y-1.5 border border-white/8">
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+                <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
+                Waiting for host to start…
               </div>
               <p className="text-xs text-[var(--text-tertiary)]">
-                The game will automatically begin on your screen when started.
+                The game will begin automatically on your screen.
               </p>
             </div>
           )}

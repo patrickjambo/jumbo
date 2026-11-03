@@ -924,7 +924,7 @@ export default function QuizLauncher() {
           transition={{ duration: 0.35, ease: 'easeOut' }}
         >
           {/* Top gradient highlight line */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-400" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 via-indigo-500 to-violet-400 opacity-80" />
 
           {/* Header */}
           <div className="flex items-center justify-between gap-3 mb-6">
@@ -1215,10 +1215,10 @@ export default function QuizLauncher() {
                 <button
                   type="button"
                   onClick={() => setMode('categories')}
-                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-cyan-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
+                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <SlidersHorizontal className="w-5 h-5 text-cyan-400" />
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <SlidersHorizontal className="w-5 h-5 text-violet-400" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white mb-0.5">Pick Categories</h3>
@@ -1230,10 +1230,10 @@ export default function QuizLauncher() {
                 <button
                   type="button"
                   onClick={() => setMode('builder')}
-                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-amber-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
+                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <FileText className="w-5 h-5 text-amber-400" />
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <FileText className="w-5 h-5 text-violet-400" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white mb-0.5">Custom / PDF</h3>
@@ -2357,12 +2357,7 @@ export default function QuizLauncher() {
                 {QUESTION_CATEGORIES.map((cat) => {
                   const Icon = CATEGORY_ICONS[cat] ?? Sparkles;
                   const active = selectedCats.has(cat);
-                  const isFlags = cat === 'flags';
-                  const isBible = cat === 'holy_bible';
-                  const isHistory = cat === 'history';
-                  const isGeography = cat === 'geography';
-                  const isLogos = cat === 'logos_brands';
-                  const isAnimals = cat === 'animals';
+                  const count = cat === 'flags' ? 209 : cat === 'logos_brands' ? 72 : cat === 'animals' ? 78 : cat === 'holy_bible' ? 82 : cat === 'history' ? 84 : cat === 'geography' ? 84 : null;
                   return (
                     <button
                       key={cat}
@@ -2370,54 +2365,19 @@ export default function QuizLauncher() {
                       onClick={() => toggleCat(cat)}
                       className={`flex items-center justify-between gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                         active
-                          ? isFlags
-                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
-                            : isBible
-                              ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
-                              : isHistory
-                                ? 'bg-orange-500/20 border-orange-500/60 text-orange-200 ring-1 ring-orange-500/30'
-                                : isGeography
-                                  ? 'bg-teal-500/20 border-teal-500/60 text-teal-200 ring-1 ring-teal-500/30'
-                                  : isLogos
-                                    ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
-                                    : isAnimals
-                                      ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 ring-1 ring-emerald-500/30'
-                                      : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 ring-1 ring-cyan-500/30'
-                          : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200'
+                          ? 'bg-violet-500/15 border-violet-500/50 text-violet-100 ring-1 ring-violet-500/25'
+                          : 'bg-[#141b2c] border-white/5 text-slate-400 hover:text-slate-200 hover:border-white/10'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate min-w-0">
-                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? (isFlags ? 'text-emerald-400' : isBible ? 'text-amber-400' : isHistory ? 'text-orange-400' : isGeography ? 'text-teal-400' : isLogos ? 'text-violet-400' : isAnimals ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-500'}`} />
+                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-violet-400' : 'text-slate-500'}`} />
                         <span className="truncate">{CATEGORY_LABELS[cat] ?? cat}</span>
                       </div>
-                      {isFlags && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
-                          209
-                        </span>
-                      )}
-                      {isBible && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 font-bold flex-shrink-0">
-                          82
-                        </span>
-                      )}
-                      {isHistory && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/30 text-orange-300 font-bold flex-shrink-0">
-                          84
-                        </span>
-                      )}
-                      {isGeography && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-500/30 text-teal-300 font-bold flex-shrink-0">
-                          84
-                        </span>
-                      )}
-                      {isLogos && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300 font-bold flex-shrink-0">
-                          72
-                        </span>
-                      )}
-                      {isAnimals && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold flex-shrink-0">
-                          78
+                      {count !== null && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
+                          active ? 'bg-violet-500/25 text-violet-300' : 'bg-white/5 text-slate-500'
+                        }`}>
+                          {count}
                         </span>
                       )}
                     </button>
@@ -2429,11 +2389,11 @@ export default function QuizLauncher() {
               {(selectedCats.has('holy_bible') || selectedCats.has('history') || selectedCats.has('geography') || selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals')) && (
                 <div className="p-3.5 rounded-2xl bg-[#0d1322] border border-white/10 space-y-2.5">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5 text-cyan-400">
+                    <span className="flex items-center gap-1.5 text-violet-400">
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                       <span>Special Challenges Filter</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize wonders, eras, scripture, region, industry, or wildlife</span>
+                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize eras, scripture, region, industry, or wildlife</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
@@ -2441,18 +2401,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('geography')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Compass className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                          <Compass className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <div className="font-bold text-white text-xs truncate">Global Geography</div>
-                            <div className="text-[10px] text-teal-400 truncate">
+                            <div className="text-[10px] text-slate-400 truncate">
                               Wonders: {geographyThemeLabel}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-teal-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
 
@@ -2460,18 +2420,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('history')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Landmark className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                          <Landmark className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <div className="font-bold text-white text-xs truncate">World History</div>
-                            <div className="text-[10px] text-orange-400 truncate">
+                            <div className="text-[10px] text-slate-400 truncate">
                               Eras: {historyEraLabel}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-orange-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
 
@@ -2479,18 +2439,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('bible')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Cross className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <Cross className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
-                            <div className="font-bold text-white text-xs truncate">Holy Bible &amp; Jesus</div>
-                            <div className="text-[10px] text-amber-400 truncate">
+                            <div className="font-bold text-white text-xs truncate">Holy Bible & Jesus</div>
+                            <div className="text-[10px] text-slate-400 truncate">
                               Themes: {bibleThemeLabel}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
 
@@ -2498,18 +2458,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('flags')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Flag className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          <Flag className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <div className="font-bold text-white text-xs truncate">National Flags</div>
-                            <div className="text-[10px] text-emerald-400 truncate">
+                            <div className="text-[10px] text-slate-400 truncate">
                               Region: {flagContinent === 'all' ? 'Worldwide (209)' : flagContinent}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
 
@@ -2517,18 +2477,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('logos')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <Tag className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
-                            <div className="font-bold text-white text-xs truncate">Logos &amp; Brands</div>
-                            <div className="text-[10px] text-violet-400 truncate">
+                            <div className="font-bold text-white text-xs truncate">Logos & Brands</div>
+                            <div className="text-[10px] text-slate-400 truncate">
                               Industry: {logoCategory === 'all' ? 'All (72)' : logoCategory}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-violet-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
 
@@ -2536,18 +2496,18 @@ export default function QuizLauncher() {
                       <button
                         type="button"
                         onClick={() => setMode('animals')}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold transition-all group text-left"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <PawPrint className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          <PawPrint className="w-4 h-4 text-violet-400 flex-shrink-0" />
                           <div className="min-w-0">
-                            <div className="font-bold text-white text-xs truncate">Fauna &amp; Wildlife</div>
-                            <div className="text-[10px] text-emerald-400 truncate">
+                            <div className="font-bold text-white text-xs truncate">Fauna & Wildlife</div>
+                            <div className="text-[10px] text-slate-400 truncate">
                               Biome: {animalCategory === 'all' ? 'All (78)' : animalCategory}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                       </button>
                     )}
                   </div>
@@ -2558,7 +2518,7 @@ export default function QuizLauncher() {
               <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
                 <div className="flex justify-between text-xs font-bold text-slate-300">
                   <span>Questions in Game:</span>
-                  <span className="text-cyan-400">{questionCount}</span>
+                  <span className="text-violet-400 font-mono">{questionCount}</span>
                 </div>
                 <input
                   type="range"
@@ -2567,7 +2527,7 @@ export default function QuizLauncher() {
                   step={5}
                   value={questionCount}
                   onChange={(e) => setQuestionCount(Number(e.target.value))}
-                  className="w-full accent-cyan-400 cursor-pointer"
+                  className="w-full accent-violet-500 cursor-pointer"
                 />
               </div>
 
@@ -2575,7 +2535,7 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={handleCreateAuto}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 via-indigo-600 to-violet-600 text-white font-extrabold text-sm shadow-lg shadow-indigo-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-extrabold text-sm shadow-lg shadow-violet-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
                 <span>Launch Quiz with {selectedCats.size} Categories</span>

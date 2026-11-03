@@ -52,43 +52,33 @@ export default function Landing() {
       <AppNavbar />
 
       {/* Hero */}
-      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-32">
-        <div className="text-center max-w-3xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/15 border border-brand-500/25 text-brand-300 text-sm font-medium mb-6">
-              <Zap className="w-3.5 h-3.5" />
-              Meetings + Quiz in one app
-            </span>
-          </motion.div>
+      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-20 pb-32">
+        <div className="text-center max-w-2xl mx-auto">
 
           <motion.h1
-            className="text-display-xl text-gradient mb-6 text-balance"
+            className="text-5xl sm:text-6xl font-extrabold tracking-tight text-gradient mb-5 text-balance"
+            style={{ lineHeight: 1.1 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
+            transition={{ delay: 0.05, duration: 0.6 }}
           >
-            Meet. Play. Win together.
+            Meet. Play.<br />Win together.
           </motion.h1>
 
           <motion.p
-            className="text-lg text-[var(--text-secondary)] mb-10 text-balance"
+            className="text-base sm:text-lg text-[var(--text-secondary)] mb-10 text-balance leading-relaxed max-w-xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            transition={{ delay: 0.15, duration: 0.6 }}
           >
-            The only platform that combines crystal-clear video meetings with live quiz games
-            where every player sees the real-time leaderboard.
+            The platform that combines video meetings with live quiz games — leaderboards sync for every player in real time.
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            className="flex flex-col sm:flex-row gap-3 justify-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={{ delay: 0.25, duration: 0.6 }}
           >
             <button
               id="hero-start-meeting-btn"
@@ -110,8 +100,8 @@ export default function Landing() {
           </motion.div>
         </div>
 
-        {/* Animated demo / feature cards */}
-        <div className="mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Feature cards */}
+        <div className="mt-28 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feat, i) => (
             <motion.div
               key={feat.title}
@@ -125,7 +115,7 @@ export default function Landing() {
               <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center mb-4">
                 <feat.icon className="w-5 h-5 text-brand-400" />
               </div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-1.5">{feat.title}</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">{feat.title}</h3>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{feat.desc}</p>
             </motion.div>
           ))}
@@ -134,7 +124,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-sm text-[var(--text-tertiary)]">
-        <p>© 2026 Jumbo App · Built with open-source tools</p>
+        <p>© 2026 Jumbo · Built for teams</p>
       </footer>
     </div>
   );

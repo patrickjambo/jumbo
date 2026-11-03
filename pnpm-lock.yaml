@@ -81,6 +81,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@jumbo/questions':
+        specifier: workspace:*
+        version: link:../../packages/questions
       '@jumbo/shared':
         specifier: workspace:*
         version: link:../../packages/shared

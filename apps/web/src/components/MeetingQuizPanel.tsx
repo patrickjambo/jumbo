@@ -8,11 +8,14 @@ import {
   Zap, ArrowRight, Crown, Medal, Award,
   Lightbulb, FlaskConical, MapPin, Calculator,
   BookOpen, PawPrint, Tag, Flag, Check, Timer,
+  Pause, Play as ResumeIcon, LogOut, Globe, Cross, History,
 } from 'lucide-react';
 import type { Room } from 'livekit-client';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { useQuizStore } from '../store';
 import { FlagQuestionImage } from './FlagQuestionImage';
+import { generateQuestions } from '@jumbo/questions';
+import type { QuestionCategory } from '@jumbo/questions';
 
 // ─── Kahoot-style shape + colour meta — Lucide icons only, NO emojis ─────────
 const OPTION_META = [
@@ -62,16 +65,18 @@ const OPTION_META = [
   },
 ];
 
-// Category config — Lucide icons only, NO emojis
-const QUICK_CATEGORIES = [
-  { id: 'general_knowledge', label: 'General',   icon: Lightbulb },
+// ─── All categories from Jumbo Quiz gaming — synced with QuizLauncher ─────────
+const QUICK_CATEGORIES: { id: QuestionCategory; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'general_knowledge', label: 'General',    icon: Lightbulb },
   { id: 'science',           label: 'Science',    icon: FlaskConical },
-  { id: 'geography',         label: 'Geography',  icon: MapPin },
+  { id: 'geography',         label: 'Geography',  icon: Globe },
   { id: 'flags',             label: 'Flags',      icon: Flag },
-  { id: 'math_formulas',     label: 'Math',       icon: Calculator },
-  { id: 'history',           label: 'History',    icon: BookOpen },
+  { id: 'history',           label: 'History',    icon: History },
   { id: 'animals',           label: 'Animals',    icon: PawPrint },
   { id: 'logos_brands',      label: 'Logos',      icon: Tag },
+  { id: 'holy_bible',        label: 'Holy Bible', icon: Cross },
+  { id: 'math_formulas',     label: 'Math',       icon: Calculator },
+  { id: 'countries_capitals',label: 'Capitals',   icon: MapPin },
 ];
 
 // Rank medal icons — NO emojis
@@ -89,7 +94,7 @@ interface MeetingQuizPanelProps {
 }
 
 export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanelProps) {
-  const { connected, error, createGame, joinGame, startGame, submitAnswer, nextQuestion, endGame } = useQuizSocket();
+  const { connected, error, createGame, joinGame, startGame, submitAnswer, nextQuestion, endGame, pauseGame, resumeGame } = useQuizSocket();
   const store = useQuizStore();
 
   const [activeTab, setActiveTab] = useState<'host' | 'join'>('host');
@@ -99,6 +104,8 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
   const [timeLeft, setTimeLeft] = useState(0);
   const [isCopied, setIsCopied] = useState(false);
   const [broadcastSent, setBroadcastSent] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const localName = room?.localParticipant?.name || sessionStorage.getItem('lk-name') || 'Participant';
 
@@ -129,6 +136,11 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
     }
   }, [store.status]);
 
+  // Reset paused state when a new question arrives
+  useEffect(() => {
+    if (store.status === 'active') setIsPaused(false);
+  }, [store.status]);
+
   function toggleCat(id: string) {
     setSelectedCats((prev) => {
       const next = new Set(prev);
@@ -138,19 +150,47 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
     });
   }
 
-  function handleCreateGame() {
-    createGame({
-      categories: Array.from(selectedCats),
-      questionCount,
-      leaderboardVisibility: 'live',
-      streakBonus: true,
-      strictMode: false,
-      soundEffects: false,
-    });
-    // Broadcast PIN to meeting room once lobby is ready
-    const unsub = useQuizStore.subscribe((s) => {
-      if (s.pin && s.status === 'lobby') { unsub(); broadcastQuizPin(s.pin); }
-    });
+  async function handleCreateGame() {
+    setIsGenerating(true);
+    try {
+      // Generate rich questions client-side using the full Jumbo question bank
+      const cats = Array.from(selectedCats) as QuestionCategory[];
+      const customQuestions = await generateQuestions(
+        { categories: cats, count: questionCount },
+      );
+
+      createGame(
+        {
+          categories: cats,
+          questionCount,
+          leaderboardVisibility: 'live',
+          streakBonus: true,
+          strictMode: false,
+          soundEffects: false,
+        },
+        customQuestions,
+        (pin) => broadcastQuizPin(pin),
+        localName,
+      );
+    } catch (e) {
+      console.error('Question generation failed:', e);
+      // Fallback: create without custom questions (server uses its own pool)
+      createGame(
+        {
+          categories: Array.from(selectedCats),
+          questionCount,
+          leaderboardVisibility: 'live',
+          streakBonus: true,
+          strictMode: false,
+          soundEffects: false,
+        },
+        undefined,
+        undefined,
+        localName,
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function broadcastQuizPin(pin: string) {
@@ -179,6 +219,23 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
     nextQuestion(store.gameId);
   }
 
+  function handlePauseResume() {
+    if (!store.gameId || !store.isHost) return;
+    if (isPaused) {
+      resumeGame(store.gameId);
+      setIsPaused(false);
+    } else {
+      pauseGame(store.gameId);
+      setIsPaused(true);
+    }
+  }
+
+  function handleEndGame() {
+    if (!store.gameId) return;
+    endGame(store.gameId);
+    store.reset();
+  }
+
   const timerUrgent = timeLeft <= 5;
   const timerColor = timerUrgent ? 'bg-red-500/25 text-red-400 border-red-500/50' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
 
@@ -199,10 +256,54 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
             </div>
           </div>
         </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors" aria-label="Close">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Host controls during active/reveal/paused */}
+          {store.isHost && (store.status === 'active' || store.status === 'reveal' || store.status === 'paused') && (
+            <>
+              <button
+                onClick={handlePauseResume}
+                title={isPaused ? 'Resume quiz' : 'Pause quiz'}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  isPaused
+                    ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300'
+                    : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300'
+                }`}
+              >
+                {isPaused
+                  ? <ResumeIcon className="w-3.5 h-3.5" />
+                  : <Pause className="w-3.5 h-3.5" />
+                }
+              </button>
+              <button
+                onClick={handleEndGame}
+                title="End quiz"
+                className="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 flex items-center justify-center text-red-300 hover:text-red-200 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors" aria-label="Close">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Paused banner */}
+      <AnimatePresence>
+        {isPaused && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-3 mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2"
+          >
+            <Pause className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-semibold">Quiz Paused</span>
+            <span className="text-amber-400/60 ml-auto">Host only can resume</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Error banner */}
       {error && (
@@ -253,7 +354,7 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
                   </div>
                 </div>
 
-                {/* Category picker — Lucide icons, no emojis */}
+                {/* Category picker — all Jumbo Quiz categories, Lucide icons, no emojis */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1.5">
                     Categories ({selectedCats.size} selected)
@@ -279,10 +380,12 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
                   </div>
                 </div>
 
-                <button onClick={handleCreateGame}
-                  className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-colors">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Start Quiz &amp; Invite Room</span>
+                <button onClick={handleCreateGame} disabled={isGenerating}
+                  className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-colors">
+                  {isGenerating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Preparing Questions…</span></>
+                    : <><Sparkles className="w-4 h-4" /><span>Start Quiz &amp; Invite Room</span></>
+                  }
                 </button>
               </div>
             ) : (
@@ -355,14 +458,24 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
 
             {/* Start button for Host OR Waiting banner for Joiners */}
             {store.isHost ? (
-              <button
-                onClick={() => store.gameId && startGame(store.gameId)}
-                disabled={store.players.length === 0}
-                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg"
-              >
-                <Play className="w-4 h-4" />
-                <span>Start Quiz Now ({store.players.length} player{store.players.length !== 1 ? 's' : ''})</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => store.gameId && startGame(store.gameId)}
+                  disabled={store.players.length === 0}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg"
+                >
+                  <Play className="w-4 h-4" />
+                  <span>Start Quiz Now ({store.players.length} player{store.players.length !== 1 ? 's' : ''})</span>
+                </button>
+                {/* Host exit button in lobby */}
+                <button
+                  onClick={handleEndGame}
+                  className="w-full py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Cancel &amp; Exit Quiz</span>
+                </button>
+              </div>
             ) : (
               <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center space-y-2">
                 <div className="flex items-center justify-center gap-2 text-xs font-semibold text-violet-300">
@@ -436,8 +549,6 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
                 const meta = OPTION_META[i % OPTION_META.length]!;
                 const Icon = meta.icon;
                 const isSelected = store.selectedOptionId === opt.id;
-                const isCorrect = store.status === 'reveal' && opt.id === store.correctOptionId;
-                const isWrong = store.status === 'reveal' && isSelected && !isCorrect;
                 const dimmed = store.selectedOptionId && !isSelected && store.status === 'active';
 
                 return (
@@ -476,6 +587,61 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Host controls row during active question */}
+            {store.isHost && (
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handlePauseResume}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors ${
+                    isPaused
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25'
+                      : 'bg-amber-500/15 border-amber-500/30 text-amber-300 hover:bg-amber-500/25'
+                  }`}
+                >
+                  {isPaused ? <ResumeIcon className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                  {isPaused ? 'Resume' : 'Pause'}
+                </button>
+                <button
+                  onClick={handleEndGame}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border bg-red-500/15 border-red-500/30 text-red-300 hover:bg-red-500/25 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  End Quiz
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── PAUSED ─── */}
+        {store.status === 'paused' && (
+          <div className="py-8 text-center space-y-4">
+            <div className="inline-block p-4 rounded-full bg-amber-400/10 border border-amber-400/20">
+              <Pause className="w-8 h-8 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-amber-300">Quiz Paused</p>
+              <p className="text-xs text-white/40 mt-1">The host has paused the game</p>
+            </div>
+            {store.isHost && (
+              <div className="space-y-2">
+                <button
+                  onClick={handlePauseResume}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                >
+                  <ResumeIcon className="w-4 h-4" />
+                  <span>Resume Quiz</span>
+                </button>
+                <button
+                  onClick={handleEndGame}
+                  className="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>End Quiz</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -560,6 +726,17 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
                   );
                 })}
               </div>
+            )}
+
+            {/* Host end button in reveal */}
+            {store.isHost && (
+              <button
+                onClick={handleEndGame}
+                className="w-full py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>End Quiz Early</span>
+              </button>
             )}
 
             {/* Live leaderboard */}
@@ -653,7 +830,7 @@ export function MeetingQuizPanel({ room, onClose, initialPin }: MeetingQuizPanel
               </div>
             )}
 
-            <button onClick={() => { if (store.gameId) endGame(store.gameId); store.reset(); }}
+            <button onClick={() => store.reset()}
               className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors">
               Back to Meeting
             </button>

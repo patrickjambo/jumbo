@@ -64,11 +64,11 @@ export default function QuizResults() {
 
       <div className="flex-1 flex flex-col p-4 max-w-lg mx-auto w-full">
         <motion.h1
-          className="text-center text-3xl font-bold text-gradient mt-2 mb-8 relative z-10 flex items-center justify-center gap-2"
+          className="text-center text-2xl font-bold text-[var(--text-primary)] mt-2 mb-8 relative z-10 flex items-center justify-center gap-2"
           initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         >
-          <Trophy className="w-8 h-8 text-amber-400 inline-block" />
-          <span>Game Over!</span>
+          <Trophy className="w-6 h-6 text-amber-400 inline-block" />
+          <span>Final Results</span>
         </motion.h1>
 
         {/* Podium */}
@@ -104,7 +104,7 @@ export default function QuizResults() {
 
         {/* Full ranking */}
         <div className="glass-card p-5 relative z-10 mb-6">
-          <h2 className="text-sm font-semibold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">Full ranking</h2>
+          <h2 className="text-xs font-semibold text-[var(--text-tertiary)] mb-3 uppercase tracking-wider">Full ranking</h2>
           <div className="space-y-2">
             {results.map((entry, i) => (
               <motion.div key={entry.id}
@@ -113,10 +113,10 @@ export default function QuizResults() {
                 transition={{ delay: i * 0.05 }}
               >
                 <span className="text-sm font-bold text-[var(--text-tertiary)] w-5 text-center">{entry.rank}</span>
-                <div className="w-8 h-8 rounded-full bg-brand-500/25 flex items-center justify-center text-sm font-bold text-brand-300">
+                <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-xs font-bold text-brand-300">
                   {entry.displayName[0]}
                 </div>
-                <span className="flex-1 text-sm font-medium">{entry.displayName}{entry.isCurrentPlayer ? ' (You)' : ''}</span>
+                <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">{entry.displayName}{entry.isCurrentPlayer ? ' (You)' : ''}</span>
                 <span className="text-sm font-bold text-brand-300">{entry.totalScore.toLocaleString()}</span>
               </motion.div>
             ))}

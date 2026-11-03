@@ -9,6 +9,9 @@ export interface ChatMessage {
   senderId: string;
   text: string;
   ts: number;
+  editedAt?: number;   // set when the sender edits the message
+  deletedAt?: number;  // set when the sender deletes the message (soft-delete)
+  reactions?: Record<string, string[]>; // emoji -> array of senderIds who reacted
 }
 
 export interface MeetingState {
@@ -27,13 +30,18 @@ export interface MeetingState {
   activeSpeakerId: string | null;
 
   setRoom: (room: Room | null) => void;
-  setLocalParticipant: (p: LocalParticipant | null) => void;
-  setRemoteParticipants: (ps: RemoteParticipant[]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setLocalParticipant: (p: LocalParticipant | any | null) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setRemoteParticipants: (ps: (RemoteParticipant | any)[]) => void;
   setMicOn: (v: boolean) => void;
   setCamOn: (v: boolean) => void;
   setScreenSharing: (v: boolean) => void;
   setRecording: (v: boolean) => void;
   addChatMessage: (msg: ChatMessage) => void;
+  editChatMessage: (id: string, newText: string) => void;
+  deleteChatMessage: (id: string) => void;
+  toggleChatReaction: (messageId: string, emoji: string, senderId: string) => void;
   setNoiseAlert: (msg: string | null) => void;
   setConnectionState: (s: MeetingState['connectionState']) => void;
   setRaisedHands: (ids: string[]) => void;
@@ -66,7 +74,40 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   setCamOn: (isCamOn) => set({ isCamOn }),
   setScreenSharing: (isScreenSharing) => set({ isScreenSharing }),
   setRecording: (isRecording) => set({ isRecording }),
-  addChatMessage: (msg) => set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+  addChatMessage: (msg) => set((s) => {
+    // Deduplicate by ID — prevents double-add when server echoes our optimistic message
+    if (s.chatMessages.some((m) => m.id === msg.id)) return s;
+    return { chatMessages: [...s.chatMessages, msg] };
+  }),
+  editChatMessage: (id, newText) => set((s) => ({
+    chatMessages: s.chatMessages.map((m) =>
+      m.id === id ? { ...m, text: newText, editedAt: Date.now() } : m
+    ),
+  })),
+  deleteChatMessage: (id) => set((s) => ({
+    chatMessages: s.chatMessages.map((m) =>
+      m.id === id ? { ...m, deletedAt: Date.now() } : m
+    ),
+  })),
+  toggleChatReaction: (messageId, emoji, senderId) => set((s) => ({
+    chatMessages: s.chatMessages.map((m) => {
+      if (m.id !== messageId) return m;
+      const reactions = { ...(m.reactions || {}) };
+      const currentUsers = reactions[emoji] || [];
+      const hasReacted = currentUsers.includes(senderId);
+      if (hasReacted) {
+        const filtered = currentUsers.filter((u) => u !== senderId);
+        if (filtered.length === 0) {
+          delete reactions[emoji];
+        } else {
+          reactions[emoji] = filtered;
+        }
+      } else {
+        reactions[emoji] = [...currentUsers, senderId];
+      }
+      return { ...m, reactions };
+    }),
+  })),
   setNoiseAlert: (noiseAlert) => set({ noiseAlert }),
   setConnectionState: (connectionState) => set({ connectionState }),
   setRaisedHands: (raisedHands) => set({ raisedHands }),

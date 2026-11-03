@@ -12,12 +12,16 @@ import {
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
   Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity, Volume1,
+  Smile,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { MeetingQuizPanel } from '../components/MeetingQuizPanel';
 import { useMeetingWebRTC } from '../hooks/useMeetingWebRTC';
+import { ReactionPicker } from '../components/ReactionPicker';
+import { FloatingReactions, type FloatingReaction } from '../components/FloatingReactions';
+import { QUICK_REACTIONS } from '../lib/emojis';
 
 // ─── Shared AudioContext for all remote participants (prevents browser limit) ─
 let sharedAudioCtx: AudioContext | null = null;
@@ -49,12 +53,14 @@ function ParticipantTile({
   isLarge = false,
   isActiveSpeaker = false,
   fallbackStream = null,
+  activeReaction = null,
 }: {
   participant: LocalParticipant | RemoteParticipant | any;
   isLocal: boolean;
   isLarge?: boolean;
   isActiveSpeaker?: boolean;
   fallbackStream?: MediaStream | null;
+  activeReaction?: { emoji: string; ts: number } | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
@@ -253,6 +259,22 @@ function ParticipantTile({
         </motion.div>
       )}
 
+      {/* Active emoji reaction badge (pops up on user's video tile) */}
+      <AnimatePresence>
+        {activeReaction && (
+          <motion.div
+            key={activeReaction.ts}
+            initial={{ scale: 0, y: 10 }}
+            animate={{ scale: [0, 1.35, 1], y: 0 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 20 }}
+            className={`absolute top-2 ${isNoisy ? 'left-16' : 'left-2'} z-20 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-2xl shadow-2xl flex items-center justify-center pointer-events-none select-none`}
+          >
+            <span>{activeReaction.emoji}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Noisy participant warning badge */}
       {isNoisy && (
         <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-amber-500/80 backdrop-blur-sm text-white text-[10px] font-bold flex items-center gap-1 shadow">
@@ -314,17 +336,28 @@ function ParticipantTile({
 // ─── Chat Panel ───────────────────────────────────────────────────────────────
 function ChatPanel({
   onSendMessage,
+  onEditMessage,
+  onDeleteMessage,
+  onReactMessage,
   localIdentity,
   onClose,
 }: {
   onSendMessage: (text: string) => void;
+  onEditMessage: (messageId: string, newText: string) => void;
+  onDeleteMessage: (messageId: string) => void;
+  onReactMessage?: (messageId: string, emoji: string) => void;
   localIdentity: string;
   onClose: () => void;
 }) {
   const [input, setInput] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
+  const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
   const messages = useMeetingStore((s) => s.chatMessages);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -335,24 +368,50 @@ function ChatPanel({
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
 
+  // Focus edit input when editing starts
+  useEffect(() => {
+    if (editingId) setTimeout(() => editInputRef.current?.focus(), 30);
+  }, [editingId]);
+
   function send(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
     if (!text) return;
-    // Optimistic local add — sender sees message immediately without waiting for server echo
-    useMeetingStore.getState().addChatMessage({
-      id: crypto.randomUUID(),
-      senderName: 'You',
-      senderId: localIdentity,
-      text,
-      ts: Date.now(),
-    });
+    // sendChatMessage handles the optimistic add — don't add here too!
     onSendMessage(text);
     setInput('');
+    setShowInputEmojiPicker(false);
+  }
+
+  function startEdit(msg: { id: string; text: string }) {
+    setEditingId(msg.id);
+    setEditText(msg.text);
+  }
+
+  function submitEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingId || !editText.trim()) return;
+    onEditMessage(editingId, editText.trim());
+    setEditingId(null);
+    setEditText('');
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText('');
+  }
+
+  function handleDelete(messageId: string) {
+    onDeleteMessage(messageId);
+  }
+
+  function handleInsertEmoji(emoji: string) {
+    setInput((prev) => prev + emoji);
+    inputRef.current?.focus();
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#111827]">
+    <div className="flex flex-col h-full bg-[#111827] relative">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
         <h2 className="font-bold text-sm text-white flex items-center gap-2">
@@ -360,7 +419,7 @@ function ChatPanel({
           Chat
           {messages.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-violet-600/40 text-violet-300 text-[10px] font-bold">
-              {messages.length}
+              {messages.filter((m) => !m.deletedAt).length}
             </span>
           )}
         </h2>
@@ -374,7 +433,7 @@ function ChatPanel({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 overscroll-contain">
-        {messages.length === 0 && (
+        {messages.filter((m) => !m.deletedAt).length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-white/30">
             <MessageSquare className="w-10 h-10" />
             <span className="text-sm font-medium">No messages yet</span>
@@ -382,29 +441,193 @@ function ChatPanel({
         )}
         {messages.map((m) => {
           const isMe = m.senderId === localIdentity;
-          return (
-            <div key={m.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
-              <span className="text-[11px] text-white/40 px-1">{isMe ? 'You' : m.senderName}</span>
-              <div
-                className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
-                  isMe
-                    ? 'bg-violet-600 text-white rounded-br-md'
-                    : 'bg-white/10 text-white rounded-bl-md'
-                }`}
-              >
-                {m.text}
+          const isDeleted = !!m.deletedAt;
+
+          if (isDeleted) {
+            return (
+              <div key={m.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                <span className="text-[11px] text-white/40 px-1">{isMe ? 'You' : m.senderName}</span>
+                <div className="max-w-[88%] px-3.5 py-2 rounded-2xl text-xs italic text-white/30 bg-white/5 border border-white/10">
+                  This message was deleted
+                </div>
               </div>
+            );
+          }
+
+          return (
+            <div key={m.id} className={`flex flex-col gap-0.5 group ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className="flex items-center gap-1.5 px-1">
+                <span className="text-[11px] text-white/40">{isMe ? 'You' : m.senderName}</span>
+                {m.editedAt && <span className="text-[10px] text-white/25 italic">(edited)</span>}
+              </div>
+
+              {/* Inline edit mode */}
+              {isMe && editingId === m.id ? (
+                <form onSubmit={submitEdit} className="flex items-center gap-1.5 max-w-[88%] w-full">
+                  <input
+                    ref={editInputRef}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') cancelEdit();
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(e as any); }
+                    }}
+                    className="flex-1 min-w-0 bg-violet-600/20 border border-violet-500/60 rounded-2xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-violet-400"
+                    style={{ fontSize: '16px' }}
+                  />
+                  <button type="submit" title="Save" className="p-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <button type="button" onClick={cancelEdit} title="Cancel" className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              ) : (
+                <div className="flex flex-col max-w-[88%]">
+                  <div className={`flex items-end gap-1.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {/* Message Bubble */}
+                    <div
+                      className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
+                        isMe
+                          ? 'bg-violet-600 text-white rounded-br-md'
+                          : 'bg-white/10 text-white rounded-bl-md'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+
+                    {/* Action buttons — reaction + edit/delete */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mb-0.5 relative">
+                      {/* React Button */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveReactionMsgId(activeReactionMsgId === m.id ? null : m.id)}
+                        title="React"
+                        className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                      >
+                        <Smile className="w-3 h-3 text-amber-300" />
+                      </button>
+
+                      {/* Floating Quick Reaction Picker for this message */}
+                      {activeReactionMsgId === m.id && (
+                        <div className={`absolute bottom-full mb-1 z-30 flex items-center gap-1 p-1.5 bg-[#1f283d] border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl ${isMe ? 'right-0' : 'left-0'}`}>
+                          {QUICK_REACTIONS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                onReactMessage?.(m.id, emoji);
+                                setActiveReactionMsgId(null);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 hover:scale-125 text-base transition-all active:scale-90"
+                              title={emoji}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Edit / Delete (own messages only) */}
+                      {isMe && (
+                        <>
+                          <button
+                            onClick={() => startEdit(m)}
+                            title="Edit message"
+                            className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(m.id)}
+                            title="Delete message"
+                            className="w-6 h-6 rounded-lg bg-white/10 hover:bg-red-500/30 flex items-center justify-center text-white/50 hover:text-red-400 transition-colors"
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                              <path d="M10 11v6"/><path d="M14 11v6"/>
+                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Message Reactions Pills */}
+                  {m.reactions && Object.keys(m.reactions).length > 0 && (
+                    <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      {Object.entries(m.reactions).map(([emoji, userIds]) => {
+                        const hasReacted = userIds.includes(localIdentity);
+                        return (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => onReactMessage?.(m.id, emoji)}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all active:scale-95 ${
+                              hasReacted
+                                ? 'bg-violet-600/50 border border-violet-400 text-white font-bold shadow-sm'
+                                : 'bg-white/10 hover:bg-white/15 border border-white/10 text-white/80'
+                            }`}
+                            title={`${userIds.length} reaction${userIds.length > 1 ? 's' : ''}`}
+                          >
+                            <span>{emoji}</span>
+                            <span className="text-[10px] opacity-80">{userIds.length}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
         <div ref={endRef} />
       </div>
 
+      {/* Emoji Picker Popover above Chat Input */}
+      <AnimatePresence>
+        {showInputEmojiPicker && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="absolute bottom-16 left-3 right-3 z-40 flex justify-center"
+          >
+            <ReactionPicker
+              title="Insert Emoji"
+              className="w-full max-w-sm"
+              onSelectEmoji={(emoji) => {
+                handleInsertEmoji(emoji);
+              }}
+              onClose={() => setShowInputEmojiPicker(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input bar — sticky at bottom, touch-friendly */}
       <form
         onSubmit={send}
-        className="flex-shrink-0 flex items-center gap-2 px-3 py-3 border-t border-white/10 bg-[#0e1420]"
+        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-3 border-t border-white/10 bg-[#0e1420]"
       >
+        <button
+          type="button"
+          onClick={() => setShowInputEmojiPicker((prev) => !prev)}
+          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${
+            showInputEmojiPicker
+              ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
+              : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
+          }`}
+          title="Pick emoji"
+        >
+          <Smile className="w-5 h-5 text-amber-300" />
+        </button>
+
         <input
           ref={inputRef}
           value={input}
@@ -417,7 +640,7 @@ function ChatPanel({
           }}
           placeholder="Message everyone…"
           autoComplete="off"
-          className="flex-1 min-w-0 bg-white/8 border border-white/15 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-violet-500 focus:bg-white/12 transition-all"
+          className="flex-1 min-w-0 bg-white/8 border border-white/15 rounded-2xl px-3.5 py-3 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-violet-500 focus:bg-white/12 transition-all"
           style={{ fontSize: '16px' /* prevents iOS zoom */ }}
         />
         <button
@@ -496,6 +719,11 @@ export default function MeetingRoom() {
   const [handAlert, setHandAlert] = useState<string | null>(null);
   const [noiseAlert, setNoiseAlert] = useState<string | null>(null);
   const [speakerBoosted, setSpeakerBoosted] = useState(false);
+  const [screenShareAlert, setScreenShareAlert] = useState<string | null>(null);
+  const [clockTime, setClockTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  // In-app removal/end dialog (replaces browser alert())
+  const [removedNotice, setRemovedNotice] = useState<string | null>(null);
+  const navigateRef = useRef(navigate);
 
   function toggleSpeakerBoost() {
     setSpeakerBoosted((prev) => {
@@ -511,8 +739,62 @@ export default function MeetingRoom() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const [unreadChat, setUnreadChat] = useState(0);
+  const [unmuteRequest, setUnmuteRequest] = useState(false);
 
-  const isHost = typeof window !== 'undefined' && sessionStorage.getItem('lk-is-host') === 'true';
+  // Emoji Reactions (Meeting floating & tile badges)
+  const [showReactions, setShowReactions] = useState(false);
+  const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const [tileReactions, setTileReactions] = useState<Record<string, { emoji: string; ts: number }>>({});
+
+  const handleReaction = useCallback(
+    (reaction: { id: string; emoji: string; senderId: string; senderName: string; ts: number }) => {
+      // 1. Add to floating reactions array
+      const newFloating: FloatingReaction = {
+        id: `${reaction.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        emoji: reaction.emoji,
+        senderName: reaction.senderName,
+        x: 18 + Math.random() * 64,
+        drift: (Math.random() - 0.5) * 80,
+      };
+      setFloatingReactions((prev) => [...prev.slice(-30), newFloating]);
+
+      // 2. Add to participant tile badge
+      setTileReactions((prev) => ({
+        ...prev,
+        [reaction.senderId]: { emoji: reaction.emoji, ts: reaction.ts },
+      }));
+
+      // Cleanup floating item
+      setTimeout(() => {
+        setFloatingReactions((prev) => prev.filter((r) => r.id !== newFloating.id));
+      }, 3400);
+
+      // Cleanup tile badge after 3.5s
+      setTimeout(() => {
+        setTileReactions((prev) => {
+          if (prev[reaction.senderId]?.ts === reaction.ts) {
+            const next = { ...prev };
+            delete next[reaction.senderId];
+            return next;
+          }
+          return prev;
+        });
+      }, 3500);
+    },
+    []
+  );
+
+  // Keep navigate in a ref so callbacks don't capture stale closures
+  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+
+  // Live clock — updates every minute
+  useEffect(() => {
+    const tick = () => setClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isHost = (typeof window !== 'undefined' && sessionStorage.getItem('lk-is-host') === 'true') || !!store.localParticipant?.isHost;
   const participantName = (typeof window !== 'undefined' && (sessionStorage.getItem('lk-name') || localStorage.getItem('jumbo-display-name'))) || 'Guest';
 
   const {
@@ -523,8 +805,15 @@ export default function MeetingRoom() {
     toggleScreenShare: webrtcToggleScreenShare,
     toggleHand: webrtcToggleHand,
     sendChatMessage: webrtcSendChatMessage,
+    editChatMessage: webrtcEditChatMessage,
+    deleteChatMessage: webrtcDeleteChatMessage,
+    sendReaction: webrtcSendReaction,
+    sendChatReaction: webrtcSendChatReaction,
     hostMute: webrtcHostMute,
+    hostAskUnmute: webrtcHostAskUnmute,
+    hostMuteAll: webrtcHostMuteAll,
     hostRemove: webrtcHostRemove,
+    hostRemoveAll: webrtcHostRemoveAll,
     hostToggleLock: webrtcHostToggleLock,
     hostEndMeeting: webrtcHostEndMeeting,
     broadcastData: webrtcBroadcastData,
@@ -536,15 +825,30 @@ export default function MeetingRoom() {
     onHandAlert: (alert) => { setHandAlert(alert); setTimeout(() => setHandAlert(null), 3500); },
     onHostNotice: (notice) => { setHostNotice(notice); setTimeout(() => setHostNotice(null), 4000); },
     onRoomLockedChanged: (locked) => setIsRoomLocked(locked),
-    onMeetingEnded: () => { alert('The host has ended the meeting.'); navigate('/home'); },
-    onRemovedByHost: () => { alert('You were removed from the meeting.'); navigate('/home'); },
+    onMeetingEnded: () => { setRemovedNotice('The host has ended the meeting.'); },
+    onRemovedByHost: () => {
+      roomRef.current?.disconnect();
+      setRemovedNotice('You were removed from this meeting by the host.');
+    },
+    onScreenShareStarted: (name) => {
+      setScreenShareAlert(`${name} is now sharing their screen`);
+      setTimeout(() => setScreenShareAlert(null), 4000);
+    },
+    onReaction: handleReaction,
+    onUnmuteRequested: () => setUnmuteRequest(true),
   });
 
-  // Track unread chat messages when panel is closed
+  // Track unread chat messages when panel is closed — only count incoming messages (not self)
+  const prevMessageCountRef = useRef(0);
   useEffect(() => {
-    if (panel !== 'chat') {
-      setUnreadChat((n) => n + 1);
+    const count = store.chatMessages.length;
+    if (count > prevMessageCountRef.current && panel !== 'chat') {
+      // Only count messages not from ourselves
+      const newMessages = store.chatMessages.slice(prevMessageCountRef.current);
+      const incomingCount = newMessages.filter((m) => m.senderId !== myIdentity).length;
+      if (incomingCount > 0) setUnreadChat((n) => n + incomingCount);
     }
+    prevMessageCountRef.current = count;
   }, [store.chatMessages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -606,7 +910,35 @@ export default function MeetingRoom() {
   }
 
   function hostMuteParticipant(id: string) { if (isHost) webrtcHostMute(id); }
-  function hostRemoveParticipant(id: string) { if (isHost) webrtcHostRemove(id); }
+  function hostToggleParticipantMic(participant: any) {
+    if (!isHost) return;
+    const isMicOn = participant.isMicOn !== false;
+    if (isMicOn) {
+      webrtcHostMute(participant.identity);
+    } else {
+      webrtcHostAskUnmute(participant.identity);
+      setHostNotice(`Asked ${participant.name || 'participant'} to unmute`);
+      setTimeout(() => setHostNotice(null), 3000);
+    }
+  }
+  function hostMuteAllParticipants() {
+    if (!isHost) return;
+    webrtcHostMuteAll();
+    setHostNotice('Muted all participants');
+    setTimeout(() => setHostNotice(null), 3000);
+  }
+  function hostRemoveParticipant(id: string, name?: string) {
+    if (!isHost) return;
+    webrtcHostRemove(id);
+    setHostNotice(`Removed ${name || 'participant'} from the meeting`);
+    setTimeout(() => setHostNotice(null), 3000);
+  }
+  function hostRemoveAllParticipants() {
+    if (!isHost) return;
+    webrtcHostRemoveAll();
+    setHostNotice('Removed all participants from the meeting');
+    setTimeout(() => setHostNotice(null), 3000);
+  }
   function toggleLockRoom() { if (!isHost) return; const next = !isRoomLocked; setIsRoomLocked(next); webrtcHostToggleLock(next); }
   async function endMeetingForAll() { if (!isHost) return; webrtcHostEndMeeting(); await leave(); }
 
@@ -647,7 +979,8 @@ export default function MeetingRoom() {
       else if (key === 'c') { e.preventDefault(); setPanel((p) => p === 'chat' ? null : 'chat'); }
       else if (key === 'p') { e.preventDefault(); setPanel((p) => p === 'participants' ? null : 'participants'); }
       else if (key === 'i') { e.preventDefault(); setPanel((p) => p === 'info' ? null : 'info'); }
-      else if (e.key === 'Escape') { setPanel(null); setShowEndDialog(false); }
+      else if (key === 'r') { e.preventDefault(); setShowReactions((prev) => !prev); }
+      else if (e.key === 'Escape') { setPanel(null); setShowEndDialog(false); setShowReactions(false); }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -732,9 +1065,9 @@ export default function MeetingRoom() {
           )}
         </div>
 
-        {/* Center: time */}
+        {/* Center: live clock */}
         <div className="hidden sm:block text-xs text-white/50 font-mono tabular-nums">
-          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {clockTime}
         </div>
 
         {/* Right: view switcher + invite */}
@@ -766,8 +1099,42 @@ export default function MeetingRoom() {
         </div>
       </div>
 
+      {/* ── FLOATING ZOOM-STYLE EMOJI REACTIONS ──────────────────────────────── */}
+      <FloatingReactions reactions={floatingReactions} />
+
       {/* ── FLOATING TOASTS / NOTIFICATIONS ──────────────────────────────────── */}
       <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 max-w-[92vw] pointer-events-none">
+        <AnimatePresence>
+          {unmuteRequest && (
+            <motion.div
+              key="unmute-req"
+              initial={{ y: -20, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -20, opacity: 0, scale: 0.95 }}
+              className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-violet-600/95 border border-violet-400/50 text-white text-xs font-semibold shadow-2xl backdrop-blur-xl"
+            >
+              <Mic className="w-4 h-4 text-emerald-300 animate-pulse flex-shrink-0" />
+              <span>The host is asking you to unmute your microphone</span>
+              <div className="flex items-center gap-1.5 ml-1">
+                <button
+                  onClick={() => {
+                    toggleMic();
+                    setUnmuteRequest(false);
+                  }}
+                  className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all shadow-md active:scale-95"
+                >
+                  Unmute
+                </button>
+                <button
+                  onClick={() => setUnmuteRequest(false)}
+                  className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-xl transition-all"
+                >
+                  Stay Muted
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {handAlert && (
             <motion.div key="hand" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
@@ -800,6 +1167,15 @@ export default function MeetingRoom() {
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>{noiseAlert}</span>
               <button onClick={() => { toggleMic(); setNoiseAlert(null); }} className="underline font-bold ml-1">Unmute</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {screenShareAlert && (
+            <motion.div key="screenshare" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}
+              className="pointer-events-auto px-4 py-2 rounded-full bg-indigo-500/25 border border-indigo-400/40 text-indigo-200 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-indigo-300 flex-shrink-0" />
+              {screenShareAlert}
             </motion.div>
           )}
         </AnimatePresence>
@@ -860,6 +1236,7 @@ export default function MeetingRoom() {
                           isLocal={p.identity === store.localParticipant?.identity}
                           isActiveSpeaker={p.identity === activeSpeakerId}
                           fallbackStream={p.identity === store.localParticipant?.identity ? localStream : (p as any).stream}
+                          activeReaction={tileReactions[p.identity] || null}
                         />
                       </div>
                     ))}
@@ -873,6 +1250,7 @@ export default function MeetingRoom() {
                   isLarge
                   isActiveSpeaker={speakerParticipant.identity === activeSpeakerId}
                   fallbackStream={speakerParticipant.identity === store.localParticipant?.identity ? localStream : (speakerParticipant as any).stream}
+                  activeReaction={tileReactions[speakerParticipant.identity] || null}
                 />
               </div>
             </div>
@@ -897,6 +1275,7 @@ export default function MeetingRoom() {
                     isLocal
                     isActiveSpeaker={store.localParticipant.identity === activeSpeakerId}
                     fallbackStream={localStream}
+                    activeReaction={tileReactions[store.localParticipant.identity] || null}
                   />
                 </div>
               )}
@@ -907,6 +1286,7 @@ export default function MeetingRoom() {
                     isLocal={false}
                     isActiveSpeaker={p.identity === activeSpeakerId}
                     fallbackStream={(p as any).stream}
+                    activeReaction={tileReactions[p.identity] || null}
                   />
                 </div>
               ))}
@@ -942,7 +1322,7 @@ export default function MeetingRoom() {
               className="sm:hidden fixed left-0 right-0 z-40 flex flex-col bg-[#111827] border-t border-white/15 rounded-t-3xl shadow-2xl overflow-hidden"
               style={{ bottom: '104px', maxHeight: '65vh', minHeight: '260px' }}
             >
-              <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
+              <ChatPanel onSendMessage={webrtcSendChatMessage} onEditMessage={webrtcEditChatMessage} onDeleteMessage={webrtcDeleteChatMessage} onReactMessage={webrtcSendChatReaction} localIdentity={myIdentity} onClose={() => setPanel(null)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -985,10 +1365,10 @@ export default function MeetingRoom() {
                     </div>
                     {isHost && store.remoteParticipants.length > 0 && (
                       <div className="flex items-center gap-2">
-                        <button onClick={() => store.remoteParticipants.forEach((p) => hostMuteParticipant(p.identity))} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all">
+                        <button onClick={hostMuteAllParticipants} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all" title="Mute all participants">
                           <VolumeX className="w-3.5 h-3.5" /><span>Mute All</span>
                         </button>
-                        <button onClick={() => store.remoteParticipants.forEach((p) => hostRemoveParticipant(p.identity))} className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-[11px] font-bold transition-all">
+                        <button onClick={hostRemoveAllParticipants} className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-[11px] font-bold transition-all" title="Remove all participants">
                           <UserMinus className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1017,10 +1397,18 @@ export default function MeetingRoom() {
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {isHost && !isLocalP && (
                               <>
-                                <button onClick={() => hostMuteParticipant(p.identity)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center transition-all" title="Mute">
-                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5 text-red-400" />}
+                                <button
+                                  onClick={() => hostToggleParticipantMic(p)}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                                    pMicOn
+                                      ? 'bg-white/5 hover:bg-amber-500/20 text-green-400 hover:text-amber-300'
+                                      : 'bg-red-500/15 hover:bg-emerald-500/20 text-red-400 hover:text-emerald-300'
+                                  }`}
+                                  title={pMicOn ? 'Mute this participant' : 'Ask participant to unmute'}
+                                >
+                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                                 </button>
-                                <button onClick={() => hostRemoveParticipant(p.identity)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-all" title="Remove">
+                                <button onClick={() => hostRemoveParticipant(p.identity, p.name)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-all" title="Remove">
                                   <UserMinus className="w-3.5 h-3.5" />
                                 </button>
                               </>
@@ -1085,7 +1473,7 @@ export default function MeetingRoom() {
               className="hidden sm:flex flex-col w-80 lg:w-96 flex-shrink-0 bg-[#111827] border-l border-white/10 z-20 overflow-hidden"
             >
               {panel === 'chat' && (
-                <ChatPanel onSendMessage={webrtcSendChatMessage} localIdentity={myIdentity} onClose={() => setPanel(null)} />
+                <ChatPanel onSendMessage={webrtcSendChatMessage} onEditMessage={webrtcEditChatMessage} onDeleteMessage={webrtcDeleteChatMessage} onReactMessage={webrtcSendChatReaction} localIdentity={myIdentity} onClose={() => setPanel(null)} />
               )}
 
               {panel === 'participants' && (
@@ -1117,7 +1505,7 @@ export default function MeetingRoom() {
                     {isHost && store.remoteParticipants.length > 0 && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => store.remoteParticipants.forEach((p) => hostMuteParticipant(p.identity))}
+                          onClick={hostMuteAllParticipants}
                           className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all"
                           title="Mute all participants"
                         >
@@ -1125,7 +1513,7 @@ export default function MeetingRoom() {
                           <span>Mute All</span>
                         </button>
                         <button
-                          onClick={() => store.remoteParticipants.forEach((p) => hostRemoveParticipant(p.identity))}
+                          onClick={hostRemoveAllParticipants}
                           className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-[11px] font-bold transition-all"
                           title="Remove all participants"
                         >
@@ -1166,15 +1554,19 @@ export default function MeetingRoom() {
                               <>
                                 {/* Mute / Unmute */}
                                 <button
-                                  onClick={() => hostMuteParticipant(p.identity)}
-                                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-300 flex items-center justify-center transition-all"
-                                  title={pMicOn ? 'Mute this participant' : 'Already muted'}
+                                  onClick={() => hostToggleParticipantMic(p)}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                                    pMicOn
+                                      ? 'bg-white/5 hover:bg-amber-500/20 text-green-400 hover:text-amber-300'
+                                      : 'bg-red-500/15 hover:bg-emerald-500/20 text-red-400 hover:text-emerald-300'
+                                  }`}
+                                  title={pMicOn ? 'Mute this participant' : 'Ask participant to unmute'}
                                 >
-                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5 text-red-400" />}
+                                  {pMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                                 </button>
                                 {/* Remove */}
                                 <button
-                                  onClick={() => hostRemoveParticipant(p.identity)}
+                                  onClick={() => hostRemoveParticipant(p.identity, p.name)}
                                   className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
                                   title="Remove from meeting"
                                 >
@@ -1365,6 +1757,34 @@ export default function MeetingRoom() {
               onClick={() => setPanel(panel === 'quiz' ? null : 'quiz')}
               active={panel === 'quiz'}
             />
+            {/* Mobile Reactions Button */}
+            <div className="relative">
+              <CtrlBtn
+                id="room-reactions-btn-m"
+                icon={<Smile className="w-5 h-5 text-amber-300" />}
+                label="React"
+                onClick={() => setShowReactions((prev) => !prev)}
+                active={showReactions}
+              />
+              <AnimatePresence>
+                {showReactions && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[92vw]"
+                  >
+                    <ReactionPicker
+                      onSelectEmoji={(emoji) => {
+                        webrtcSendReaction(emoji);
+                      }}
+                      onClose={() => setShowReactions(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <CtrlBtn
               id="room-info-btn-m"
               icon={<Info className="w-5 h-5" />}
@@ -1422,6 +1842,34 @@ export default function MeetingRoom() {
             onClick={toggleHand}
             warning={isMyHandRaised}
           />
+          {/* Desktop Reactions Button with Popover */}
+          <div className="relative">
+            <CtrlBtn
+              id="room-reactions-btn"
+              icon={<Smile className="w-5 h-5 text-amber-300" />}
+              label="Reactions"
+              onClick={() => setShowReactions((prev) => !prev)}
+              active={showReactions}
+            />
+            <AnimatePresence>
+              {showReactions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50"
+                >
+                  <ReactionPicker
+                    onSelectEmoji={(emoji) => {
+                      webrtcSendReaction(emoji);
+                    }}
+                    onClose={() => setShowReactions(false)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           {/* Speaker boost — only useful when remote audio is playing */}
           {store.remoteParticipants.length > 0 && (
             <CtrlBtn
@@ -1547,6 +1995,31 @@ export default function MeetingRoom() {
                 <button onClick={() => void leave()} className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors">Leave Meeting Only</button>
                 <button onClick={() => setShowEndDialog(false)} className="w-full py-2 text-xs text-white/40 hover:text-white transition-colors">Cancel</button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── REMOVED / ENDED NOTICE (replaces browser alert()) ─────────────── */}
+      <AnimatePresence>
+        {removedNotice && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              className="bg-[#1e2740] border border-white/15 rounded-2xl w-full max-w-sm p-6 space-y-4 text-center shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-white">Meeting Notice</h3>
+                <p className="text-sm text-white/60 mt-1">{removedNotice}</p>
+              </div>
+              <button
+                onClick={() => { setRemovedNotice(null); void leave(); }}
+                className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors"
+              >
+                Return to Home
+              </button>
             </motion.div>
           </motion.div>
         )}
