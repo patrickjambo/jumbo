@@ -74,6 +74,17 @@ export function ReactionPicker({
               {emoji}
             </button>
           ))}
+          {QUICK_REACTIONS.slice(6).map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => handleEmojiClick(emoji)}
+              className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/15 hover:scale-125 active:scale-95 text-2xl transition-all"
+              title={emoji}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
 
         <div className="w-px h-6 bg-white/15 mx-0.5 flex-shrink-0" />

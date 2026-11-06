@@ -2001,7 +2001,7 @@ export default function MeetingRoom() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed bottom-[116px] sm:bottom-20 left-0 right-0 mx-auto px-3 flex justify-center z-50 pointer-events-none"
+              className="fixed bottom-[calc(116px+env(safe-area-inset-bottom,0px))] sm:bottom-20 left-0 right-0 mx-auto px-3 flex justify-center z-50 pointer-events-none"
             >
               <div className="pointer-events-auto">
                 <ReactionPicker
