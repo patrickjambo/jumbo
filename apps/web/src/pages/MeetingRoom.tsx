@@ -601,6 +601,8 @@ function ChatPanel({
             <ReactionPicker
               title="Insert Emoji"
               className="w-full max-w-sm"
+              initialExpanded={true}
+              autoCloseOnSelect={false}
               onSelectEmoji={(emoji) => {
                 handleInsertEmoji(emoji);
               }}
