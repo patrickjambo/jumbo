@@ -70,7 +70,9 @@ function ParticipantTile({
   const raisedHands = useMeetingStore((s) => s.raisedHands);
   const isCamOn = useMeetingStore((s) => s.isCamOn);
   const isMicOn = useMeetingStore((s) => s.isMicOn);
+  const isScreenSharing = useMeetingStore((s) => s.isScreenSharing);
   const isHandRaised = raisedHands.includes(participant?.identity);
+  const isSharing = isLocal ? isScreenSharing : Boolean((participant as any)?.isScreenSharing);
   // Refs for Web Audio processing pipeline (remote participants only)
   const audioNodeCleanupRef = useRef<(() => void) | null>(null);
 
@@ -83,7 +85,7 @@ function ParticipantTile({
 
       if (isLocal) {
         const stream = fallbackStream || (participant as any)?.stream;
-        if (stream && isCamOn && videoRef.current) {
+        if (stream && (isCamOn || isSharing) && videoRef.current) {
           if (videoRef.current.srcObject !== stream) videoRef.current.srcObject = stream;
           void videoRef.current.play().catch(() => {});
           const vTracks = stream.getVideoTracks?.() || [];
@@ -98,7 +100,7 @@ function ParticipantTile({
           if (videoRef.current.srcObject !== stream) videoRef.current.srcObject = stream;
           void videoRef.current.play().catch(() => {});
           const vTracks = (stream as MediaStream).getVideoTracks?.() || [];
-          setHasVideo(vTracks.length > 0 && vTracks.some((t: MediaStreamTrack) => t.enabled) && rp.isCamOn !== false);
+          setHasVideo(vTracks.length > 0 && vTracks.some((t: MediaStreamTrack) => t.enabled) && (rp.isCamOn !== false || isSharing));
         } else {
           setHasVideo(false);
         }
@@ -183,7 +185,7 @@ function ParticipantTile({
       participant?.off?.(ParticipantEvent.IsSpeakingChanged, handleSpeaking);
       participant?.off?.(ParticipantEvent.ConnectionQualityChanged, handleQuality);
     };
-  }, [participant, isLocal, isCamOn, (participant as any)?.isCamOn, fallbackStream]);
+  }, [participant, isLocal, isCamOn, isScreenSharing, (participant as any)?.isCamOn, (participant as any)?.isScreenSharing, fallbackStream]);
 
   const displayName = participant?.name || participant?.displayName || 'Guest';
   const initial = displayName[0]?.toUpperCase() ?? '?';
@@ -208,8 +210,8 @@ function ParticipantTile({
         autoPlay
         muted
         playsInline
-        className={`w-full h-full object-cover transition-opacity duration-200 ${
-          isLocal ? 'scale-x-[-1]' : ''
+        className={`w-full h-full ${isSharing ? 'object-contain bg-black' : 'object-cover'} transition-opacity duration-200 ${
+          isLocal && !isSharing ? 'scale-x-[-1]' : ''
         } ${!hasVideo ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'}`}
       />
 
@@ -304,6 +306,12 @@ function ParticipantTile({
           <span className="text-white text-xs font-semibold truncate max-w-[120px] sm:max-w-[160px]">
             {displayName}{isLocal ? ' (You)' : ''}
           </span>
+          {isSharing && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-600/90 text-white font-semibold flex items-center gap-1 flex-shrink-0">
+              <Monitor className="w-2.5 h-2.5" />
+              <span>Screen</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* Mic state */}

@@ -291,6 +291,17 @@ export function useMeetingWebRTC({
       });
     }
 
+    // Ensure a video transceiver is negotiated right away (even if camera was initially off or audio-only)
+    // so screen sharing or turning camera on later works seamlessly with replaceTrack on mobile & desktop!
+    const hasVideoSender = pc.getSenders().some((s) => s.track?.kind === 'video');
+    if (!hasVideoSender) {
+      try {
+        pc.addTransceiver('video', { direction: 'sendrecv' });
+      } catch {
+        /* ignore */
+      }
+    }
+
     // Apply encoding limits to video sender
     const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
     if (videoSender) void applyVideoEncodings(videoSender, !!screenStreamRef.current);
@@ -1090,11 +1101,35 @@ export function useMeetingWebRTC({
     const isScreenSharing = useMeetingStore.getState().isScreenSharing;
 
     if (!isScreenSharing) {
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+        callbacksRef.current.onHostNotice?.(
+          'Screen sharing is not supported by your current browser. Please open in Google Chrome or Safari on mobile.'
+        );
+        return false;
+      }
+
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 } },
-          audio: false, // Avoid capturing system audio by default (causes echo)
-        });
+        let screenStream: MediaStream;
+        try {
+          // Mobile-friendly constraints: avoid rigid landscape 1920x1080 which fails in mobile portrait orientation
+          screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              frameRate: { ideal: 15, max: 30 },
+            },
+            audio: false,
+          });
+        } catch (err: unknown) {
+          const e = err as { name?: string };
+          // If rejected by user cancellation, don't re-prompt
+          if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
+            return false;
+          }
+          // Fallback to basic constraint for strict mobile drivers / iOS Safari
+          screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+          });
+        }
+
         const screenTrack = screenStream.getVideoTracks()[0] ?? null;
         screenStreamRef.current = screenStream;
 
@@ -1103,22 +1138,46 @@ export function useMeetingWebRTC({
           screenTrack.onended = () => {
             void toggleScreenShare();
           };
-          // Apply screen-optimized bitrate
+
+          // Apply screen track to all active peer connections
           peerConnectionsRef.current.forEach((pc) => {
-            const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+            let sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+            if (!sender) {
+              const vt = pc.getTransceivers().find(
+                (t) => t.receiver?.track?.kind === 'video' || t.sender?.track?.kind === 'video'
+              );
+              if (vt?.sender) sender = vt.sender;
+            }
+
             if (sender) {
               void sender.replaceTrack(screenTrack).then(() => {
                 void applyVideoEncodings(sender, true);
+              }).catch((e) => {
+                console.warn('[WebRTC] replaceTrack error:', e);
               });
+            } else {
+              try {
+                const newSender = pc.addTrack(screenTrack, screenStream);
+                void applyVideoEncodings(newSender, true);
+              } catch (e) {
+                console.warn('[WebRTC] addTrack error:', e);
+              }
             }
           });
         }
 
+        setLocalStream(screenStream);
         useMeetingStore.getState().setScreenSharing(true);
 
         // Update local participant in store
         const lp = useMeetingStore.getState().localParticipant as WebRTCParticipant | null;
-        if (lp) useMeetingStore.getState().setLocalParticipant({ ...lp, isScreenSharing: true } as unknown as import('livekit-client').LocalParticipant);
+        if (lp) {
+          useMeetingStore.getState().setLocalParticipant({
+            ...lp,
+            isScreenSharing: true,
+            stream: screenStream,
+          } as unknown as import('livekit-client').LocalParticipant);
+        }
 
         socketRef.current?.emit('meeting:media-state', {
           roomCode,
@@ -1127,27 +1186,41 @@ export function useMeetingWebRTC({
           isScreenSharing: true,
         });
         return true;
-      } catch {
+      } catch (err: unknown) {
+        const e = err as { name?: string };
+        console.warn('[WebRTC] Screen share failed:', err);
+        if (e?.name !== 'NotAllowedError' && e?.name !== 'AbortError') {
+          callbacksRef.current.onHostNotice?.(
+            'Unable to start screen sharing. Please check permissions or open in Chrome/Safari.'
+          );
+        }
         return false;
       }
     } else {
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
 
-      const camTrack = localStreamRef.current?.getVideoTracks()[0] ?? null;
+      const camTrack = (useMeetingStore.getState().isCamOn ? localStreamRef.current?.getVideoTracks()[0] : null) ?? null;
       for (const pc of peerConnectionsRef.current.values()) {
         const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
-        if (sender && camTrack) {
+        if (sender) {
           await sender.replaceTrack(camTrack).then(() => {
             void applyVideoEncodings(sender, false);
-          });
+          }).catch(() => {});
         }
       }
 
+      setLocalStream(localStreamRef.current);
       useMeetingStore.getState().setScreenSharing(false);
 
       const lp = useMeetingStore.getState().localParticipant as WebRTCParticipant | null;
-      if (lp) useMeetingStore.getState().setLocalParticipant({ ...lp, isScreenSharing: false } as unknown as import('livekit-client').LocalParticipant);
+      if (lp) {
+        useMeetingStore.getState().setLocalParticipant({
+          ...lp,
+          isScreenSharing: false,
+          stream: localStreamRef.current ?? undefined,
+        } as unknown as import('livekit-client').LocalParticipant);
+      }
 
       socketRef.current?.emit('meeting:media-state', {
         roomCode,
