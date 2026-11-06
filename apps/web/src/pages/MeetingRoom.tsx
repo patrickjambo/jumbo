@@ -12,7 +12,7 @@ import {
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
   Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity, Volume1,
-  Smile,
+  Smile, Camera, Laptop,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
@@ -891,9 +891,28 @@ export default function MeetingRoom() {
     return () => { roomRef.current?.disconnect(); };
   }, [code]);
 
+  const [showMobileShareModal, setShowMobileShareModal] = useState(false);
+
   function toggleMic() { const next = webrtcToggleMic(); if (next) onManualUnmute(); setNoiseAlert(null); }
   function toggleCam() { webrtcToggleCam(); }
-  async function toggleScreenShare() { await webrtcToggleScreenShare(); }
+  async function toggleScreenShare() { await handleShareClick(); }
+
+  async function handleShareClick() {
+    if (store.isScreenSharing) {
+      await webrtcToggleScreenShare();
+      return;
+    }
+    const hasDisplayMedia =
+      typeof navigator !== 'undefined' &&
+      typeof navigator.mediaDevices?.getDisplayMedia === 'function';
+
+    if (!hasDisplayMedia) {
+      setShowMobileShareModal(true);
+    } else {
+      await webrtcToggleScreenShare();
+    }
+  }
+
   function toggleHand() { webrtcToggleHand(); }
 
   function startRecording() {
@@ -1992,6 +2011,101 @@ export default function MeetingRoom() {
               </button>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MOBILE PRESENTATION MODAL ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {showMobileShareModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="w-full max-w-md bg-[#121829] border border-white/15 rounded-2xl shadow-2xl p-5 sm:p-6 text-white space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-300">
+                    <Monitor className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Presenting on Mobile</h3>
+                    <p className="text-xs text-slate-400">Smartphone presentation options</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileShareModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
+                <strong>Why can't mobile Chrome share the screen?</strong><br />
+                Android &amp; iOS security restrictions block mobile web browsers (Chrome &amp; Safari) from capturing other phone apps — the same restriction as in Google Meet &amp; Zoom mobile web.
+              </div>
+
+              <div className="space-y-2.5">
+                {/* Option 1: Present with Back Camera */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowMobileShareModal(false);
+                    await webrtcToggleScreenShare({ useBackCamera: true });
+                  }}
+                  className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-violet-600/30 to-indigo-600/20 border border-violet-500/40 hover:border-violet-400 hover:from-violet-600/40 transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-bold text-white flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-violet-400 group-hover:scale-110 transition-transform" />
+                      Present Back Camera (Doc Cam)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-semibold border border-violet-500/30">
+                      Live Stream
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300/80">
+                    Use your phone's high-res back camera to present physical notes, documents, drawings, or your surroundings in real time.
+                  </p>
+                </button>
+
+                {/* Option 2: Desktop Screen Share */}
+                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-white">
+                    <Laptop className="w-4 h-4 text-cyan-400" />
+                    <span>To share phone apps or computer screens:</span>
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    Open this meeting link on a laptop or desktop computer (Chrome, Edge, Safari, Firefox) for full screen, window, and tab sharing.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(window.location.href);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-white font-medium transition-colors"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? 'Link Copied!' : 'Copy Meeting Link for Computer'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-1 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowMobileShareModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

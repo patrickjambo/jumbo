@@ -160,7 +160,7 @@ export interface UseMeetingWebRTCReturn {
   myIdentity: string;
   toggleMic: () => boolean;
   toggleCam: () => boolean;
-  toggleScreenShare: () => Promise<boolean>;
+  toggleScreenShare: (opts?: { useBackCamera?: boolean }) => Promise<boolean>;
   toggleHand: () => void;
   sendChatMessage: (text: string) => void;
   editChatMessage: (messageId: string, newText: string) => void;
@@ -1097,37 +1097,60 @@ export function useMeetingWebRTC({
   }, [roomCode]);
 
   // ─── Toggle Screen Share ──────────────────────────────────────────────────
-  const toggleScreenShare = useCallback(async (): Promise<boolean> => {
+  const toggleScreenShare = useCallback(async (opts?: { useBackCamera?: boolean }): Promise<boolean> => {
     const isScreenSharing = useMeetingStore.getState().isScreenSharing;
 
     if (!isScreenSharing) {
-      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+      const useBackCam = Boolean(opts?.useBackCamera);
+
+      if (!useBackCam && (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function')) {
         callbacksRef.current.onHostNotice?.(
-          'Screen sharing is not supported by your current browser. Please open in Google Chrome or Safari on mobile.'
+          'Mobile browsers (Chrome & Safari) restrict in-browser screen sharing. Use a laptop/desktop or select "Present Back Camera".'
         );
         return false;
       }
 
       try {
         let screenStream: MediaStream;
-        try {
-          // Mobile-friendly constraints: avoid rigid landscape 1920x1080 which fails in mobile portrait orientation
-          screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-              frameRate: { ideal: 15, max: 30 },
-            },
-            audio: false,
-          });
-        } catch (err: unknown) {
-          const e = err as { name?: string };
-          // If rejected by user cancellation, don't re-prompt
-          if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
-            return false;
+
+        if (useBackCam) {
+          // Use high-definition rear/environment camera for mobile presentations
+          try {
+            screenStream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920, max: 1920 },
+                height: { ideal: 1080, max: 1080 },
+                frameRate: { ideal: 24, max: 30 },
+              },
+              audio: false,
+            });
+          } catch {
+            screenStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
           }
-          // Fallback to basic constraint for strict mobile drivers / iOS Safari
-          screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-          });
+        } else {
+          try {
+            // Mobile-friendly constraints: avoid rigid landscape 1920x1080 which fails in mobile portrait orientation
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+              video: {
+                frameRate: { ideal: 15, max: 30 },
+              },
+              audio: false,
+            });
+          } catch (err: unknown) {
+            const e = err as { name?: string };
+            // If rejected by user cancellation, don't re-prompt
+            if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
+              return false;
+            }
+            // Fallback to basic constraint for strict mobile drivers / iOS Safari
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+            });
+          }
         }
 
         const screenTrack = screenStream.getVideoTracks()[0] ?? null;
