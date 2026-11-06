@@ -934,9 +934,6 @@ export default function QuizLauncher() {
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white whitespace-nowrap">
                     Jumbo Quiz
                   </h1>
-                  <p className="text-[11px] sm:text-xs text-slate-400 font-medium truncate sm:whitespace-normal">
-                    Multiplayer Trivia &amp; Kahoot-Style Games
-                  </p>
                 </div>
               </div>
 
