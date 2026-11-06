@@ -1758,33 +1758,13 @@ export default function MeetingRoom() {
               active={panel === 'quiz'}
             />
             {/* Mobile Reactions Button */}
-            <div className="relative">
-              <CtrlBtn
-                id="room-reactions-btn-m"
-                icon={<Smile className="w-5 h-5 text-amber-300" />}
-                label="React"
-                onClick={() => setShowReactions((prev) => !prev)}
-                active={showReactions}
-              />
-              <AnimatePresence>
-                {showReactions && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 12, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[92vw]"
-                  >
-                    <ReactionPicker
-                      onSelectEmoji={(emoji) => {
-                        webrtcSendReaction(emoji);
-                      }}
-                      onClose={() => setShowReactions(false)}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <CtrlBtn
+              id="room-reactions-btn-m"
+              icon={<Smile className="w-5 h-5 text-amber-300" />}
+              label="React"
+              onClick={() => setShowReactions((prev) => !prev)}
+              active={showReactions}
+            />
             <CtrlBtn
               id="room-info-btn-m"
               icon={<Info className="w-5 h-5" />}
@@ -1842,34 +1822,14 @@ export default function MeetingRoom() {
             onClick={toggleHand}
             warning={isMyHandRaised}
           />
-          {/* Desktop Reactions Button with Popover */}
-          <div className="relative">
-            <CtrlBtn
-              id="room-reactions-btn"
-              icon={<Smile className="w-5 h-5 text-amber-300" />}
-              label="Reactions"
-              onClick={() => setShowReactions((prev) => !prev)}
-              active={showReactions}
-            />
-            <AnimatePresence>
-              {showReactions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 12, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50"
-                >
-                  <ReactionPicker
-                    onSelectEmoji={(emoji) => {
-                      webrtcSendReaction(emoji);
-                    }}
-                    onClose={() => setShowReactions(false)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Desktop Reactions Button */}
+          <CtrlBtn
+            id="room-reactions-btn"
+            icon={<Smile className="w-5 h-5 text-amber-300" />}
+            label="Reactions"
+            onClick={() => setShowReactions((prev) => !prev)}
+            active={showReactions}
+          />
           {/* Speaker boost — only useful when remote audio is playing */}
           {store.remoteParticipants.length > 0 && (
             <CtrlBtn
@@ -2022,6 +1982,35 @@ export default function MeetingRoom() {
               </button>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── REACTIONS POPUP (Centered, viewport-safe on mobile and desktop) ── */}
+      <AnimatePresence>
+        {showReactions && (
+          <>
+            {/* Click-away backdrop */}
+            <div
+              className="fixed inset-0 z-50 bg-black/25 sm:bg-transparent"
+              onClick={() => setShowReactions(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="fixed bottom-[116px] sm:bottom-20 left-0 right-0 mx-auto px-3 flex justify-center z-50 pointer-events-none"
+            >
+              <div className="pointer-events-auto">
+                <ReactionPicker
+                  onSelectEmoji={(emoji) => {
+                    webrtcSendReaction(emoji);
+                  }}
+                  onClose={() => setShowReactions(false)}
+                />
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

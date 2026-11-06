@@ -15,11 +15,16 @@ const API_URL = (import.meta.env['VITE_API_URL'] as string | undefined) ?? '';
 let sharedSocket: Socket | null = null;
 
 function getSocket(): Socket {
-  if (!sharedSocket || !sharedSocket.connected) {
+  if (!sharedSocket) {
     sharedSocket = io(API_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 500,
     });
+  } else if (!sharedSocket.connected && !sharedSocket.active) {
+    sharedSocket.connect();
   }
   return sharedSocket;
 }
@@ -31,7 +36,7 @@ function getSocket(): Socket {
 export function useQuizSocket() {
   const socketRef = useRef<Socket | null>(null);
   const store = useQuizStore();
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(() => sharedSocket?.connected ?? false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +52,11 @@ export function useQuizSocket() {
         const offset = serverTime - (sent + rtt / 2);
         store.setClockOffset(offset);
       });
+    }
+
+    if (socket.connected) {
+      setConnected(true);
+      syncClock();
     }
 
     // ── Connection events ─────────────────────────────────────────────────────
@@ -152,8 +162,10 @@ export function useQuizSocket() {
     onCreated?: (pin: string) => void,
     hostDisplayName?: string,
   ) {
-    const socket = socketRef.current;
-    if (!socket) return;
+    const socket = socketRef.current || getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
     socket.emit(
       GAME_EVENTS.CREATE,
       { settings, customQuestions, hostDisplayName },
@@ -179,8 +191,10 @@ export function useQuizSocket() {
     displayName: string,
     cb?: (res: { success: boolean; error?: string; status?: string; gameId?: string }) => void,
   ) {
-    const socket = socketRef.current;
-    if (!socket) return;
+    const socket = socketRef.current || getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
     store.setPin(pin);
     store.setIsHost(false);
     store.setStatus('lobby');

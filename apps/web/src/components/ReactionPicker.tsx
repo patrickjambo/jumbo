@@ -51,7 +51,7 @@ export function ReactionPicker({
   return (
     <div
       ref={containerRef}
-      className={`w-72 sm:w-80 bg-[#161b28]/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-white select-none z-50 ${className}`}
+      className={`w-[calc(100vw-1.5rem)] max-w-[340px] sm:w-80 bg-[#161b28]/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-white select-none z-50 ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/10 flex-shrink-0">
@@ -73,13 +73,13 @@ export function ReactionPicker({
         <div className="text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 px-0.5">
           Quick Reactions
         </div>
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-none py-0.5">
           {QUICK_REACTIONS.map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => handleEmojiClick(emoji)}
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-violet-600/30 hover:scale-125 hover:border hover:border-violet-400 text-lg sm:text-xl transition-all active:scale-95 shadow-sm"
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-violet-600/30 hover:scale-125 hover:border hover:border-violet-400 text-lg sm:text-xl transition-all active:scale-95 shadow-sm flex-shrink-0"
               title={emoji}
             >
               {emoji}
@@ -137,13 +137,13 @@ export function ReactionPicker({
       )}
 
       {/* Emoji Grid */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2 max-h-52 sm:max-h-56 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 max-h-[42vh] sm:max-h-56 scrollbar-thin">
         {filteredEmojis.length === 0 ? (
           <div className="py-8 text-center text-xs text-white/40">
             No emojis match &ldquo;{search}&rdquo;
           </div>
         ) : (
-          <div className="grid grid-cols-7 sm:grid-cols-8 gap-1">
+          <div className="grid grid-cols-7 sm:grid-cols-8 gap-1 justify-items-center">
             {filteredEmojis.map((item, index) => (
               <button
                 key={`${item.emoji}-${index}`}
@@ -160,7 +160,7 @@ export function ReactionPicker({
       </div>
 
       {/* Subtle footer hint */}
-      <div className="px-3 py-1.5 bg-black/20 border-t border-white/5 text-[10px] text-white/40 text-center">
+      <div className="px-3 py-1.5 bg-black/20 border-t border-white/5 text-[10px] text-white/40 text-center truncate">
         Click an emoji to react in real-time
       </div>
     </div>

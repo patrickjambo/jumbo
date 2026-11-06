@@ -281,22 +281,19 @@ export default function QuizLauncher() {
     setSelectedGeographyThemes(new Set(GEOGRAPHY_THEMES));
   }
 
-  // Prewarm initial flag, logo, animal, bible, history, and geography images on mount
+  // Prewarm initial flags/logos after initial render so buttons respond with 0ms delay
   useEffect(() => {
-    const previewFlags = WORLD_COUNTRIES.slice(0, 25).map((c) => c.flagUrl);
-    const previewLogos = WORLD_BRAND_LOGOS.slice(0, 25).map((l) => l.logoUrl);
-    const previewAnimals = WORLD_ANIMALS.slice(0, 25).map((a) => a.imageUrl);
-    const previewBible = WORLD_BIBLE_QUESTIONS.map((b) => b.imageUrl).filter((url): url is string => Boolean(url));
-    const previewHistory = WORLD_HISTORY_QUESTIONS.slice(0, 30).map((h) => h.imageUrl).filter((url): url is string => Boolean(url));
-    const previewGeography = WORLD_GEOGRAPHY_QUESTIONS.slice(0, 30).map((g) => g.imageUrl).filter((url): url is string => Boolean(url));
-    void preloadFlagImages([
-      ...previewFlags,
-      ...previewLogos,
-      ...previewAnimals,
-      ...previewBible,
-      ...previewHistory,
-      ...previewGeography,
-    ]);
+    const timer = setTimeout(() => {
+      const previewFlags = WORLD_COUNTRIES.slice(0, 15).map((c) => c.flagUrl);
+      const previewLogos = WORLD_BRAND_LOGOS.slice(0, 15).map((l) => l.logoUrl);
+      const previewAnimals = WORLD_ANIMALS.slice(0, 15).map((a) => a.imageUrl);
+      void preloadFlagImages([
+        ...previewFlags,
+        ...previewLogos,
+        ...previewAnimals,
+      ]);
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -927,25 +924,41 @@ export default function QuizLauncher() {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 via-indigo-500 to-violet-400 opacity-80" />
 
           {/* Header */}
-          <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-600/30 ring-1 ring-white/20 flex-shrink-0">
-                <Gamepad2 className="w-6 h-6 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center justify-between gap-2.5 w-full sm:w-auto">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-600/30 ring-1 ring-white/20 flex-shrink-0">
+                  <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white whitespace-nowrap">
+                    Jumbo Quiz
+                  </h1>
+                  <p className="text-[11px] sm:text-xs text-slate-400 font-medium truncate sm:whitespace-normal">
+                    Multiplayer Trivia &amp; Kahoot-Style Games
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                  <span>Jumbo Quiz</span>
-                </h1>
-                <p className="text-xs text-slate-400 font-medium">Multiplayer Trivia & Kahoot-Style Games</p>
+
+              {/* Status badge on mobile (top row, right aligned) */}
+              <div
+                className={`inline-flex sm:hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border flex-shrink-0 ${
+                  connected
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                <span>{connected ? 'Live Ready' : 'Connecting...'}</span>
               </div>
             </div>
 
-            {/* Quick Action: My Library */}
-            <div className="flex items-center gap-2">
+            {/* Quick Action: My Library (own row on mobile, inline on desktop) */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setMode(mode === 'library' ? null : 'library')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
                   mode === 'library'
                     ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/20'
                     : 'bg-[#151c2e] border-white/10 text-slate-300 hover:text-white hover:border-amber-500/40'
@@ -955,8 +968,9 @@ export default function QuizLauncher() {
                 <span>My Library ({savedDecks.length})</span>
               </button>
 
+              {/* Status badge on desktop */}
               <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border flex-shrink-0 ${
                   connected
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                     : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -1140,10 +1154,12 @@ export default function QuizLauncher() {
                           type="button"
                           disabled={creating}
                           onClick={() => handleLaunchWithQuestions(deck.questions)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-600/30"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-xs font-bold text-white shadow-lg shadow-emerald-600/30 ${
+                            creating ? 'opacity-80 cursor-wait' : ''
+                          }`}
                         >
-                          <Play className="w-3 h-3 fill-white" />
-                          <span>Play Now</span>
+                          {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-white" />}
+                          <span>{creating ? 'Starting...' : 'Play Now'}</span>
                         </button>
                       </div>
                     </div>
@@ -1169,16 +1185,16 @@ export default function QuizLauncher() {
                     maxLength={6}
                     value={joinPin}
                     onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter 6-digit Game PIN..."
+                    placeholder="6-digit Game PIN..."
                     className="flex-1 h-11 px-3.5 rounded-xl bg-[#0b0e1a] border border-violet-500/30 text-white font-mono text-base tracking-widest placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                   <button
                     type="submit"
                     disabled={joining || joinPin.length !== 6}
-                    className="h-11 px-5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-sm shadow-lg shadow-violet-600/30 flex items-center gap-1.5 transition-all"
+                    className="h-11 px-5 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-sm shadow-lg shadow-violet-600/30 flex items-center gap-1.5 transition-all"
                   >
                     {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
-                    <span>Join</span>
+                    <span>{joining ? 'Joining...' : 'Join'}</span>
                   </button>
                 </form>
                 {joinError && (
@@ -1200,14 +1216,21 @@ export default function QuizLauncher() {
                   type="button"
                   onClick={handleCreateAuto}
                   disabled={creating}
-                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
+                  className={`group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg active:scale-95 ${
+                    creating ? 'opacity-85 cursor-wait' : ''
+                  }`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Zap className="w-5 h-5 text-violet-400" />
+                    {creating ? <Loader2 className="w-5 h-5 text-violet-400 animate-spin" /> : <Zap className="w-5 h-5 text-violet-400" />}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white mb-0.5">Quick Blitz</h3>
-                    <p className="text-xs text-slate-400">1-click random 15-question trivia game</p>
+                    <h3 className="text-sm font-bold text-white mb-0.5 flex items-center gap-1.5">
+                      <span>{creating ? 'Starting Blitz...' : 'Quick Blitz'}</span>
+                      {creating && <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin" />}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {creating ? 'Creating lobby & picking questions...' : '1-click random 15-question trivia game'}
+                    </p>
                   </div>
                 </button>
 
@@ -1215,7 +1238,7 @@ export default function QuizLauncher() {
                 <button
                   type="button"
                   onClick={() => setMode('categories')}
-                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
+                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg active:scale-95"
                 >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <SlidersHorizontal className="w-5 h-5 text-violet-400" />
@@ -1230,7 +1253,7 @@ export default function QuizLauncher() {
                 <button
                   type="button"
                   onClick={() => setMode('builder')}
-                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg"
+                  className="group p-4 rounded-2xl bg-[#141b2c] border border-white/5 hover:border-violet-500/50 hover:bg-[#1a2238] transition-all text-left flex flex-col justify-between shadow-lg active:scale-95"
                 >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <FileText className="w-5 h-5 text-violet-400" />
@@ -1398,10 +1421,10 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchFlagQuiz(flagQuestionCount, flagContinent)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                <span>Launch National Flags Quiz ({flagQuestionCount} Questions)</span>
+                <span>{creating ? 'Starting Game...' : `Launch National Flags Quiz (${flagQuestionCount} Questions)`}</span>
               </button>
             </motion.div>
           )}
@@ -1560,10 +1583,10 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchLogoQuiz(logoQuestionCount, logoCategory)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-violet-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-violet-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                <span>Launch Logos &amp; Brands Quiz ({logoQuestionCount} Questions)</span>
+                <span>{creating ? 'Starting Game...' : `Launch Logos & Brands Quiz (${logoQuestionCount} Questions)`}</span>
               </button>
             </motion.div>
           )}
@@ -1722,10 +1745,10 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchAnimalQuiz(animalQuestionCount, animalCategory)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-amber-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-amber-900/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                <span>Launch Fauna &amp; Animals Quiz ({animalQuestionCount} Questions)</span>
+                <span>{creating ? 'Starting Game...' : `Launch Fauna & Animals Quiz (${animalQuestionCount} Questions)`}</span>
               </button>
             </motion.div>
           )}
@@ -1921,11 +1944,11 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchBibleQuiz(bibleQuestionCount, selectedBibleCategories)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-white font-extrabold text-sm shadow-xl shadow-amber-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-amber-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
                 <span>
-                  Launch Mixed Scripture Quiz ({Math.min(bibleQuestionCount, currentBibleQuestions.length)} Questions)
+                  {creating ? 'Starting Game...' : `Launch Mixed Scripture Quiz (${Math.min(bibleQuestionCount, currentBibleQuestions.length)} Questions)`}
                 </span>
               </button>
             </motion.div>
@@ -2124,11 +2147,11 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchHistoryQuiz(historyQuestionCount, selectedHistoryEras)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 hover:from-amber-500 hover:to-orange-500 text-white font-extrabold text-sm shadow-xl shadow-orange-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-orange-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
                 <span>
-                  Launch World History Quiz ({Math.min(historyQuestionCount, currentHistoryQuestions.length)} Questions)
+                  {creating ? 'Starting Game...' : `Launch World History Quiz (${Math.min(historyQuestionCount, currentHistoryQuestions.length)} Questions)`}
                 </span>
               </button>
             </motion.div>
@@ -2327,11 +2350,11 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={() => handleLaunchGeographyQuiz(geographyQuestionCount, selectedGeographyThemes)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-extrabold text-sm shadow-xl shadow-teal-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-teal-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
                 <span>
-                  Launch Global Geography Quiz ({Math.min(geographyQuestionCount, currentGeographyQuestions.length)} Questions)
+                  {creating ? 'Starting Game...' : `Launch Global Geography Quiz (${Math.min(geographyQuestionCount, currentGeographyQuestions.length)} Questions)`}
                 </span>
               </button>
             </motion.div>
@@ -2535,10 +2558,10 @@ export default function QuizLauncher() {
                 type="button"
                 disabled={creating}
                 onClick={handleCreateAuto}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-extrabold text-sm shadow-lg shadow-violet-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 active:scale-95 text-white font-extrabold text-sm shadow-lg shadow-violet-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
-                <span>Launch Quiz with {selectedCats.size} Categories</span>
+                <span>{creating ? 'Starting Game...' : `Launch Quiz with ${selectedCats.size} Categories`}</span>
               </button>
             </motion.div>
           )}
@@ -2872,10 +2895,10 @@ export default function QuizLauncher() {
                     type="button"
                     disabled={creating}
                     onClick={handleCreateCustom}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 active:scale-95 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
                   >
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
-                    <span>Start My Custom Quiz ({customQuestions.length} Questions)</span>
+                    <span>{creating ? 'Starting Custom Quiz...' : `Start My Custom Quiz (${customQuestions.length} Questions)`}</span>
                   </button>
                 </div>
               )}
@@ -3297,10 +3320,10 @@ export default function QuizLauncher() {
                                 handleLaunchWithQuestions(extractedQuestions);
                               }
                             }}
-                            className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 hover:brightness-110 transition-all disabled:opacity-60"
+                            className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 active:scale-95 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 hover:brightness-110 transition-all disabled:opacity-60"
                           >
-                            <Play className="w-3.5 h-3.5 fill-white" />
-                            <span>Launch Now ({extractedQuestions.length} Qs)</span>
+                            {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                            <span>{creating ? 'Starting...' : `Launch Now (${extractedQuestions.length} Qs)`}</span>
                           </button>
                         </div>
                       </div>
