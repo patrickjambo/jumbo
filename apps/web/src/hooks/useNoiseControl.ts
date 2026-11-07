@@ -1,21 +1,32 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 /**
- * Phase 2 — Voice Activity Detection + Auto-mute
+ * Advanced Noise & Echo Control
  *
- * Strategy (layered, runs entirely on client — no audio sent to server):
- * 1. Web Audio AnalyserNode for loudness (RMS) measurement
- * 2. If RMS > threshold for > 3s AND speech model says NOT speech → auto-mute
- * 3. Anti-flapping: 10s grace after manual unmute; after 3 auto-mutes in 2min → suggest headphones
- * 4. Echo: sustained loud tonal sound while others speak → auto-mute + recommend headphones
+ * Layer 1 — Browser AEC (always on, set via getUserMedia constraints)
+ *   The browser's native echo canceller runs at the OS/driver level and handles
+ *   the most common case: speaker output leaking into the microphone.
+ *
+ * Layer 2 — Application-level loudness gate (this hook)
+ *   Catches edge cases the browser AEC misses:
+ *   - Same-room multiple devices (AEC can't cancel output of a *different* device)
+ *   - Sustained background noise (construction, fans, music)
+ *   - Feedback loops when the volume is cranked very high
+ *
+ * Strategy:
+ * 1. RMS meter on the mic track (runs at 300ms intervals — low CPU)
+ * 2. If RMS stays above an extreme threshold for 45+ unbroken seconds → auto-mute
+ *    (natural speech pauses reset the timer — talking never triggers this)
+ * 3. After 3 auto-mutes in a 3-min window → suggest headphones
+ * 4. 3-minute grace after every manual unmute to avoid false positives
  */
 
 export interface NoiseControlOptions {
   enabled: boolean;
   onAutoMute: (reason: string) => void;
   onSuggestHeadphones: () => void;
-  loudnessThresholdDb?: number; // default -30 dBFS
-  speechSilenceSecs?: number;   // seconds of non-speech before mute (default 3)
+  loudnessThresholdDb?: number; // default -6 dBFS (only extreme screeching)
+  speechSilenceSecs?: number;   // seconds of unbroken noise before mute (default 45)
 }
 
 export function useNoiseControl(
@@ -37,8 +48,8 @@ export function useNoiseControl(
     enabled,
     onAutoMute,
     onSuggestHeadphones,
-    loudnessThresholdDb = -6, // Only extreme continuous screeching/deafening feedback
-    speechSilenceSecs = 45,    // 45s of unbroken noise
+    loudnessThresholdDb = -6,  // only extreme continuous screeching/feedback
+    speechSilenceSecs = 45,    // 45s of unbroken loud noise
   } = options;
 
   // Convert dBFS threshold to RMS
@@ -89,7 +100,8 @@ export function useNoiseControl(
         } else {
           const loudDuration = (nowMs - loudSinceRef.current) / 1000;
           if (loudDuration >= speechSilenceSecs && nowMs > graceUntilRef.current) {
-            // Sustained continuous loud drone for 20+ seconds — auto-mute
+            // Sustained continuous loud drone for 45+ seconds — almost certainly
+            // feedback, a fan, or music — auto-mute and reset.
             const windowAge = nowMs - autoMuteWindowStartRef.current;
             if (windowAge > 180_000) {
               autoMuteCountRef.current = 0;

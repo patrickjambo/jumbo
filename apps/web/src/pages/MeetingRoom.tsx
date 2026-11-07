@@ -106,6 +106,12 @@ function ParticipantTile({
         }
 
         // ── Web Audio pipeline for remote audio ──
+        // Chain: source → highpass → compressor → gain → boost → destination
+        // - highpass (80 Hz): eliminates low-frequency rumble and device handling noise
+        // - compressor: intelligently limits loud speakers without clipping
+        // - gain: volume normaliser
+        // - boost: global user-controlled boost
+        // All remote participants share ONE AudioContext (browser limit ~6 contexts)
         if (stream) {
           const audioTracks = stream.getAudioTracks();
           if (audioTracks.length > 0) {
@@ -117,25 +123,57 @@ function ParticipantTile({
               const audioOnlyStream = new MediaStream(audioTracks);
               const source = ctx.createMediaStreamSource(audioOnlyStream);
 
-              // Soft limiter
-              const compressor = ctx.createDynamicsCompressor();
-              compressor.threshold.value = -18;
-              compressor.knee.value = 8;
-              compressor.ratio.value = 6;
-              compressor.attack.value = 0.003;
-              compressor.release.value = 0.2;
+              // 1. High-pass filter: cut everything below 80 Hz (rumble, handling noise)
+              const highpass = ctx.createBiquadFilter();
+              highpass.type = 'highpass';
+              highpass.frequency.value = 80;
+              highpass.Q.value = 0.7;
 
-              // Volume normalizer
+              // 2. Low-pass filter: cut harsh sibilance / very high freq noise above 8 kHz
+              const lowpass = ctx.createBiquadFilter();
+              lowpass.type = 'lowpass';
+              lowpass.frequency.value = 8000;
+              lowpass.Q.value = 0.7;
+
+              // 3. Presence boost at 3kHz — makes voices sit above background noise
+              const presence = ctx.createBiquadFilter();
+              presence.type = 'peaking';
+              presence.frequency.value = 3000;
+              presence.gain.value = 2;   // +2 dB for voice clarity
+              presence.Q.value = 1.0;
+
+              // 4. De-esser: gentle cut at 7kHz to soften harsh sibilance ("s" sounds)
+              const deEsser = ctx.createBiquadFilter();
+              deEsser.type = 'peaking';
+              deEsser.frequency.value = 7000;
+              deEsser.gain.value = -3;   // -3 dB de-essing
+              deEsser.Q.value = 2.0;
+
+              // 5. Dynamics compressor: controls loudness between multiple concurrent speakers
+              //    — fast attack catches loud transients immediately
+              //    — medium release to prevent pumping when 3+ people speak at once
+              const compressor = ctx.createDynamicsCompressor();
+              compressor.threshold.value = -24;   // start compressing at -24 dBFS
+              compressor.knee.value = 6;           // soft knee for natural sound
+              compressor.ratio.value = 4;          // 4:1 — gentle but effective
+              compressor.attack.value = 0.002;     // 2ms attack — catches spikes fast
+              compressor.release.value = 0.15;     // 150ms release — smooth, no pumping
+
+              // 6. Volume normaliser
               const gain = ctx.createGain();
               gain.gain.value = 0.9;
 
-              // Boost node — controlled globally by the speaker boost toggle
+              // 7. Boost node — controlled globally by the speaker boost toggle
               const boostNode = ctx.createGain();
               boostNode.gain.value = globalBoostGain;
               boostGainNodes.add(boostNode);
 
-              // Chain: source → compressor → gain → boost → destination
-              source.connect(compressor);
+              // Chain: source → highpass → lowpass → presence → deEsser → compressor → gain → boost → destination
+              source.connect(highpass);
+              highpass.connect(lowpass);
+              lowpass.connect(presence);
+              presence.connect(deEsser);
+              deEsser.connect(compressor);
               compressor.connect(gain);
               gain.connect(boostNode);
               boostNode.connect(ctx.destination);
@@ -159,7 +197,17 @@ function ParticipantTile({
               audioNodeCleanupRef.current = () => {
                 cancelAnimationFrame(vadRaf);
                 boostGainNodes.delete(boostNode);
-                try { source.disconnect(); compressor.disconnect(); gain.disconnect(); boostNode.disconnect(); analyser.disconnect(); } catch {}
+                try {
+                  source.disconnect();
+                  highpass.disconnect();
+                  lowpass.disconnect();
+                  presence.disconnect();
+                  deEsser.disconnect();
+                  compressor.disconnect();
+                  gain.disconnect();
+                  boostNode.disconnect();
+                  analyser.disconnect();
+                } catch { /* ignore — nodes may already be disconnected */ }
               };
             } catch (e) {
               console.warn('[Audio] Failed to create Web Audio pipeline, falling back', e);

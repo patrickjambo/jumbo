@@ -63,12 +63,15 @@ function optimizeAudioSdp(sdp: string): string {
 
   const desiredParams: Record<string, string> = {
     minptime: '10',
+    maxptime: '60',
     useinbandfec: '1',
-    usedtx: '0',
+    usedtx: '0',          // never suppress silence — prevents clipping when others speak
     stereo: '0',
     'sprop-stereo': '0',
     cbr: '1',
     maxaveragebitrate: '64000',
+    'x-google-min-bitrate': '32000',
+    'x-google-max-bitrate': '64000',
   };
 
   if (fmtpMatch?.[1]) {
@@ -469,31 +472,33 @@ export function useMeetingWebRTC({
     mountedRef.current = true;
 
     async function init() {
-      // 1. Acquire local media with optimized mono 48 kHz audio
+      // 1. Acquire local media with maximum browser-level AEC/NS/AGC
+      //    These constraints tell the browser's native audio engine to apply
+      //    hardware-accelerated echo cancellation, noise suppression, and AGC
+      //    BEFORE the audio ever reaches JavaScript — the most effective path.
+      //    suppressLocalAudioPlayback and latency are Chrome/Edge extensions cast
+      //    via unknown so TypeScript doesn't reject them (they're ignored on other browsers).
+      const audioConstraints = {
+        echoCancellation: true,          // AEC: removes speaker output from mic signal
+        noiseSuppression: true,          // DNS: suppresses background hiss/hum
+        autoGainControl: true,           // AGC: normalises speaker loudness
+        suppressLocalAudioPlayback: true,// Chrome: prevent local playback echo
+        channelCount: 1,                 // mono — no phase cancellation
+        sampleRate: 48000,               // Opus native sample rate
+        sampleSize: 16,
+      } as MediaTrackConstraints;
+
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user', frameRate: { ideal: 30 } },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 1,
-            sampleRate: 48000,
-            sampleSize: 16,
-          },
+          audio: audioConstraints,
         });
       } catch {
         console.warn('[WebRTC] Video unavailable, trying audio-only');
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              channelCount: 1,
-              sampleRate: 48000,
-            },
+            audio: audioConstraints,
           });
         } catch (e2) {
           console.warn('[WebRTC] Audio also unavailable, creating silent stream', e2);
