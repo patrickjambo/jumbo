@@ -1,5 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { wakeUpApi } from './lib/api';
+import { prewarmSocket } from './hooks/useQuizSocket';
 
 // Eagerly loaded pages (small, fast)
 import Landing from './pages/Landing';
@@ -31,6 +33,34 @@ function PageLoader() {
 }
 
 export default function App() {
+  // ── Warm up remote API & prefetch heavy JS chunks during idle time ──────
+  useEffect(() => {
+    // 1. Ping the API server so it's warm before first real request
+    wakeUpApi();
+
+    // 2. Pre-warm the Socket.IO connection during idle time
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(prewarmSocket, { timeout: 5000 });
+    } else {
+      setTimeout(prewarmSocket, 2000);
+    }
+
+    // 3. Prefetch heavy page chunks so navigation feels instant
+    function prefetchChunks() {
+      void import('./pages/PreJoinLobby');
+      void import('./pages/MeetingRoom');
+      void import('./pages/QuizLauncher');
+      void import('./pages/QuizLobby');
+      void import('./pages/QuizGame');
+    }
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(prefetchChunks, { timeout: 3000 });
+    } else {
+      setTimeout(prefetchChunks, 1500);
+    }
+  }, []);
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>

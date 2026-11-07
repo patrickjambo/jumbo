@@ -1,6 +1,17 @@
 const API_URL = ((import.meta.env['VITE_API_URL'] as string | undefined) ?? '').replace(/\/+$/, '');
 
 /**
+ * wakeUpApi — fires a lightweight ping to warm the Render.com API server.
+ * Called once on app load so the first real request (createRoom, fetchToken)
+ * never hits a cold-start delay.
+ */
+export function wakeUpApi(): void {
+  if (!API_URL) return;
+  fetch(`${API_URL}/health`, { method: 'GET', cache: 'no-store', keepalive: true })
+    .catch(() => { /* intentionally silent — we're just warming the dyno */ });
+}
+
+/**
  * generateClientRoomCode — fallback 6-char alphanumeric room code
  */
 function generateClientRoomCode(): string {

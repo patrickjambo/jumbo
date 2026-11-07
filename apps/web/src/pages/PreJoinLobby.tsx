@@ -85,6 +85,15 @@ export default function PreJoinLobby() {
   // By the time the user fills their name and clicks Start, the room code is ready.
   useEffect(() => {
     if (!isNew) return;
+    // Try to use the room code that Home.tsx pre-warmed (fastest path)
+    try {
+      const cached = sessionStorage.getItem('jumbo-prewarm-code');
+      if (cached) {
+        sessionStorage.removeItem('jumbo-prewarm-code');
+        setPreCreatedCode(cached);
+        return; // already have one — no need to call API again
+      }
+    } catch { /* ignore */ }
     createRoom()
       .then((room) => setPreCreatedCode(room.code))
       .catch(() => { /* will retry inside handleJoin */ });

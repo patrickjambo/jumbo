@@ -340,18 +340,19 @@ export default function QuizLauncher() {
 
   // Prewarm initial flags/logos after initial render so buttons respond with 0ms delay
   useEffect(() => {
+    // Start preloading after a brief delay to avoid blocking initial paint
     const timer = setTimeout(() => {
-      const previewFlags = WORLD_COUNTRIES.slice(0, 15).map((c) => c.flagUrl);
-      const previewLogos = WORLD_BRAND_LOGOS.slice(0, 15).map((l) => l.logoUrl);
-      const previewAnimals = WORLD_ANIMALS.slice(0, 15).map((a) => a.imageUrl);
-      const previewPuzzles = WORLD_VISUAL_PUZZLES.slice(0, 15).map((p) => p.imageUrl);
+      const previewFlags = WORLD_COUNTRIES.slice(0, 20).map((c) => c.flagUrl);
+      const previewLogos = WORLD_BRAND_LOGOS.slice(0, 20).map((l) => l.logoUrl);
+      const previewAnimals = WORLD_ANIMALS.slice(0, 20).map((a) => a.imageUrl);
+      const previewPuzzles = WORLD_VISUAL_PUZZLES.slice(0, 20).map((p) => p.imageUrl);
       void preloadFlagImages([
         ...previewFlags,
         ...previewLogos,
         ...previewAnimals,
         ...previewPuzzles,
       ]);
-    }, 1500);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 

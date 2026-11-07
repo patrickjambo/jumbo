@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'fonts/**/*'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'fonts/**/*', 'puzzles/**/*.svg'],
       manifest: {
         name: 'Jumbo App',
         short_name: 'Jumbo',
@@ -23,12 +23,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/flagcdn\.com\//,
             handler: 'CacheFirst',
             options: { cacheName: 'flags-cache', expiration: { maxEntries: 300, maxAgeSeconds: 86400 } },
+          },
+          {
+            // Cache local SVG puzzle illustrations
+            urlPattern: /\/puzzles\/.*\.svg$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'puzzles-cache', expiration: { maxEntries: 100, maxAgeSeconds: 604800 } },
           },
         ],
       },
@@ -52,6 +58,8 @@ export default defineConfig({
         },
       },
     },
+    // Inject <link rel="modulepreload"> for all entry-point dependencies
+    modulePreload: { polyfill: true },
     // Warn if first-load JS exceeds 200KB gzipped target
     chunkSizeWarningLimit: 600,
   },

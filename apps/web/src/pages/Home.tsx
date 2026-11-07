@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Gamepad2, Plus, ArrowRight, Clock, Users } from 'lucide-react';
 import { AppNavbar } from '../components/AppNavbar';
+import { createRoom } from '../lib/api';
 
 interface RecentMeeting {
   code: string;
@@ -22,6 +23,42 @@ interface RecentQuiz {
 export default function Home() {
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
+  // Pre-created room code — set on "Meet" card hover so room is ready before user clicks
+  const preCreatedCodeRef = useRef<string | null>(null);
+  const preCreateInFlightRef = useRef(false);
+
+  // Pre-warm the room creation on the "Meet" card hover so there's no latency on click
+  const handleMeetHover = useCallback(() => {
+    if (preCreatedCodeRef.current || preCreateInFlightRef.current) return;
+    preCreateInFlightRef.current = true;
+    createRoom()
+      .then((r) => {
+        preCreatedCodeRef.current = r.code;
+        // Store for PreJoinLobby to pick up
+        try { sessionStorage.setItem('jumbo-prewarm-code', r.code); } catch { /* ignore */ }
+      })
+      .catch(() => { preCreateInFlightRef.current = false; });
+  }, []);
+
+  // Also pre-warm on mount after idle time (covers mobile tap with no hover)
+  useEffect(() => {
+    const warm = () => {
+      if (!preCreatedCodeRef.current && !preCreateInFlightRef.current) {
+        preCreateInFlightRef.current = true;
+        createRoom()
+          .then((r) => {
+            preCreatedCodeRef.current = r.code;
+            try { sessionStorage.setItem('jumbo-prewarm-code', r.code); } catch { /* ignore */ }
+          })
+          .catch(() => { preCreateInFlightRef.current = false; });
+      }
+    };
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(warm, { timeout: 4000 });
+    } else {
+      setTimeout(warm, 2000);
+    }
+  }, []);
 
   const [recentMeetings] = useState<RecentMeeting[]>(() => {
     try {
@@ -74,6 +111,8 @@ export default function Home() {
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/join/new')}
+            onMouseEnter={handleMeetHover}
+            onFocus={handleMeetHover}
             id="home-meet-card"
           >
             <div className="w-12 h-12 rounded-2xl bg-brand-500/15 flex items-center justify-center mb-5 group-hover:bg-brand-500/25 transition-colors">

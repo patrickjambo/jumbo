@@ -29,6 +29,11 @@ function getSocket(): Socket {
   return sharedSocket;
 }
 
+/** prewarmSocket — call once at startup to establish the WebSocket before user enters quiz */
+export function prewarmSocket(): void {
+  if (API_URL) getSocket();
+}
+
 /**
  * useQuizSocket — manages Socket.IO connection and wires all quiz game events
  * to the Zustand quiz store.
