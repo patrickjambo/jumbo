@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="100%" height="100%">
+  <rect width="500" height="400" fill="#0f172a" rx="16"/>
+  <!-- Necker Cube: Isometric wireframe bistable cube -->
+  <g transform="translate(150, 80)">
+    <!-- Front Face -->
+    <rect x="0" y="60" width="140" height="140" fill="none" stroke="#38bdf8" stroke-width="4"/>
+    <!-- Rear Face -->
+    <rect x="60" y="0" width="140" height="140" fill="none" stroke="#a855f7" stroke-width="4"/>
+    <!-- Connecting Edges -->
+    <line x1="0" y1="60" x2="60" y2="0" stroke="#94a3b8" stroke-width="4"/>
+    <line x1="140" y1="60" x2="200" y2="0" stroke="#94a3b8" stroke-width="4"/>
+    <line x1="0" y1="200" x2="60" y2="140" stroke="#94a3b8" stroke-width="4"/>
+    <line x1="140" y1="200" x2="200" y2="140" stroke="#94a3b8" stroke-width="4"/>
+  </g>
+  <rect x="40" y="340" width="420" height="35" rx="8" fill="#1e293b" stroke="#334155"/>
+  <text x="250" y="362" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">NECKER CUBE: BISTABLE 3D DEPTH PERSPECTIVE</text>
+</svg>

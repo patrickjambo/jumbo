@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="100%" height="100%">
+  <rect width="500" height="400" fill="#0f172a" rx="16"/>
+  <!-- Duck / Rabbit Bistable Silhouette -->
+  <g transform="translate(90, 60)">
+    <path d="M 60 140 C 0 130 0 100 40 80 C 80 60 140 40 200 80 C 260 120 280 180 240 220 C 200 250 140 250 100 220 C 70 200 70 160 60 140 Z" fill="#e2e8f0"/>
+    <!-- Left Beak / Right Ears -->
+    <path d="M 70 95 Q -30 90 -40 110 Q -30 130 65 125 Z" fill="#e2e8f0"/>
+    <path d="M 70 130 Q -25 140 -35 155 Q -25 170 70 150 Z" fill="#e2e8f0"/>
+    <!-- Eye in middle -->
+    <circle cx="110" cy="115" r="7" fill="#0f172a"/>
+    <circle cx="112" cy="113" r="2.5" fill="#ffffff"/>
+  </g>
+  <!-- Labels -->
+  <text x="80" y="170" fill="#38bdf8" font-size="11" font-weight="bold" font-family="sans-serif">← DUCK BEAK</text>
+  <text x="350" y="170" fill="#f472b6" font-size="11" font-weight="bold" font-family="sans-serif">RABBIT HEAD →</text>
+  <rect x="40" y="350" width="420" height="30" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="250" y="370" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">JASTROW (1899): DUCK FACING LEFT OR RABBIT FACING RIGHT?</text>
+</svg>

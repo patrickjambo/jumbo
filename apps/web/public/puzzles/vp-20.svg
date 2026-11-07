@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="100%" height="100%">
+  <rect width="500" height="350" fill="#0f172a" rx="16"/>
+  <!-- Detective Crime Scene Watch -->
+  <g transform="translate(160, 40)">
+    <circle cx="90" cy="90" r="85" fill="#1e293b" stroke="#cbd5e1" stroke-width="8"/>
+    <!-- Watch Face -->
+    <circle cx="90" cy="90" r="75" fill="#f8fafc"/>
+    <!-- Hour markers -->
+    <line x1="90" y1="20" x2="90" y2="30" stroke="#0f172a" stroke-width="4"/>
+    <line x1="160" y1="90" x2="150" y2="90" stroke="#0f172a" stroke-width="4"/>
+    <line x1="90" y1="160" x2="90" y2="150" stroke="#0f172a" stroke-width="4"/>
+    <line x1="20" y1="90" x2="30" y2="90" stroke="#0f172a" stroke-width="4"/>
+    <!-- Hands frozen at 2:15 -->
+    <line x1="90" y1="90" x2="135" y2="70" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/>
+    <line x1="90" y1="90" x2="148" y2="90" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="90" cy="90" r="5" fill="#0f172a"/>
+    <!-- Shattered glass crack lines -->
+    <path d="M 50 40 L 90 90 L 140 130 M 90 90 L 110 50 M 90 90 L 70 140" stroke="#64748b" stroke-width="2"/>
+  </g>
+  <rect x="40" y="275" width="420" height="50" rx="8" fill="#1e293b" stroke="#ef4444"/>
+  <text x="250" y="295" fill="#f87171" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">CRACKED WATCH STOPPED AT 2:15 PM</text>
+  <text x="250" y="313" fill="#cbd5e1" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">Suspect claim of alibi at 3:00 PM is busted!</text>
+</svg>

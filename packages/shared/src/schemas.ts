@@ -198,6 +198,7 @@ export const QUESTION_CATEGORIES = [
   'religion_culture',
   'mythology',
   'general_knowledge',
+  'visual_puzzles',
 ] as const;
 
 export type QuestionCategory = (typeof QUESTION_CATEGORIES)[number];

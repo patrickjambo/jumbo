@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="100%" height="100%">
+  <rect width="500" height="400" fill="#1e293b" rx="16"/>
+  <!-- Kanizsa Triangle: 3 Pac-man circles forming illusory white triangle -->
+  <g transform="translate(100, 40)">
+    <!-- 3 Black Pacman shapes -->
+    <!-- Top Pacman -->
+    <path d="M 150 40 L 150 70 A 30 30 0 1 0 176 55 Z" fill="#020617"/>
+    <!-- Bottom Left Pacman -->
+    <path d="M 50 240 L 80 240 A 30 30 0 1 0 65 214 Z" fill="#020617"/>
+    <!-- Bottom Right Pacman -->
+    <path d="M 250 240 L 220 240 A 30 30 0 1 1 235 214 Z" fill="#020617"/>
+    <!-- Three black outline corner chevrons -->
+    <path d="M 150 240 L 50 70 L 250 70 Z" stroke="#0f172a" stroke-width="3" fill="none"/>
+    <!-- The illusory triangle appears brightly in the middle! -->
+  </g>
+  <rect x="40" y="345" width="420" height="35" rx="8" fill="#0f172a" stroke="#334155"/>
+  <text x="250" y="367" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">KANIZSA TRIANGLE: BRAIN CREATES SOLID WHITE TRIANGLE</text>
+</svg>

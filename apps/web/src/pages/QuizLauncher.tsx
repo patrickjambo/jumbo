@@ -9,7 +9,7 @@ import {
   User, KeyRound, Play, ArrowLeft, ArrowRight,
   Triangle, Diamond, Circle, Square,
   FileText, Upload, Library, Download, ArrowUp, ArrowDown,
-  ListOrdered, Scale, Edit3, FolderOpen,
+  ListOrdered, Scale, Edit3, FolderOpen, Eye,
 } from 'lucide-react';
 import {
   QUESTION_CATEGORIES,
@@ -40,6 +40,10 @@ import {
   type GeographyTheme,
   GEOGRAPHY_THEMES,
   getGeographyQuestionsByTheme,
+  WORLD_VISUAL_PUZZLES,
+  type VisualPuzzleTheme,
+  VISUAL_PUZZLE_THEMES,
+  getVisualPuzzleQuestionsByTheme,
 } from '@jumbo/shared';
 import { useQuizSocket } from '../hooks/useQuizSocket';
 import { AppNavbar } from '../components/AppNavbar';
@@ -58,6 +62,7 @@ import { buildAnimalQuizQuestions } from '../lib/animalQuestions';
 import { buildBibleQuizQuestions } from '../lib/bibleQuestions';
 import { buildHistoryQuizQuestions } from '../lib/historyQuestions';
 import { buildGeographyQuizQuestions } from '../lib/geographyQuestions';
+import { buildVisualPuzzleQuestions } from '../lib/visualPuzzleQuestions';
 import { preloadFlagImages } from '../lib/flagPreloader';
 
 // Category icon map — 100% Lucide SVG vector icons, NO emojis
@@ -69,6 +74,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   holy_bible: Cross,
   history: Landmark,
   geography: Compass,
+  visual_puzzles: Eye,
   science: FlaskConical,
   math_formulas: Calculator,
   numbers_logic: Binary,
@@ -85,6 +91,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   holy_bible: 'Holy Bible & Jesus (82 Questions)',
   history: 'World History (84 Turning Points)',
   geography: 'Global Geography (84 Natural Wonders)',
+  visual_puzzles: 'Visual Logic & Brain Teasers (30+ Puzzles)',
   science: 'Science & Physics',
   math_formulas: 'Math & Formulas',
   numbers_logic: 'Logic & Numbers',
@@ -117,8 +124,8 @@ export default function QuizLauncher() {
   const urlPin = searchParams.get('pin');
   const { connected, error, createGame, joinGame } = useQuizSocket();
 
-  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'animals' | 'bible' | 'history' | 'geography' | 'builder' | 'library' | null>(null);
-  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'holy_bible', 'history', 'geography', 'logos_brands', 'animals', 'general_knowledge']));
+  const [mode, setMode] = useState<'auto' | 'categories' | 'flags' | 'logos' | 'animals' | 'bible' | 'history' | 'geography' | 'visual_puzzles' | 'builder' | 'library' | null>(null);
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set(['flags', 'holy_bible', 'history', 'geography', 'logos_brands', 'animals', 'visual_puzzles', 'general_knowledge']));
   const [questionCount, setQuestionCount] = useState(15);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('jumbo-display-name') ?? '');
   const [joinPin, setJoinPin] = useState(() => urlPin ?? '');
@@ -281,16 +288,68 @@ export default function QuizLauncher() {
     setSelectedGeographyThemes(new Set(GEOGRAPHY_THEMES));
   }
 
+  // Visual Puzzles state (multi-select themes)
+  const [selectedVisualPuzzleThemes, setSelectedVisualPuzzleThemes] = useState<Set<VisualPuzzleTheme>>(
+    () => new Set(VISUAL_PUZZLE_THEMES),
+  );
+  const [visualPuzzleQuestionCount, setVisualPuzzleQuestionCount] = useState<number>(15);
+  const [visualPuzzleTimeLimit, setVisualPuzzleTimeLimit] = useState<number>(25);
+
+  const currentVisualPuzzleQuestions = useMemo(() => {
+    return WORLD_VISUAL_PUZZLES.filter((q) => selectedVisualPuzzleThemes.has(q.theme));
+  }, [selectedVisualPuzzleThemes]);
+
+  const isAllVisualPuzzlesSelected = selectedVisualPuzzleThemes.size === VISUAL_PUZZLE_THEMES.length;
+
+  const visualPuzzleThemeLabel = useMemo(() => {
+    if (selectedVisualPuzzleThemes.size === VISUAL_PUZZLE_THEMES.length) {
+      return `All Visual Logic Puzzles (${currentVisualPuzzleQuestions.length})`;
+    }
+    if (selectedVisualPuzzleThemes.size === 1) {
+      const single = Array.from(selectedVisualPuzzleThemes)[0];
+      return `${single} (${currentVisualPuzzleQuestions.length})`;
+    }
+    const shortNames = Array.from(selectedVisualPuzzleThemes)
+      .map((t) => {
+        if (t === 'Logic & Tree Riddles') return 'Tree & Logic';
+        if (t === 'Hidden Patterns & Illusions') return 'Hidden Patterns';
+        if (t === 'Liquid Flow & Mechanics') return 'Water & Pipes';
+        if (t === 'Detective & Crime Mysteries') return 'Detective';
+        if (t === 'Geometry & Matchsticks') return 'Matchsticks';
+        return t;
+      })
+      .join(' + ');
+    return `${shortNames} (${currentVisualPuzzleQuestions.length})`;
+  }, [selectedVisualPuzzleThemes, currentVisualPuzzleQuestions.length]);
+
+  function toggleVisualPuzzleTheme(theme: VisualPuzzleTheme) {
+    setSelectedVisualPuzzleThemes((prev) => {
+      const next = new Set(prev);
+      if (next.has(theme)) {
+        if (next.size > 1) next.delete(theme);
+      } else {
+        next.add(theme);
+      }
+      return next;
+    });
+  }
+
+  function selectAllVisualPuzzleThemes() {
+    setSelectedVisualPuzzleThemes(new Set(VISUAL_PUZZLE_THEMES));
+  }
+
   // Prewarm initial flags/logos after initial render so buttons respond with 0ms delay
   useEffect(() => {
     const timer = setTimeout(() => {
       const previewFlags = WORLD_COUNTRIES.slice(0, 15).map((c) => c.flagUrl);
       const previewLogos = WORLD_BRAND_LOGOS.slice(0, 15).map((l) => l.logoUrl);
       const previewAnimals = WORLD_ANIMALS.slice(0, 15).map((a) => a.imageUrl);
+      const previewPuzzles = WORLD_VISUAL_PUZZLES.slice(0, 15).map((p) => p.imageUrl);
       void preloadFlagImages([
         ...previewFlags,
         ...previewLogos,
         ...previewAnimals,
+        ...previewPuzzles,
       ]);
     }, 1500);
     return () => clearTimeout(timer);
@@ -529,6 +588,17 @@ export default function QuizLauncher() {
     const questions = buildGeographyQuizQuestions(count, themes, geographyTimeLimit);
     handleLaunchWithQuestions(questions);
   }, [displayName, geographyQuestionCount, selectedGeographyThemes, geographyTimeLimit, handleLaunchWithQuestions]);
+
+  const handleLaunchVisualPuzzleQuiz = useCallback((count = visualPuzzleQuestionCount, themes = selectedVisualPuzzleThemes) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setJoinError('Please enter your nickname first');
+      nameInputRef.current?.focus();
+      return;
+    }
+    const questions = buildVisualPuzzleQuestions(count, themes, visualPuzzleTimeLimit);
+    handleLaunchWithQuestions(questions);
+  }, [displayName, visualPuzzleQuestionCount, selectedVisualPuzzleThemes, visualPuzzleTimeLimit, handleLaunchWithQuestions]);
 
   const handleCreateCustom = useCallback(() => {
     if (customQuestions.length === 0) return;
@@ -2357,6 +2427,209 @@ export default function QuizLauncher() {
             </motion.div>
           )}
 
+          {/* ─── VIEW: VISUAL LOGIC & BRAIN TEASERS DASHBOARD ────────────────── */}
+          {mode === 'visual_puzzles' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMode('categories')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Categories</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-[10px] font-bold text-violet-300">
+                  <Eye className="w-3 h-3 text-violet-400" />
+                  <span>30 Visual Logic Puzzles · Viral Riddles &amp; Patterns</span>
+                </div>
+              </div>
+
+              {/* Visual Puzzle Themes Filter (Multi-Select Mix) */}
+              <div className="p-4 rounded-2xl bg-[#141b2c] border border-white/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                    Select Puzzle Categories (Mix Multiple)
+                  </label>
+                  <span className="text-[11px] font-semibold text-violet-400">
+                    {selectedVisualPuzzleThemes.size} of 5 themes mixed ({currentVisualPuzzleQuestions.length} puzzles available)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllVisualPuzzleThemes}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      isAllVisualPuzzlesSelected
+                        ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                        : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 truncate pr-1">
+                      <span
+                        className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] flex-shrink-0 transition-all ${
+                          isAllVisualPuzzlesSelected
+                            ? 'bg-violet-500 border-violet-400 text-slate-950 font-bold'
+                            : 'border-white/20 bg-white/5'
+                        }`}
+                      >
+                        {isAllVisualPuzzlesSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      </span>
+                      <span className="truncate">All Visual Riddles (Mix All)</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">30</span>
+                  </button>
+
+                  {VISUAL_PUZZLE_THEMES.map((theme) => {
+                    const count = getVisualPuzzleQuestionsByTheme(theme).length;
+                    const active = selectedVisualPuzzleThemes.has(theme);
+                    return (
+                      <button
+                        key={theme}
+                        type="button"
+                        onClick={() => toggleVisualPuzzleTheme(theme)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-violet-500/20 border-violet-500/60 text-violet-200 ring-1 ring-violet-500/30'
+                            : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 truncate pr-1">
+                          <span
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] flex-shrink-0 transition-all ${
+                              active
+                                ? 'bg-violet-500 border-violet-400 text-slate-950 font-bold'
+                                : 'border-white/20 bg-white/5'
+                            }`}
+                          >
+                            {active && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </span>
+                          <span className="truncate">{theme}</span>
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono flex-shrink-0">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sample Visual Puzzle Preview Reel */}
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Sample Puzzles in Selected Mix:</span>
+                    <span className="text-violet-400 font-semibold">{currentVisualPuzzleQuestions.length} Riddles in Pool</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {currentVisualPuzzleQuestions
+                      .slice(0, 4)
+                      .map((q) => (
+                        <div
+                          key={q.id}
+                          className="flex items-center gap-3 p-2.5 rounded-xl bg-black/30 border border-white/5 text-left overflow-hidden"
+                        >
+                          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-violet-500/30 overflow-hidden flex-shrink-0 flex items-center justify-center p-0.5">
+                            {q.imageUrl ? (
+                              <img
+                                src={q.imageUrl}
+                                alt={q.correctAnswer}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <Eye className="w-5 h-5 text-violet-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-slate-200 line-clamp-2 leading-snug">
+                              {q.text}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20 truncate">
+                                {q.theme}
+                              </span>
+                              <span className="text-[10px] text-slate-400 truncate font-semibold">
+                                Ans: {q.correctAnswer}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Question Count */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Number of Visual Puzzles:</span>
+                    <span className="text-violet-400 font-mono font-bold text-sm">
+                      {Math.min(visualPuzzleQuestionCount, currentVisualPuzzleQuestions.length)}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[5, 10, 15, 20, 25, 30].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setVisualPuzzleQuestionCount(num)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          visualPuzzleQuestionCount === num
+                            ? 'bg-violet-500/30 border-violet-500/60 text-violet-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time Limit */}
+                <div className="p-3.5 rounded-2xl bg-[#141b2c] border border-white/5 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-300">
+                    <span>Thinking Time Per Riddle:</span>
+                    <span className="text-violet-400 font-mono font-bold text-sm">{visualPuzzleTimeLimit}s</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { s: 15, label: '15s Blitz' },
+                      { s: 25, label: '25s Standard' },
+                      { s: 40, label: '40s Deep Thinking' },
+                    ].map((t) => (
+                      <button
+                        key={t.s}
+                        type="button"
+                        onClick={() => setVisualPuzzleTimeLimit(t.s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          visualPuzzleTimeLimit === t.s
+                            ? 'bg-violet-500/30 border-violet-500/60 text-violet-200'
+                            : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Launch Button */}
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => handleLaunchVisualPuzzleQuiz(visualPuzzleQuestionCount, selectedVisualPuzzleThemes)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-extrabold text-sm shadow-xl shadow-violet-950/40 transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
+                <span>
+                  {creating ? 'Starting Game...' : `Launch Visual Logic & Riddle Quiz (${Math.min(visualPuzzleQuestionCount, currentVisualPuzzleQuestions.length)} Puzzles)`}
+                </span>
+              </button>
+            </motion.div>
+          )}
+
           {/* ─── VIEW 3: CATEGORIES PICKER ────────────────────────────────────── */}
           {mode === 'categories' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -2377,7 +2650,22 @@ export default function QuizLauncher() {
                 {QUESTION_CATEGORIES.map((cat) => {
                   const Icon = CATEGORY_ICONS[cat] ?? Sparkles;
                   const active = selectedCats.has(cat);
-                  const count = cat === 'flags' ? 209 : cat === 'logos_brands' ? 72 : cat === 'animals' ? 78 : cat === 'holy_bible' ? 82 : cat === 'history' ? 84 : cat === 'geography' ? 84 : null;
+                  const count =
+                    cat === 'flags'
+                      ? 209
+                      : cat === 'logos_brands'
+                        ? 72
+                        : cat === 'animals'
+                          ? 78
+                          : cat === 'holy_bible'
+                            ? 82
+                            : cat === 'history'
+                              ? 84
+                              : cat === 'geography'
+                                ? 84
+                                : cat === 'visual_puzzles'
+                                  ? 30
+                                  : null;
                   return (
                     <button
                       key={cat}
@@ -2405,18 +2693,36 @@ export default function QuizLauncher() {
                 })}
               </div>
 
-              {/* Special Category Sub-Filter Shortcuts (Scripture, History, Geography, Continents, Industry, Biome) */}
-              {(selectedCats.has('holy_bible') || selectedCats.has('history') || selectedCats.has('geography') || selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals')) && (
+              {/* Special Category Sub-Filter Shortcuts (Scripture, History, Geography, Continents, Industry, Biome, Visual Riddles) */}
+              {(selectedCats.has('holy_bible') || selectedCats.has('history') || selectedCats.has('geography') || selectedCats.has('flags') || selectedCats.has('logos_brands') || selectedCats.has('animals') || selectedCats.has('visual_puzzles')) && (
                 <div className="p-3.5 rounded-2xl bg-[#0d1322] border border-white/10 space-y-2.5">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1.5 text-violet-400">
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                       <span>Special Challenges Filter</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize eras, scripture, region, industry, or wildlife</span>
+                    <span className="text-[10px] text-slate-500 normal-case font-medium">Click to customize riddles, eras, scripture, region, industry, or wildlife</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    {selectedCats.has('visual_puzzles') && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('visual_puzzles')}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-violet-500/10 border border-white/8 hover:border-violet-500/30 text-slate-300 hover:text-violet-200 text-xs font-semibold transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Eye className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-xs truncate">Visual Logic & Puzzles</div>
+                            <div className="text-[10px] text-slate-400 truncate">
+                              Riddles: {visualPuzzleThemeLabel}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </button>
+                    )}
                     {selectedCats.has('geography') && (
                       <button
                         type="button"

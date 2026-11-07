@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="100%" height="100%">
+  <rect width="600" height="350" fill="#0f172a" rx="16"/>
+  <!-- FedEx Logo with emphasized arrow in negative space -->
+  <g transform="translate(90, 90)">
+    <text x="0" y="110" fill="#4f46e5" font-size="115" font-weight="900" font-family="Arial, Helvetica, sans-serif" letter-spacing="-4">Fed</text>
+    <text x="200" y="110" fill="#f97316" font-size="115" font-weight="900" font-family="Arial, Helvetica, sans-serif" letter-spacing="-6">Ex</text>
+    <!-- Highlighted arrow in negative space between E and x -->
+    <path d="M 283 58 L 306 82 L 283 106 L 283 94 L 265 94 L 265 70 L 283 70 Z" fill="#ffffff" stroke="#38bdf8" stroke-width="2"/>
+  </g>
+  <rect x="50" y="280" width="500" height="40" rx="8" fill="#1e293b" stroke="#4f46e5"/>
+  <text x="300" y="305" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle" font-family="sans-serif">SECRET NEGATIVE SPACE SYMBOL: A RIGHT-POINTING ARROW (➔)</text>
+</svg>

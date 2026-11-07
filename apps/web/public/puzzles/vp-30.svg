@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 380" width="100%" height="100%">
+  <rect width="500" height="380" fill="#0f172a" rx="16"/>
+  <!-- Triangle Counting Challenge -->
+  <g transform="translate(100, 30)">
+    <polygon points="150,20 20,260 280,260" stroke="#38bdf8" stroke-width="5" fill="#0284c7" opacity="0.2"/>
+    <!-- Center vertical bisector -->
+    <line x1="150" y1="20" x2="150" y2="260" stroke="#f43f5e" stroke-width="4"/>
+    <!-- Horizontal Crossbar 1 -->
+    <line x1="107" y1="100" x2="193" y2="100" stroke="#fbbf24" stroke-width="4"/>
+    <!-- Horizontal Crossbar 2 -->
+    <line x1="63" y1="180" x2="237" y2="180" stroke="#fbbf24" stroke-width="4"/>
+  </g>
+  <rect x="40" y="315" width="420" height="45" rx="8" fill="#1e293b" stroke="#38bdf8"/>
+  <text x="250" y="335" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">HOW MANY TOTAL TRIANGLES?</text>
+  <text x="250" y="350" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Tier 1 (6) + Tier 2 (6) + Tier 3 (6) = 18 TRIANGLES</text>
+</svg>

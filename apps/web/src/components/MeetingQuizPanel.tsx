@@ -8,7 +8,7 @@ import {
   Zap, ArrowRight, Crown, Medal, Award,
   Lightbulb, FlaskConical, MapPin, Calculator,
   BookOpen, PawPrint, Tag, Flag, Check, Timer,
-  Pause, Play as ResumeIcon, LogOut, Globe, Cross, History,
+  Pause, Play as ResumeIcon, LogOut, Globe, Cross, History, Eye,
 } from 'lucide-react';
 import type { Room } from 'livekit-client';
 import { useQuizSocket } from '../hooks/useQuizSocket';
@@ -67,16 +67,17 @@ const OPTION_META = [
 
 // ─── All categories from Jumbo Quiz gaming — synced with QuizLauncher ─────────
 const QUICK_CATEGORIES: { id: QuestionCategory; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'general_knowledge', label: 'General',    icon: Lightbulb },
-  { id: 'science',           label: 'Science',    icon: FlaskConical },
-  { id: 'geography',         label: 'Geography',  icon: Globe },
-  { id: 'flags',             label: 'Flags',      icon: Flag },
-  { id: 'history',           label: 'History',    icon: History },
-  { id: 'animals',           label: 'Animals',    icon: PawPrint },
-  { id: 'logos_brands',      label: 'Logos',      icon: Tag },
-  { id: 'holy_bible',        label: 'Holy Bible', icon: Cross },
-  { id: 'math_formulas',     label: 'Math',       icon: Calculator },
-  { id: 'countries_capitals',label: 'Capitals',   icon: MapPin },
+  { id: 'general_knowledge', label: 'General',      icon: Lightbulb },
+  { id: 'visual_puzzles',    label: 'Visual Logic', icon: Eye },
+  { id: 'science',           label: 'Science',      icon: FlaskConical },
+  { id: 'geography',         label: 'Geography',    icon: Globe },
+  { id: 'flags',             label: 'Flags',        icon: Flag },
+  { id: 'history',           label: 'History',      icon: History },
+  { id: 'animals',           label: 'Animals',      icon: PawPrint },
+  { id: 'logos_brands',      label: 'Logos',        icon: Tag },
+  { id: 'holy_bible',        label: 'Holy Bible',   icon: Cross },
+  { id: 'math_formulas',     label: 'Math',         icon: Calculator },
+  { id: 'countries_capitals',label: 'Capitals',     icon: MapPin },
 ];
 
 // Rank medal icons — NO emojis

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="100%" height="100%">
+  <rect width="600" height="350" fill="#0f172a" rx="16"/>
+  <text x="300" y="40" fill="#f8fafc" font-size="14" font-weight="900" text-anchor="middle" font-family="sans-serif">THREE SURVIVAL DOORS: WHICH ONE IS SAFE?</text>
+  <!-- Door 1: Inferno -->
+  <g transform="translate(50, 70)">
+    <rect x="0" y="0" width="130" height="190" rx="8" fill="#7f1d1d" stroke="#ef4444" stroke-width="3"/>
+    <text x="65" y="30" fill="#fecaca" font-size="12" font-weight="900" text-anchor="middle" font-family="sans-serif">DOOR 1</text>
+    <!-- Fire flames -->
+    <path d="M 40 160 Q 65 70 65 110 Q 75 80 90 160 Z" fill="#f97316"/>
+    <path d="M 50 160 Q 65 100 65 130 Q 75 110 80 160 Z" fill="#fde047"/>
+    <text x="65" y="180" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">RAGING FIRE</text>
+  </g>
+  <!-- Door 2: Starved Lions -->
+  <g transform="translate(235, 70)">
+    <rect x="0" y="0" width="130" height="190" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+    <text x="65" y="30" fill="#a7f3d0" font-size="12" font-weight="900" text-anchor="middle" font-family="sans-serif">DOOR 2</text>
+    <rect x="25" y="55" width="80" height="65" rx="6" fill="#022c22" stroke="#34d399"/>
+    <text x="65" y="85" fill="#34d399" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">LIONS STARVED</text>
+    <text x="65" y="102" fill="#fbbf24" font-size="11" font-weight="900" text-anchor="middle" font-family="sans-serif">FOR 3 YEARS</text>
+    <text x="65" y="150" fill="#34d399" font-size="11" font-weight="900" text-anchor="middle" font-family="sans-serif">(THEY'RE DEAD!)</text>
+    <text x="65" y="180" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">SAFE TO ENTER</text>
+  </g>
+  <!-- Door 3: High Voltage -->
+  <g transform="translate(420, 70)">
+    <rect x="0" y="0" width="130" height="190" rx="8" fill="#581c87" stroke="#a855f7" stroke-width="3"/>
+    <text x="65" y="30" fill="#e9d5ff" font-size="12" font-weight="900" text-anchor="middle" font-family="sans-serif">DOOR 3</text>
+    <!-- Lightning bolt -->
+    <path d="M 70 60 L 50 110 L 70 110 L 60 160 L 85 100 L 65 100 Z" fill="#fde047"/>
+    <text x="65" y="180" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">ELECTRIC GRID</text>
+  </g>
+  <rect x="40" y="295" width="520" height="35" rx="8" fill="#1e293b" stroke="#10b981"/>
+  <text x="300" y="317" fill="#34d399" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">DOOR 2: LIONS THAT HAVEN'T EATEN IN 3 YEARS HAVE ALREADY PERISHED!</text>
+</svg>

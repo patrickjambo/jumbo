@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="100%" height="100%">
+  <rect width="500" height="400" fill="#0f172a" rx="16"/>
+  <!-- Hermann Grid: Black squares with white streets -->
+  <g transform="translate(85, 40)">
+    <rect x="0" y="0" width="330" height="280" fill="#ffffff"/>
+    <!-- 4x3 array of black squares -->
+    <rect x="10" y="10" width="65" height="70" fill="#020617"/>
+    <rect x="90" y="10" width="65" height="70" fill="#020617"/>
+    <rect x="170" y="10" width="65" height="70" fill="#020617"/>
+    <rect x="250" y="10" width="65" height="70" fill="#020617"/>
+
+    <rect x="10" y="100" width="65" height="70" fill="#020617"/>
+    <rect x="90" y="100" width="65" height="70" fill="#020617"/>
+    <rect x="170" y="100" width="65" height="70" fill="#020617"/>
+    <rect x="250" y="100" width="65" height="70" fill="#020617"/>
+
+    <rect x="10" y="190" width="65" height="70" fill="#020617"/>
+    <rect x="90" y="190" width="65" height="70" fill="#020617"/>
+    <rect x="170" y="190" width="65" height="70" fill="#020617"/>
+    <rect x="250" y="190" width="65" height="70" fill="#020617"/>
+  </g>
+  <rect x="40" y="345" width="420" height="35" rx="8" fill="#1e293b" stroke="#334155"/>
+  <text x="250" y="367" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">HERMANN GRID: GRAY GHOST SPOTS APPEAR AT INTERSECTIONS</text>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="100%" height="100%">
+  <rect width="600" height="350" fill="#0f172a" rx="16"/>
+  <text x="300" y="40" fill="#f8fafc" font-size="14" font-weight="900" text-anchor="middle" font-family="sans-serif">THE POISONED ICED TEA RIDDLE</text>
+  <!-- Glass 1: Chugged fast -->
+  <g transform="translate(100, 70)">
+    <rect x="20" y="20" width="90" height="150" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/>
+    <!-- Solid Ice Cubes still intact -->
+    <rect x="35" y="110" width="28" height="28" rx="4" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect x="65" y="125" width="28" height="28" rx="4" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="65" y="195" fill="#34d399" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">DRANK IN 10s</text>
+    <text x="65" y="210" fill="#34d399" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">SURVIVED!</text>
+  </g>
+  <!-- Glass 2: Sipped slow -->
+  <g transform="translate(370, 70)">
+    <rect x="20" y="20" width="90" height="150" rx="6" fill="#1e293b" stroke="#ef4444" stroke-width="3"/>
+    <!-- Liquid poisoned from melted ice -->
+    <rect x="23" y="80" width="84" height="87" fill="#78350f" opacity="0.8"/>
+    <text x="65" y="125" fill="#f87171" font-size="20" font-weight="900" text-anchor="middle" font-family="sans-serif">☠</text>
+    <text x="65" y="195" fill="#f87171" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">SIPPED FOR 1 HR</text>
+    <text x="65" y="210" fill="#f87171" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">DIED OF POISON</text>
+  </g>
+  <rect x="40" y="295" width="520" height="35" rx="8" fill="#1e293b" stroke="#334155"/>
+  <text x="300" y="317" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">THE POISON WAS FROZEN IN THE ICE CUBES (MELTED OVER TIME)!</text>
+</svg>

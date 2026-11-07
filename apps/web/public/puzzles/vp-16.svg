@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 380" width="100%" height="100%">
+  <rect width="500" height="380" fill="#0f172a" rx="16"/>
+  <!-- Café Wall Illusion -->
+  <g transform="translate(30, 40)">
+    <!-- Row 1 -->
+    <g fill="#020617"><rect x="0" y="0" width="45" height="35"/><rect x="90" y="0" width="45" height="35"/><rect x="180" y="0" width="45" height="35"/><rect x="270" y="0" width="45" height="35"/><rect x="360" y="0" width="45" height="35"/></g>
+    <g fill="#f8fafc"><rect x="45" y="0" width="45" height="35"/><rect x="135" y="0" width="45" height="35"/><rect x="225" y="0" width="45" height="35"/><rect x="315" y="0" width="45" height="35"/><rect x="405" y="0" width="45" height="35"/></g>
+    <line x1="0" y1="36" x2="440" y2="36" stroke="#94a3b8" stroke-width="3"/>
+
+    <!-- Row 2 (offset) -->
+    <g fill="#020617"><rect x="15" y="38" width="45" height="35"/><rect x="105" y="38" width="45" height="35"/><rect x="195" y="38" width="45" height="35"/><rect x="285" y="38" width="45" height="35"/><rect x="375" y="38" width="45" height="35"/></g>
+    <g fill="#f8fafc"><rect x="60" y="38" width="45" height="35"/><rect x="150" y="38" width="45" height="35"/><rect x="240" y="38" width="45" height="35"/><rect x="330" y="38" width="45" height="35"/></g>
+    <line x1="0" y1="74" x2="440" y2="74" stroke="#94a3b8" stroke-width="3"/>
+
+    <!-- Row 3 (offset) -->
+    <g fill="#020617"><rect x="30" y="76" width="45" height="35"/><rect x="120" y="76" width="45" height="35"/><rect x="210" y="76" width="45" height="35"/><rect x="300" y="76" width="45" height="35"/></g>
+    <g fill="#f8fafc"><rect x="75" y="76" width="45" height="35"/><rect x="165" y="76" width="45" height="35"/><rect x="255" y="76" width="45" height="35"/><rect x="345" y="76" width="45" height="35"/></g>
+    <line x1="0" y1="112" x2="440" y2="112" stroke="#94a3b8" stroke-width="3"/>
+
+    <!-- Row 4 -->
+    <g fill="#020617"><rect x="15" y="114" width="45" height="35"/><rect x="105" y="114" width="45" height="35"/><rect x="195" y="114" width="45" height="35"/><rect x="285" y="114" width="45" height="35"/></g>
+    <g fill="#f8fafc"><rect x="60" y="114" width="45" height="35"/><rect x="150" y="114" width="45" height="35"/><rect x="240" y="114" width="45" height="35"/><rect x="330" y="114" width="45" height="35"/></g>
+    <line x1="0" y1="150" x2="440" y2="150" stroke="#94a3b8" stroke-width="3"/>
+  </g>
+  <rect x="40" y="325" width="420" height="35" rx="8" fill="#1e293b" stroke="#334155"/>
+  <text x="250" y="347" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">CAFÉ WALL: HORIZONTAL GRAY LINES ARE STRICTLY PARALLEL!</text>
+</svg>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
-import { Flag, Sparkles, Building2, PawPrint, Cross } from 'lucide-react';
+import { Flag, Sparkles, Building2, PawPrint, Cross, Eye } from 'lucide-react';
 import { isFlagPreloaded, preloadFlagImage } from '../lib/flagPreloader';
 
 interface FlagQuestionImageProps {
@@ -28,9 +28,16 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
     /bible|scripture|jesus|christ|testament|prophet|apostle|god/i.test(alt) ||
     /Last_Supper|Creation_of_Adam|SermonOnTheMount|Storm_on_the_Lake|Prodigal_Son|Goliath|Commandments|Adoration_of_the_sheperds|Der_gute_Hirte|ressureicaocristo/i.test(imageUrl);
 
+  const isPuzzle =
+    imageUrl.includes('/puzzles/') ||
+    imageUrl.startsWith('data:image/svg+xml') ||
+    /puzzle|riddle|optical|illusion|pattern|tree|branch|water|funnel|tank|matchstick|who will fall|detective|candle|switch|tetrahedron/i.test(alt) ||
+    /Look at the/i.test(alt);
+
   const isAnimal =
     !isLogo &&
     !isBible &&
+    !isPuzzle &&
     (/animal|wildlife|fauna|shown in this picture/i.test(alt) ||
       imageUrl.includes('wikimedia.org') ||
       imageUrl.includes('unsplash.com'));
@@ -114,13 +121,21 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
     large: 'h-36 sm:h-48 md:h-52 w-36 sm:w-48 md:w-52 aspect-square',
   };
 
+  const puzzleSizes = {
+    compact: 'h-32 sm:h-36 max-w-[280px] aspect-[4/3]',
+    normal: 'h-48 sm:h-56 md:h-64 max-w-[340px] sm:max-w-[440px] aspect-[4/3]',
+    large: 'h-56 sm:h-68 md:h-76 max-w-[420px] sm:max-w-[520px] aspect-[4/3]',
+  };
+
   const containerClass = isLogo
     ? `${logoSizes[size]} bg-gradient-to-b from-white via-white to-slate-50 p-4 sm:p-5 border border-white/60 shadow-2xl shadow-violet-950/40 ring-1 ring-white/30 rounded-2xl`
-    : isBible
-      ? `${bibleSizes[size]} bg-slate-950/90 border border-amber-500/40 shadow-2xl shadow-amber-950/60 ring-1 ring-amber-400/20 rounded-2xl`
-      : isAnimal
-        ? `${animalSizes[size]} bg-slate-950/90 border border-emerald-500/40 shadow-2xl shadow-emerald-950/60 ring-1 ring-white/10 rounded-2xl`
-        : `${flagSizes[size]} bg-slate-900/90 border border-white/20 shadow-2xl shadow-black/80 ring-1 ring-white/10 rounded-xl`;
+    : isPuzzle
+      ? `${puzzleSizes[size]} bg-slate-950/95 border border-violet-500/40 shadow-2xl shadow-violet-950/60 ring-1 ring-violet-400/20 rounded-2xl p-1`
+      : isBible
+        ? `${bibleSizes[size]} bg-slate-950/90 border border-amber-500/40 shadow-2xl shadow-amber-950/60 ring-1 ring-amber-400/20 rounded-2xl`
+        : isAnimal
+          ? `${animalSizes[size]} bg-slate-950/90 border border-emerald-500/40 shadow-2xl shadow-emerald-950/60 ring-1 ring-white/10 rounded-2xl`
+          : `${flagSizes[size]} bg-slate-900/90 border border-white/20 shadow-2xl shadow-black/80 ring-1 ring-white/10 rounded-xl`;
 
   return (
     <div className={`relative flex flex-col items-center justify-center my-1 sm:my-2 ${className}`}>
@@ -131,6 +146,8 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
           <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-700/60 dark:to-slate-800 animate-pulse flex items-center justify-center">
             {isLogo ? (
               <Sparkles className="w-8 h-8 text-violet-400/50 animate-bounce" />
+            ) : isPuzzle ? (
+              <Eye className="w-8 h-8 text-violet-400/50 animate-bounce" />
             ) : isBible ? (
               <Cross className="w-8 h-8 text-amber-400/50 animate-bounce" />
             ) : isAnimal ? (
@@ -152,8 +169,8 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
             onLoad={() => setLoaded(true)}
             onError={handleError}
             className={`transition-opacity duration-150 ${
-              isLogo
-                ? 'w-full h-full object-contain filter drop-shadow-sm select-none'
+              isLogo || isPuzzle
+                ? 'w-full h-full object-contain filter drop-shadow select-none'
                 : 'w-full h-full object-cover'
             } ${loaded ? 'opacity-100' : 'opacity-0'}`}
           />
@@ -163,6 +180,11 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
               <>
                 <Building2 className="w-8 h-8 text-violet-400" />
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Brand Logo</span>
+              </>
+            ) : isPuzzle ? (
+              <>
+                <Eye className="w-8 h-8 text-violet-400" />
+                <span className="text-xs font-semibold text-slate-300">Visual Brain Teaser</span>
               </>
             ) : isBible ? (
               <>
@@ -184,13 +206,18 @@ export const FlagQuestionImage = memo(function FlagQuestionImage({
         )}
 
         {/* Outer overlay for flags so white fields don't blend */}
-        {!isLogo && !isAnimal && !isBible && (
+        {!isLogo && !isAnimal && !isBible && !isPuzzle && (
           <div className="absolute inset-0 pointer-events-none rounded-xl ring-1 ring-inset ring-black/25" />
         )}
       </div>
 
       {/* Category identification pill */}
-      {isLogo ? (
+      {isPuzzle ? (
+        <div className="mt-2 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-violet-950/80 border border-violet-500/40 text-[10px] font-bold text-violet-200 shadow-md">
+          <Eye className="w-3 h-3 text-violet-400 flex-shrink-0 animate-pulse" />
+          <span className="tracking-wide uppercase">Visual Logic &amp; Brain Teaser</span>
+        </div>
+      ) : isLogo ? (
         <div className="mt-2 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-violet-950/80 border border-violet-500/30 text-[10px] font-bold text-violet-200 shadow-md">
           <Sparkles className="w-3 h-3 text-violet-400 flex-shrink-0 animate-pulse" />
           <span className="tracking-wide uppercase">Identify This Brand Logo</span>

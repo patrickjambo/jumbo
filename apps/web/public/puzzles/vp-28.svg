@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="100%" height="100%">
+  <rect width="600" height="350" fill="#064e3b" rx="16"/>
+  <!-- Stem and Leaves with Camouflaged Leaf Insect -->
+  <g transform="translate(100, 40)">
+    <line x1="50" y1="240" x2="350" y2="40" stroke="#78350f" stroke-width="8" stroke-linecap="round"/>
+    <!-- Real Leaves -->
+    <ellipse cx="140" cy="140" rx="45" ry="20" transform="rotate(-30, 140, 140)" fill="#10b981"/>
+    <ellipse cx="260" cy="70" rx="45" ry="20" transform="rotate(20, 260, 70)" fill="#059669"/>
+    <!-- Leaf Insect (Phasmid) with legs and antennae -->
+    <g transform="translate(200, 110)">
+      <ellipse cx="0" cy="0" rx="42" ry="22" transform="rotate(40)" fill="#34d399" stroke="#059669" stroke-width="2"/>
+      <!-- Legs and antennae -->
+      <line x1="-20" y1="-10" x2="-35" y2="-25" stroke="#059669" stroke-width="3"/>
+      <line x1="20" y1="-10" x2="35" y2="-25" stroke="#059669" stroke-width="3"/>
+      <line x1="-15" y1="15" x2="-30" y2="30" stroke="#059669" stroke-width="3"/>
+      <line x1="15" y1="15" x2="30" y2="30" stroke="#059669" stroke-width="3"/>
+      <!-- Veins like leaf -->
+      <line x1="-30" y1="0" x2="30" y2="0" stroke="#047857" stroke-width="2"/>
+    </g>
+  </g>
+  <rect x="40" y="285" width="520" height="40" rx="8" fill="#0f172a" stroke="#34d399"/>
+  <text x="300" y="310" fill="#a7f3d0" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">NATURE'S CAMOUFLAGE: A LEAF INSECT / STICK INSECT (PHASMID)</text>
+</svg>

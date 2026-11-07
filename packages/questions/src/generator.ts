@@ -19,6 +19,8 @@ import {
   type HistoryEra,
   WORLD_GEOGRAPHY_QUESTIONS,
   type GeographyTheme,
+  WORLD_VISUAL_PUZZLES,
+  type VisualPuzzleTheme,
 } from '@jumbo/shared';
 import { SEED_BANK } from './seed-bank.js';
 
@@ -367,6 +369,38 @@ export function generateGeographyQuestions(
   return questions;
 }
 
+// ── 2g. Visual Puzzles, Logic Riddles & Brain Teasers ─────────────────────────
+export function generateVisualPuzzleQuestions(
+  count: number,
+  theme?: VisualPuzzleTheme | 'all',
+): Question[] {
+  let pool = WORLD_VISUAL_PUZZLES;
+  if (theme && theme !== 'all') {
+    pool = pool.filter((p) => p.theme === theme);
+  }
+  const selected = shuffle(pool).slice(0, count);
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const distractors = item.options.filter((o) => o !== item.correctAnswer);
+    questions.push(
+      QuestionSchema.parse({
+        id: randomId(),
+        category: 'visual_puzzles',
+        text: item.text,
+        imageUrl: item.imageUrl,
+        options: makeOptions(item.correctAnswer, distractors),
+        difficulty: item.difficulty,
+        source: item.theme ? `Visual Logic (${item.theme})` : 'Visual Logic & Riddles',
+        timeLimit: 25,
+        points: 1000,
+      }),
+    );
+  }
+
+  return questions;
+}
+
 // ── 3. Math Questions ─────────────────────────────────────────────────────────
 function generateMathQuestions(count: number): Question[] {
   const key = `math-${count}`;
@@ -450,6 +484,7 @@ export async function generateQuestions(
       if (cat === 'holy_bible') return generateBibleQuestions(perCat);
       if (cat === 'history') return generateHistoryQuestions(perCat);
       if (cat === 'geography') return generateGeographyQuestions(perCat);
+      if (cat === 'visual_puzzles') return generateVisualPuzzleQuestions(perCat);
       if (cat === 'math_formulas' || cat === 'numbers_logic') return generateMathQuestions(perCat);
       if (OTDB_CATEGORIES.has(cat)) return fetchFromOTDB(cat, perCat);
       return getSeedQuestions(cat, perCat);
@@ -524,6 +559,16 @@ export async function generateQuestions(
         if (!existingKeys.has(dedupeKey(g))) {
           unique.push(g);
           existingKeys.add(dedupeKey(g));
+        }
+      }
+    } else if (categories.includes('visual_puzzles') && categories.length === 1) {
+      // If only visual puzzles requested, backfill from the 30+ Visual Puzzles bank
+      const extraPuzzles = generateVisualPuzzleQuestions(totalCount);
+      for (const p of extraPuzzles) {
+        if (unique.length >= totalCount) break;
+        if (!existingKeys.has(dedupeKey(p))) {
+          unique.push(p);
+          existingKeys.add(dedupeKey(p));
         }
       }
     } else {

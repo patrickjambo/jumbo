@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="100%" height="100%">
+  <rect width="600" height="350" fill="#0f172a" rx="16"/>
+  <text x="300" y="40" fill="#f8fafc" font-size="14" font-weight="900" text-anchor="middle" font-family="sans-serif">DIE HARD 3: MEASURE EXACTLY 4 GALLONS</text>
+  <!-- 5 Gallon Jug -->
+  <g transform="translate(120, 80)">
+    <rect x="0" y="20" width="100" height="140" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/>
+    <rect x="35" y="0" width="30" height="20" rx="2" fill="#334155"/>
+    <rect x="5" y="50" width="90" height="105" fill="#0284c7" opacity="0.7"/>
+    <text x="50" y="105" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" font-family="sans-serif">5 GAL</text>
+  </g>
+  <!-- 3 Gallon Jug -->
+  <g transform="translate(360, 110)">
+    <rect x="0" y="20" width="80" height="110" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/>
+    <rect x="25" y="0" width="30" height="20" rx="2" fill="#334155"/>
+    <rect x="5" y="45" width="70" height="80" fill="#0284c7" opacity="0.7"/>
+    <text x="40" y="90" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" font-family="sans-serif">3 GAL</text>
+  </g>
+  <rect x="40" y="285" width="520" height="45" rx="8" fill="#1e293b" stroke="#38bdf8"/>
+  <text x="300" y="305" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Fill 5G, pour into 3G (2G left). Empty 3G, pour in 2G.</text>
+  <text x="300" y="322" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Fill 5G, top off 3G (takes 1G) ➔ EXACTLY 4 GALLONS LEFT IN 5G!</text>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="100%" height="100%">
+  <rect width="500" height="350" fill="#0f172a" rx="16"/>
+  <!-- 3x3 Grid Square Counting -->
+  <g transform="translate(150, 40)">
+    <rect x="0" y="0" width="210" height="210" fill="none" stroke="#38bdf8" stroke-width="5"/>
+    <line x1="70" y1="0" x2="70" y2="210" stroke="#38bdf8" stroke-width="3"/>
+    <line x1="140" y1="0" x2="140" y2="210" stroke="#38bdf8" stroke-width="3"/>
+    <line x1="0" y1="70" x2="210" y2="70" stroke="#38bdf8" stroke-width="3"/>
+    <line x1="0" y1="140" x2="210" y2="140" stroke="#38bdf8" stroke-width="3"/>
+    <!-- Highlighted 2x2 square in violet -->
+    <rect x="0" y="0" width="140" height="140" fill="#a855f7" opacity="0.2" stroke="#a855f7" stroke-width="2"/>
+  </g>
+  <rect x="40" y="285" width="420" height="45" rx="8" fill="#1e293b" stroke="#334155"/>
+  <text x="250" y="305" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">TOTAL SQUARES IN A 3x3 GRID:</text>
+  <text x="250" y="322" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">9 (1x1) + 4 (2x2) + 1 (3x3) = 14 SQUARES TOTAL</text>
+</svg>
