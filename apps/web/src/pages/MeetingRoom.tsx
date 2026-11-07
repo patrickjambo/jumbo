@@ -12,7 +12,7 @@ import {
   Send, AlertTriangle, Headphones, Hand, LayoutGrid, UserSquare2,
   Lock, Unlock, UserMinus, ShieldAlert,
   Copy, Check, Share2, Info, UserPlus, Home, Volume2, VolumeX, Activity, Volume1,
-  Smile, Camera, Laptop,
+  Smile, Camera, Laptop, ChevronDown,
 } from 'lucide-react';
 import { useMeetingStore } from '../store';
 import { useNoiseControl } from '../hooks/useNoiseControl';
@@ -366,10 +366,64 @@ function ChatPanel({
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [hasNewBelow, setHasNewBelow] = useState(false);
+  const isNearBottomRef = useRef(true);
+  const prevMessagesLengthRef = useRef(messages.length);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    if (smooth) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    } else {
+      el.scrollTop = el.scrollHeight;
+    }
+    setIsNearBottom(true);
+    isNearBottomRef.current = true;
+    setHasNewBelow(false);
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    // Consider near bottom if within 80px from bottom
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const near = distanceFromBottom < 80;
+    setIsNearBottom(near);
+    isNearBottomRef.current = near;
+    if (near) setHasNewBelow(false);
+  }, []);
+
+  // Initial scroll to bottom on mount
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const timer = setTimeout(() => {
+      scrollToBottom(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [scrollToBottom]);
+
+  // Keep scroll position when messages arrive:
+  useEffect(() => {
+    const count = messages.length;
+    const isNew = count > prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = count;
+
+    if (isNew) {
+      const lastMsg = messages[messages.length - 1];
+      const isMe = lastMsg?.senderId === localIdentity;
+
+      // Always scroll to bottom if I sent it OR if user is already near bottom
+      if (isMe || isNearBottomRef.current) {
+        scrollToBottom(true);
+      } else {
+        // User has scrolled up reading earlier messages; keep their scroll position!
+        setHasNewBelow(true);
+      }
+    }
+  }, [messages, localIdentity, scrollToBottom]);
 
   // Auto-focus on open
   useEffect(() => {
@@ -389,6 +443,7 @@ function ChatPanel({
     onSendMessage(text);
     setInput('');
     setShowInputEmojiPicker(false);
+    setTimeout(() => scrollToBottom(true), 50);
   }
 
   function startEdit(msg: { id: string; text: string }) {
@@ -419,12 +474,17 @@ function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#111827] relative">
+    <div className="flex flex-col h-full min-h-0 bg-[#111827] relative overflow-hidden">
+      {/* Mobile grab handle */}
+      <div className="sm:hidden flex justify-center pt-2 pb-0.5 flex-shrink-0">
+        <div className="w-9 h-1 bg-white/20 rounded-full" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 sm:py-3 border-b border-white/10 flex-shrink-0">
         <h2 className="font-bold text-sm text-white flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-violet-400" />
-          Chat
+          <span>Chat</span>
           {messages.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-violet-600/40 text-violet-300 text-[10px] font-bold">
               {messages.filter((m) => !m.deletedAt).length}
@@ -433,18 +493,30 @@ function ChatPanel({
         </h2>
         <button
           onClick={onClose}
-          className="w-9 h-9 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+          title="Close chat"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 overscroll-contain">
-        {messages.filter((m) => !m.deletedAt).length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-white/30">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3 overscroll-contain relative scroll-smooth"
+      >
+        {messages.filter((m) => !m.deletedAt).length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2.5 text-white/30 py-8">
             <MessageSquare className="w-10 h-10" />
             <span className="text-sm font-medium">No messages yet</span>
+            <span className="text-xs text-white/25">Send a message to start the conversation</span>
+          </div>
+        ) : (
+          <div className="text-center py-1 text-[10px] text-white/30 flex items-center justify-center gap-2 select-none">
+            <div className="h-[1px] bg-white/10 flex-1 max-w-[60px]" />
+            <span>Beginning of chat</span>
+            <div className="h-[1px] bg-white/10 flex-1 max-w-[60px]" />
           </div>
         )}
         {messages.map((m) => {
@@ -594,8 +666,29 @@ function ChatPanel({
             </div>
           );
         })}
-        <div ref={endRef} />
+        <div ref={endRef} className="h-1" />
       </div>
+
+      {/* Floating Jump to Latest button */}
+      <AnimatePresence>
+        {!isNearBottom && messages.length > 2 && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            onClick={() => scrollToBottom(true)}
+            className="absolute bottom-16 right-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-xl shadow-black/60 border border-white/20 active:scale-95 transition-all"
+            title="Scroll to latest messages"
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+            <span>Latest</span>
+            {hasNewBelow && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-0.5" />
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Emoji Picker Popover above Chat Input */}
       <AnimatePresence>
@@ -1339,20 +1432,41 @@ export default function MeetingRoom() {
              DESKTOP (sm+): Inline sibling panel sliding in from the right.
         */}
 
-        {/* ── MOBILE CHAT BOTTOM SHEET (< sm) ── */}
+        {/* ── MOBILE CHAT DRAWER (< sm) ── */}
         <AnimatePresence>
           {panel === 'chat' && (
-            <motion.div
-              key="mobile-chat"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-              className="sm:hidden fixed left-0 right-0 z-40 flex flex-col bg-[#111827] border-t border-white/15 rounded-t-3xl shadow-2xl overflow-hidden"
-              style={{ bottom: '104px', maxHeight: '65vh', minHeight: '260px' }}
-            >
-              <ChatPanel onSendMessage={webrtcSendChatMessage} onEditMessage={webrtcEditChatMessage} onDeleteMessage={webrtcDeleteChatMessage} onReactMessage={webrtcSendChatReaction} localIdentity={myIdentity} onClose={() => setPanel(null)} />
-            </motion.div>
+            <>
+              {/* Click-away backdrop to close chat */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setPanel(null)}
+                className="sm:hidden fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px]"
+              />
+              <motion.div
+                key="mobile-chat"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+                className="sm:hidden fixed left-0 right-0 z-40 flex flex-col bg-[#111827] border-t border-white/15 rounded-t-3xl shadow-2xl overflow-hidden"
+                style={{
+                  bottom: '104px',
+                  height: '68vh',
+                  maxHeight: 'calc(100dvh - 120px)',
+                }}
+              >
+                <ChatPanel
+                  onSendMessage={webrtcSendChatMessage}
+                  onEditMessage={webrtcEditChatMessage}
+                  onDeleteMessage={webrtcDeleteChatMessage}
+                  onReactMessage={webrtcSendChatReaction}
+                  localIdentity={myIdentity}
+                  onClose={() => setPanel(null)}
+                />
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
 
