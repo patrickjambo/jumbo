@@ -35,15 +35,16 @@ function getSharedAudioCtx(): AudioContext {
   return sharedAudioCtx;
 }
 
-// Global speaker boost multiplier (1x = normal, 2.5x = boosted)
-// Stored outside components so it persists across re-renders
+// Global volume multiplier (1x = normal, 2.5x = boosted)
+// We control volume directly on each <video> element — this avoids routing audio
+// through Web Audio nodes which would add latency and cause A/V desync (lip-sync drift).
 let globalBoostGain = 1.0;
-const boostGainNodes: Set<GainNode> = new Set();
+const boostVideoElements: Set<HTMLVideoElement> = new Set();
 function setGlobalBoost(multiplier: number) {
   globalBoostGain = multiplier;
-  boostGainNodes.forEach((g) => {
-    g.gain.setTargetAtTime(multiplier, g.context.currentTime, 0.05);
-  });
+  // Clamp to 1.0 — browsers reject volume > 1.0
+  const vol = Math.min(1.0, multiplier * 0.9);
+  boostVideoElements.forEach((v) => { v.volume = vol; });
 }
 
 // ─── Participant Tile ─────────────────────────────────────────────────────────
@@ -105,83 +106,41 @@ function ParticipantTile({
           setHasVideo(false);
         }
 
-        // ── Web Audio pipeline for remote audio ──
-        // Chain: source → highpass → compressor → gain → boost → destination
-        // - highpass (80 Hz): eliminates low-frequency rumble and device handling noise
-        // - compressor: intelligently limits loud speakers without clipping
-        // - gain: volume normaliser
-        // - boost: global user-controlled boost
-        // All remote participants share ONE AudioContext (browser limit ~6 contexts)
-        if (stream) {
-          const audioTracks = stream.getAudioTracks();
-          if (audioTracks.length > 0) {
-            audioNodeCleanupRef.current?.();
-            audioNodeCleanupRef.current = null;
+        // ── Remote audio: play natively through <video> for perfect A/V sync ──
+        //
+        // KEY DESIGN DECISION — why NOT Web Audio for playback:
+        //   Routing audio through Web Audio nodes (even just one node) adds latency
+        //   equal to ctx.baseLatency + ctx.outputLatency (10–100 ms on mobile).
+        //   Video plays at the WebRTC-synchronized rate without that offset, so
+        //   the lips and voice drift apart — classic "lip sync" problem.
+        //
+        //   Solution: let the <video> element play audio+video together. The browser
+        //   uses the RTCP timestamps in the WebRTC stream to keep them frame-perfect.
+        //   We ONLY tap the audio into a Web Audio AnalyserNode (not connected to
+        //   destination) for the VAD level meter — zero extra latency to playback.
+        //
+        //   Volume / boost is controlled via videoElement.volume (0.0–1.0).
+        if (!isLocal && stream) {
+          audioNodeCleanupRef.current?.();
+          audioNodeCleanupRef.current = null;
 
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0 && videoRef.current) {
+            // Apply current boost gain via video.volume (native, zero-latency)
+            const baseVol = Math.min(1.0, globalBoostGain * 0.9);
+            videoRef.current.volume = baseVol;
+            boostVideoElements.add(videoRef.current);
+
+            // VAD-only Web Audio branch: source → analyser (NOT connected to destination)
+            // This gives us the speaking-level meter without touching the playback path.
             try {
               const ctx = getSharedAudioCtx();
               const audioOnlyStream = new MediaStream(audioTracks);
               const source = ctx.createMediaStreamSource(audioOnlyStream);
-
-              // 1. High-pass filter: cut everything below 80 Hz (rumble, handling noise)
-              const highpass = ctx.createBiquadFilter();
-              highpass.type = 'highpass';
-              highpass.frequency.value = 80;
-              highpass.Q.value = 0.7;
-
-              // 2. Low-pass filter: cut harsh sibilance / very high freq noise above 8 kHz
-              const lowpass = ctx.createBiquadFilter();
-              lowpass.type = 'lowpass';
-              lowpass.frequency.value = 8000;
-              lowpass.Q.value = 0.7;
-
-              // 3. Presence boost at 3kHz — makes voices sit above background noise
-              const presence = ctx.createBiquadFilter();
-              presence.type = 'peaking';
-              presence.frequency.value = 3000;
-              presence.gain.value = 2;   // +2 dB for voice clarity
-              presence.Q.value = 1.0;
-
-              // 4. De-esser: gentle cut at 7kHz to soften harsh sibilance ("s" sounds)
-              const deEsser = ctx.createBiquadFilter();
-              deEsser.type = 'peaking';
-              deEsser.frequency.value = 7000;
-              deEsser.gain.value = -3;   // -3 dB de-essing
-              deEsser.Q.value = 2.0;
-
-              // 5. Dynamics compressor: controls loudness between multiple concurrent speakers
-              //    — fast attack catches loud transients immediately
-              //    — medium release to prevent pumping when 3+ people speak at once
-              const compressor = ctx.createDynamicsCompressor();
-              compressor.threshold.value = -24;   // start compressing at -24 dBFS
-              compressor.knee.value = 6;           // soft knee for natural sound
-              compressor.ratio.value = 4;          // 4:1 — gentle but effective
-              compressor.attack.value = 0.002;     // 2ms attack — catches spikes fast
-              compressor.release.value = 0.15;     // 150ms release — smooth, no pumping
-
-              // 6. Volume normaliser
-              const gain = ctx.createGain();
-              gain.gain.value = 0.9;
-
-              // 7. Boost node — controlled globally by the speaker boost toggle
-              const boostNode = ctx.createGain();
-              boostNode.gain.value = globalBoostGain;
-              boostGainNodes.add(boostNode);
-
-              // Chain: source → highpass → lowpass → presence → deEsser → compressor → gain → boost → destination
-              source.connect(highpass);
-              highpass.connect(lowpass);
-              lowpass.connect(presence);
-              presence.connect(deEsser);
-              deEsser.connect(compressor);
-              compressor.connect(gain);
-              gain.connect(boostNode);
-              boostNode.connect(ctx.destination);
-
-              // VAD: measure mic level for the animated bar
               const analyser = ctx.createAnalyser();
               analyser.fftSize = 256;
-              source.connect(analyser);
+              source.connect(analyser); // ← analyser only, NOT ctx.destination
+
               const buf = new Uint8Array(analyser.frequencyBinCount);
               function vadLoop() {
                 vadRaf = requestAnimationFrame(vadLoop);
@@ -194,23 +153,19 @@ function ParticipantTile({
               }
               vadLoop();
 
+              const capturedVideoRef = videoRef.current;
               audioNodeCleanupRef.current = () => {
                 cancelAnimationFrame(vadRaf);
-                boostGainNodes.delete(boostNode);
-                try {
-                  source.disconnect();
-                  highpass.disconnect();
-                  lowpass.disconnect();
-                  presence.disconnect();
-                  deEsser.disconnect();
-                  compressor.disconnect();
-                  gain.disconnect();
-                  boostNode.disconnect();
-                  analyser.disconnect();
-                } catch { /* ignore — nodes may already be disconnected */ }
+                if (capturedVideoRef) boostVideoElements.delete(capturedVideoRef);
+                try { source.disconnect(); analyser.disconnect(); } catch {}
               };
             } catch (e) {
-              console.warn('[Audio] Failed to create Web Audio pipeline, falling back', e);
+              console.warn('[Audio] VAD analyser failed', e);
+              // Still clean up boost registration on unmount
+              const capturedVideoRef = videoRef.current;
+              audioNodeCleanupRef.current = () => {
+                if (capturedVideoRef) boostVideoElements.delete(capturedVideoRef);
+              };
             }
           }
         }
@@ -252,18 +207,20 @@ function ParticipantTile({
           : 'ring-1 ring-white/10'
       } ${isLarge ? 'w-full h-full' : 'w-full h-full'}`}
     >
-      {/* Video — muted always (audio goes through Web Audio pipeline) */}
+      {/* Video element:
+           - Local: always muted (prevents mic feedback / echo)
+           - Remote: NOT muted — browser plays audio+video together using RTCP timestamps
+             for frame-perfect A/V sync. Audio never touches Web Audio nodes in the
+             playback path, so there is zero additional processing latency. */}
       <video
         ref={videoRef}
         autoPlay
-        muted
+        muted={isLocal}
         playsInline
         className={`w-full h-full ${isSharing ? 'object-contain bg-black' : 'object-cover'} transition-opacity duration-200 ${
           isLocal && !isSharing ? 'scale-x-[-1]' : ''
         } ${!hasVideo ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'}`}
       />
-
-      {/* NOTE: Remote audio is now routed through Web Audio pipeline above, NOT via <audio> element */}
 
       {/* Avatar when camera off */}
       {!hasVideo && (
