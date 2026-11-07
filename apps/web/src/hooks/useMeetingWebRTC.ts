@@ -97,9 +97,18 @@ function optimizeAudioSdp(sdp: string): string {
 
 /**
  * Apply encoding parameters to video senders for adaptive bitrate.
- * Limits max bitrate to keep CPU/bandwidth usage reasonable.
+ * Bitrate scales DOWN as participant count rises so total upload stays manageable.
+ *
+ * Full mesh bandwidth math (upload per device):
+ *   2 people  → 800 kbps ×1  = 800 kbps   ✓
+ *   5 people  → 300 kbps ×4  = 1.2 Mbps   ✓
+ *   10 people → 150 kbps ×9  = 1.35 Mbps  ✓
  */
-async function applyVideoEncodings(sender: RTCRtpSender, isScreen = false) {
+async function applyVideoEncodings(
+  sender: RTCRtpSender,
+  isScreen = false,
+  peerCount = 1,
+) {
   try {
     const params = sender.getParameters();
     if (!params.encodings || params.encodings.length === 0) {
@@ -107,9 +116,24 @@ async function applyVideoEncodings(sender: RTCRtpSender, isScreen = false) {
     }
     const enc = params.encodings[0];
     if (enc) {
-      enc.maxBitrate = isScreen ? 2_500_000 : 800_000;
-      enc.maxFramerate = isScreen ? 15 : 30;
-      enc.networkPriority = isScreen ? 'high' : 'medium';
+      if (isScreen) {
+        enc.maxBitrate = 2_500_000;
+        enc.maxFramerate = 15;
+        enc.networkPriority = 'high';
+      } else {
+        // Adaptive: drops proportionally with participant count
+        // Floor 100 kbps (still a recognisable face), ceiling 800 kbps
+        const adaptiveBitrate = Math.max(
+          100_000,
+          Math.round(800_000 / Math.max(1, peerCount)),
+        );
+        enc.maxBitrate = adaptiveBitrate;
+        // Fewer fps for large groups — saves CPU on encode AND decode
+        enc.maxFramerate = peerCount > 6 ? 15 : 30;
+        enc.networkPriority = 'medium';
+        // Chrome/Edge: degrade resolution before framerate (ScalabilityMode hint)
+        try { (enc as any).scalabilityMode = 'L1T2'; } catch { /* ignored */ }
+      }
     }
     await sender.setParameters(params);
   } catch {
@@ -307,7 +331,7 @@ export function useMeetingWebRTC({
 
     // Apply encoding limits to video sender
     const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
-    if (videoSender) void applyVideoEncodings(videoSender, !!screenStreamRef.current);
+    if (videoSender) void applyVideoEncodings(videoSender, !!screenStreamRef.current, peerConnectionsRef.current.size);
 
     // Send ICE candidates
     pc.onicecandidate = (event) => {
@@ -422,6 +446,18 @@ export function useMeetingWebRTC({
 
     return pc;
   }, [syncRemoteParticipantsToStore]);
+
+  // ─── Re-apply adaptive encodings to ALL senders when peer count changes ──
+  // Called after every join/leave so bitrate budget is always shared correctly.
+  const rebalanceEncodings = useCallback(() => {
+    const count = peerConnectionsRef.current.size;
+    const isScreen = !!screenStreamRef.current;
+    peerConnectionsRef.current.forEach((pc) => {
+      if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') return;
+      const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
+      if (videoSender) void applyVideoEncodings(videoSender, isScreen, count);
+    });
+  }, []);
 
   // ─── Collect RTCStats for quality estimation ──────────────────────────────
   const startStatsCollection = useCallback(() => {
@@ -713,6 +749,8 @@ export function useMeetingWebRTC({
         // When the newcomer's offer arrives via meeting:signal we can process it immediately.
         createPeerConnection(peer.socketId);
         syncRemoteParticipantsToStore();
+        // Rebalance bitrate budget — lower quality per-connection as group grows
+        rebalanceEncodings();
       });
 
       // Peer reconnected with new socket — update mapping
@@ -1037,6 +1075,8 @@ export function useMeetingWebRTC({
         const timer = iceRestartTimersRef.current.get(payload.socketId);
         if (timer) { clearTimeout(timer); iceRestartTimersRef.current.delete(payload.socketId); }
         syncRemoteParticipantsToStore();
+        // Someone left → more bandwidth available, upgrade remaining connections
+        rebalanceEncodings();
       });
 
       // Start stats collection and keepalive heartbeat
@@ -1073,7 +1113,7 @@ export function useMeetingWebRTC({
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, [roomCode, participantName, isHost, createPeerConnection, syncRemoteParticipantsToStore, startStatsCollection]);
+  }, [roomCode, participantName, isHost, createPeerConnection, syncRemoteParticipantsToStore, startStatsCollection, rebalanceEncodings]);
 
   // ─── Toggle Microphone ────────────────────────────────────────────────────
   const toggleMic = useCallback((): boolean => {

@@ -1129,6 +1129,14 @@ export default function MeetingRoom() {
   // Number of rows needed — used to give each row equal height inside the container
   const gridRows = Math.ceil(count / gridCols);
 
+  // Auto-switch to speaker view when 7+ people join (gallery tiles become too small).
+  // The active speaker fills the screen; small strip of thumbnails stays visible.
+  useEffect(() => {
+    if (count >= 7 && store.viewMode === 'gallery') {
+      store.setViewMode('speaker');
+    }
+  }, [count]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const connLabel = {
     disconnected: 'Disconnected',
     connecting: 'Connecting…',
@@ -1347,24 +1355,36 @@ export default function MeetingRoom() {
           {store.viewMode === 'speaker' && speakerParticipant ? (
             /* ── SPEAKER VIEW ── */
             <div className="flex-1 flex flex-col min-h-0 p-3 gap-3">
-              {/* Thumbnail strip (other participants) — horizontally scrollable */}
+              {/* Thumbnail strip (other participants) — horizontally scrollable.
+                  With 10+ people only the first 8 thumbnails are rendered as video;
+                  extras show avatar-only tiles to keep GPU memory bounded. */}
               {allParticipants.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto flex-shrink-0 h-28 pb-1 scrollbar-thin">
                   {allParticipants
                     .filter((p) => p.identity !== speakerParticipant.identity)
-                    .map((p) => (
+                    .map((p, idx) => (
                       <div
                         key={p.identity}
                         onClick={() => store.setActiveSpeakerId(p.identity)}
                         className="w-40 h-full flex-shrink-0 cursor-pointer rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-violet-400 transition-all"
                       >
-                        <ParticipantTile
-                          participant={p}
-                          isLocal={p.identity === store.localParticipant?.identity}
-                          isActiveSpeaker={p.identity === activeSpeakerId}
-                          fallbackStream={p.identity === store.localParticipant?.identity ? localStream : (p as any).stream}
-                          activeReaction={tileReactions[p.identity] || null}
-                        />
+                        {/* Beyond tile 8, show a lightweight avatar to save GPU/CPU */}
+                        {idx < 8 ? (
+                          <ParticipantTile
+                            participant={p}
+                            isLocal={p.identity === store.localParticipant?.identity}
+                            isActiveSpeaker={p.identity === activeSpeakerId}
+                            fallbackStream={p.identity === store.localParticipant?.identity ? localStream : (p as any).stream}
+                            activeReaction={tileReactions[p.identity] || null}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1a1f2e] flex flex-col items-center justify-center gap-1">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center font-bold text-white text-sm">
+                              {((p as any).name || 'G')[0].toUpperCase()}
+                            </div>
+                            <span className="text-[10px] text-white/50 truncate max-w-[90%]">{(p as any).name || 'Guest'}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                 </div>
